@@ -1062,6 +1062,15 @@ class Slice(OnnxOpConverter):
                                  end=_expr.const(ends, dtype="int32"))
 
 
+class Range(OnnxOpConverter):
+    """ Operator converter for Range.
+    """
+    @classmethod
+    def _impl_v11(cls, inputs, attr, params):
+        return _op.arange(inputs[0], inputs[1], inputs[2],
+                          dtype=infer_type(inputs[0]).checked_type.dtype)
+
+
 class Gather(OnnxOpConverter):
     """ Operator converter for Gather.
     """
@@ -1452,6 +1461,7 @@ class Expand(OnnxOpConverter):
     """
     @classmethod
     def _impl_v8(cls, inputs, attr, params):
+        print(np.array(infer_shape(inputs[0])).astype('int32'))
         in_shape = np.array(infer_shape(inputs[0])).astype('int32')
         if get_name(inputs[1]) in params:
             shape = params[inputs[1].name_hint].asnumpy().astype('int32')
@@ -1906,6 +1916,7 @@ def _get_convert_map(opset):
         # 'RandomNormal'
         # 'RandomUniformLike'
         # 'RandomNormalLike'
+        'Range': Range.get_converter(opset),
 
         # defs/logical
 
