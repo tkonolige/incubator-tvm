@@ -2201,7 +2201,13 @@ class GraphProto(ExprFunctor):
                 if i_name in self._shape:
                     tshape = self._shape[i_name]
                 else:
-                    raise ValueError("Must provide an input shape for `{0}`.".format(i_name))
+                    tshape = self._parse_shape(i)
+                    if tshape is not None:
+                        self._shape[i_name] = tshape
+                    else:
+                        raise ValueError("Input `{}` has dynamic shape, so "
+                                         "you must provide an input shape for "
+                                         "it.".format(i_name))
                 if isinstance(self._dtype, dict):
                     dtype = self._dtype[i_name] if i_name in self._dtype else d_type
                 else:
@@ -2314,6 +2320,17 @@ class GraphProto(ExprFunctor):
             if a.name not in attrs:
                 raise ValueError("Cannot parse attribute: \n{}\n.".format(a))
         return attrs
+
+    def _parse_shape(self, value_proto):
+        """Parse shape from ValueInfoProto, fails if shape contains dynamic size."""
+        if hasattr(value_proto, 'type') and hasattr(value_proto.type, 'tensor_type'):
+            shape = []
+            for d in value_proto.type.tensor_type.shape.dim:
+                if not hasattr(d, 'dim_value'):
+                    return None  # Shape has dynamic dimension
+                shape.append(d.dim_value)
+            return shape
+        return None
 
     def _convert_operator(self,
                           op_name,
