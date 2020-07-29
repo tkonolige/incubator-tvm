@@ -128,18 +128,6 @@ def dimension_picker(prefix, suffix=''):
     return _impl
 
 
-def revert_caffe2_pad(pads):
-    """Caffe2 requires two times the normal padding."""
-    if len(pads) == 4:
-        pads = pads[:2]
-    elif len(pads) == 2:
-        pass
-    else:
-        raise tvm.error.OpAttributeInvalid(
-            'Number of pads must be either 2 or 4.')
-    return pads
-
-
 def get_pad_pair(input1d, kernel1d, stride1d):
     """infer pad size"""
     if input1d % stride1d == 0:
@@ -432,7 +420,7 @@ class ConvTranspose(OnnxOpConverter):
             transforms={
                 'kernel_shape': 'kernel_size',
                 'dilations': ('dilation', (0, 0)),
-                'pads': ('padding', (0, 0), revert_caffe2_pad)
+                'pads': ('padding', (0, 0))
             },
             disables=['output_shape'],
             custom_check=dimension_constraint())(inputs[:2], attr, params)
