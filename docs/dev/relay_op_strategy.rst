@@ -33,7 +33,7 @@ Operator Strategy Design
 ------------------------
 
 The basic element in operator strategy is an ``OpImplementation``. It includes
-the a pair of compute and schedule function, the name of the implementation,
+a pair of compute and schedule functions, the name of the implementation,
 and a priority level (the use of priority level is explained in
 `Select Implementation from Op Strategy`_).
 

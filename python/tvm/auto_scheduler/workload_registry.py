@@ -89,7 +89,7 @@ def make_workload_key(func, args):
     ----------
     func : Union[Function, str]
         The function that returns the compute declaration Tensors.
-        Can be the a function or the function name.
+        Can be a function or function name.
     args : Args
         The args of the function.
 

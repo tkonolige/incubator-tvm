@@ -327,7 +327,7 @@ The name te stands for "tensor expression". This is a domain-specific language m
 Importantly, a tensor expression itself is not a self-contained function that can be stored into IRModule. Instead, it is a fragment of IR that we can stitch together to build an IRModule.
 
 `te/schedule` provides a collection of scheduling primitives to control the function being generated. In the future, we might bring some of
-these scheduling components to the a `tir::PrimFunc` itself.
+these scheduling components to the `tir::PrimFunc` itself.
 
 .. toctree::
    :maxdepth: 1

@@ -83,7 +83,7 @@ class ComputeDAG(Object):
 
         Returns
         -------
-            A `te.schedule` and the a list of `te.Tensor` to be used in `tvm.lower` or `tvm.build`.
+            A `te.schedule` and a list of `te.Tensor` to be used in `tvm.lower` or `tvm.build`.
         """
         state_obj = state if isinstance(state, StateObject) else state.state_object
         return _ffi_api.ComputeDAGApplyStepsFromState(self, state_obj)

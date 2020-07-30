@@ -169,7 +169,7 @@ def auto_schedule(task, search_policy='default', tuning_options=None):
 
     Returns
     -------
-        A `te.schedule` and the a list of `te.Tensor` to be used in `tvm.lower` or `tvm.build`.
+        A `te.schedule` and a list of `te.Tensor` to be used in `tvm.lower` or `tvm.build`.
     """
     if not isinstance(task, SearchTask):
         raise ValueError("Invalid task: " + task +
