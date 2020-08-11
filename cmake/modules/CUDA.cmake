@@ -55,6 +55,12 @@ if(USE_CUDA)
     endif()
   endif(USE_CUBLAS)
 
+  if(USE_CUSPARSE)
+    message(STATUS "Build with cuSPARSE support")
+    list(APPEND RUNTIME_SRCS src/runtime/contrib/cusparse/cusparse.cc)
+    list(APPEND TVM_RUNTIME_LINKER_LIBS ${CUDA_CUSPARSE_LIBRARY})
+  endif(USE_CUSPARSE)
+
   if(USE_THRUST)
     message(STATUS "Build with Thrust support")
     cmake_minimum_required(VERSION 3.13) # to compile CUDA code
