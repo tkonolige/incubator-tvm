@@ -576,7 +576,7 @@ TVM_DLL Tensor placeholder(Array<PrimExpr> shape, DataType dtype = DataType::Flo
  * \param attrs Optional additional attributes of the compute.
  */
 TVM_DLL Tensor compute(Array<PrimExpr> shape, FCompute fcompute, std::string name = "tensor",
-                       std::string tag = "", Map<String, ObjectRef> attrs = {});
+                       std::string tag = "", Map<String, ObjectRef> attrs = {}, Array<String> axis_names = {});
 
 /*!
  * \brief Construct a new tensor by computing over shape,
@@ -589,7 +589,7 @@ TVM_DLL Tensor compute(Array<PrimExpr> shape, FCompute fcompute, std::string nam
  */
 TVM_DLL Array<Tensor> compute(Array<PrimExpr> shape, FBatchCompute fcompute,
                               std::string name = "tensor", std::string tag = "",
-                              Map<String, ObjectRef> attrs = {});
+                              Map<String, ObjectRef> attrs = {}, Array<String> axis_names = {});
 
 /*!
  * \brief Construct new tensors by scan.
@@ -611,27 +611,27 @@ TVM_DLL Array<Tensor> scan(Array<Tensor> init, Array<Tensor> update,
 // same as compute, specialized for different fcompute function
 inline Tensor compute(Array<PrimExpr> shape, std::function<PrimExpr(Var)> f,
                       std::string name = "tensor", std::string tag = "",
-                      Map<String, ObjectRef> attrs = {}) {
+                      Map<String, ObjectRef> attrs = {}, Array<String> axis_names = {}) {
   FCompute fc = [f](const Array<Var>& i) { return f(i[0]); };
-  return compute(shape, fc, name, tag, attrs);
+  return compute(shape, fc, name, tag, attrs, axis_names);
 }
 inline Tensor compute(Array<PrimExpr> shape, std::function<PrimExpr(Var, Var)> f,
                       std::string name = "tensor", std::string tag = "",
-                      Map<String, ObjectRef> attrs = {}) {
+                      Map<String, ObjectRef> attrs = {}, Array<String> axis_names = {}) {
   FCompute fc = [f](const Array<Var>& i) { return f(i[0], i[1]); };
-  return compute(shape, fc, name, tag, attrs);
+  return compute(shape, fc, name, tag, attrs, axis_names);
 }
 inline Tensor compute(Array<PrimExpr> shape, std::function<PrimExpr(Var, Var, Var)> f,
                       std::string name = "tensor", std::string tag = "",
-                      Map<String, ObjectRef> attrs = {}) {
+                      Map<String, ObjectRef> attrs = {}, Array<String> axis_names = {}) {
   FCompute fc = [f](const Array<Var>& i) { return f(i[0], i[1], i[2]); };
-  return compute(shape, fc, name, tag, attrs);
+  return compute(shape, fc, name, tag, attrs, axis_names);
 }
 inline Tensor compute(Array<PrimExpr> shape, std::function<PrimExpr(Var, Var, Var, Var)> f,
                       std::string name = "tensor", std::string tag = "",
-                      Map<String, ObjectRef> attrs = {}) {
+                      Map<String, ObjectRef> attrs = {}, Array<String> axis_names = {}) {
   FCompute fc = [f](const Array<Var>& i) { return f(i[0], i[1], i[2], i[3]); };
-  return compute(shape, fc, name, tag, attrs);
+  return compute(shape, fc, name, tag, attrs, axis_names);
 }
 
 // inline function.

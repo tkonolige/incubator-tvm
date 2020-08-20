@@ -855,6 +855,11 @@ Array<Tensor> Schedule::rfactor(const Tensor& tensor, const IterVar& axis, int f
     factor_tensors.push_back(factor_op.output(idx));
     old_tensors.push_back(reduce_stage->op.output(idx));
   }
+  // Get axis names
+  std::vector<String> names;
+  for(auto& iv : compute_op->axis) {
+    names.emplace_back(iv->var->name_hint);
+  }
   Array<Tensor> repl_tensors = compute(
       old_tensors[0]->shape,
       [&](const Array<Var>& i) {
@@ -898,7 +903,7 @@ Array<Tensor> Schedule::rfactor(const Tensor& tensor, const IterVar& axis, int f
         }
         return reductions;
       },
-      reduce_stage->op->name + ".repl");
+      reduce_stage->op->name + ".repl", reduce_stage->op->tag + ".repl", {}, names);
 
   std::unordered_map<Tensor, Tensor> vmap;
   std::unordered_map<Tensor, Tensor> rvmap;

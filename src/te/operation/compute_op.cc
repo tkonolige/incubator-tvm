@@ -88,15 +88,21 @@ Array<PrimExpr> BaseComputeOpNode::output_shape(size_t idx) const {
 }
 
 Tensor compute(Array<PrimExpr> shape, FCompute fcompute, std::string name, std::string tag,
-               Map<String, ObjectRef> attrs) {
+               Map<String, ObjectRef> attrs, Array<String> axis_names) {
   // compute dimension.
   size_t ndim = shape.size();
   std::vector<IterVar> axis;
   std::vector<Var> args;
   for (size_t i = 0; i < ndim; ++i) {
-    std::ostringstream os;
-    os << "ax" << i;
-    axis.emplace_back(IterVar(Range(0, shape[i]), Var(os.str(), shape[i].dtype()), kDataPar));
+    std::string ax_name;
+    if(i < axis_names.size()) {
+      ax_name = axis_names[i];
+    } else {
+      std::ostringstream os;
+      os << "ax" << i;
+      ax_name = os.str();
+    }
+    axis.emplace_back(IterVar(Range(0, shape[i]), Var(ax_name, shape[i].dtype()), kDataPar));
     args.push_back(axis.back()->var);
   }
 
@@ -104,15 +110,21 @@ Tensor compute(Array<PrimExpr> shape, FCompute fcompute, std::string name, std::
 }
 
 Array<Tensor> compute(Array<PrimExpr> shape, FBatchCompute fcompute, std::string name,
-                      std::string tag, Map<String, ObjectRef> attrs) {
+                      std::string tag, Map<String, ObjectRef> attrs, Array<String> axis_names) {
   // compute dimension.
   size_t ndim = shape.size();
   std::vector<IterVar> axis;
   std::vector<Var> args;
   for (size_t i = 0; i < ndim; ++i) {
-    std::ostringstream os;
-    os << "ax" << i;
-    axis.emplace_back(IterVar(Range(0, shape[i]), Var(os.str(), shape[i].dtype()), kDataPar));
+    std::string ax_name;
+    if(i < axis_names.size()) {
+      ax_name = axis_names[i];
+    } else {
+      std::ostringstream os;
+      os << "ax" << i;
+      ax_name = os.str();
+    }
+    axis.emplace_back(IterVar(Range(0, shape[i]), Var(ax_name, shape[i].dtype()), kDataPar));
     args.push_back(axis.back()->var);
   }
 
