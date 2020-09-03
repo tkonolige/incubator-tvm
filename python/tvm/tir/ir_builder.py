@@ -60,9 +60,10 @@ class BufferVar(ObjectGeneric):
     IRBuilder.buffer_ptr
     IRBuilder.allocate
     """
-    def __init__(self, builder, buffer_var, content_type):
+    def __init__(self, builder, buffer_var, shape, content_type):
         self._builder = builder
         self._buffer_var = buffer_var
+        self._shape = shape
         self._content_type = content_type
 
     def asobject(self):
@@ -72,8 +73,19 @@ class BufferVar(ObjectGeneric):
     def dtype(self):
         return self._content_type
 
+    def _linear_index(self, index):
+        if not isinstance(index, tuple):
+            return index
+        dim_size = 1
+        lidx = 0
+        for dim, idx in zip(reversed(self._shape), reversed(index)):
+            lidx += idx * dim_size
+            dim_size *= dim
+        return lidx
+
     def __getitem__(self, index):
         t = DataType(self._content_type)
+        index = self._linear_index(index)
         if t.lanes > 1:
             base = index * t.lanes
             index = _expr.Ramp(base, const(1, base.dtype), t.lanes)
@@ -85,6 +97,7 @@ class BufferVar(ObjectGeneric):
             raise ValueError(
                 "data type does not match content type %s vs %s" % (
                     value.dtype, self._content_type))
+        index = self._linear_index(index)
         t = DataType(self._content_type)
         if t.lanes > 1:
             base = index * t.lanes
@@ -332,7 +345,7 @@ class IRBuilder(object):
             self.scope_attr(buffer_var, "storage_scope", scope)
         self.emit(lambda x: _stmt.Allocate(
             buffer_var, dtype, shape, const(1, dtype="uint1"), x))
-        return BufferVar(self, buffer_var, dtype)
+        return BufferVar(self, buffer_var, shape, dtype)
 
     def pointer(self, content_type, name="ptr"):
         """Create pointer variable with content type.
@@ -351,7 +364,7 @@ class IRBuilder(object):
             The buffer var representing the buffer.
         """
         buffer_var = _expr.Var(name, dtype="handle")
-        return BufferVar(self, buffer_var, content_type)
+        return BufferVar(self, buffer_var, None, content_type)
 
     def buffer_ptr(self, buf):
         """Create pointer variable corresponds to buffer ptr.
@@ -366,7 +379,7 @@ class IRBuilder(object):
         ptr : BufferVar
             The buffer var representing the buffer.
         """
-        return BufferVar(self, buf.data, buf.dtype)
+        return BufferVar(self, buf.data, buf.shape, buf.dtype)
 
     def likely(self, expr):
         """Add likely tag for expression.
