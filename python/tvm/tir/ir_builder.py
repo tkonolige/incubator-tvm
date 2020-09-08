@@ -76,6 +76,7 @@ class BufferVar(ObjectGeneric):
     def _linear_index(self, index):
         if not isinstance(index, tuple):
             return index
+        assert len(index) == len(self._shape), "Index size (%s) does not match shape size (%s)" % (len(index), len(self._shape))
         dim_size = 1
         lidx = 0
         for dim, idx in zip(reversed(self._shape), reversed(index)):
