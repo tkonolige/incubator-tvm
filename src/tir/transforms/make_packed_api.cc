@@ -204,9 +204,13 @@ PrimFunc MakePackedAPI(PrimFunc&& func, int num_unpacked_args) {
   if (undefined.size() != 0) {
     std::ostringstream os;
     for (Var v : undefined) {
-      os << " \'" << v->name_hint << "\' ";
+      if(os.tellp() > 0) {
+        os << ", ";
+      }
+      os << "\'" << v->name_hint << "\'";
     }
-    os << " is not bound to any variables";
+    os << " are not bound to any variables";
+    LOG(INFO) << func_ptr->params;
     LOG(FATAL) << "Not all Vars are passed in api_args: " << os.str();
   }
 

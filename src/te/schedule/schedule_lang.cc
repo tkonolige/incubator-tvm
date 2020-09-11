@@ -47,10 +47,18 @@ size_t FindLeafVar(ArrayNode* all_vars, ArrayNode* leaf_vars, const IterVar& v) 
   size_t pos = FindNodeRef(leaf_vars, v);
   if (pos < leaf_vars->size()) return pos;
 
+  std::stringstream s;
+  for(auto& v : *leaf_vars) {
+    if(s.tellp() > 0) {
+      s << ", ";
+    }
+    s << v;
+  }
+
   if (FindNodeRef(all_vars, v) < all_vars->size()) {
     LOG(FATAL) << "Operate on iter var " << v << "that has already been split";
   } else {
-    LOG(FATAL) << "Operate on iter var " << v << "that is not part of the schedule";
+    LOG(FATAL) << "Operate on iter var " << v << "that is not part of the schedule. Iter vars in schedule are " << s.str();
   }
   return 0;
 }
@@ -147,9 +155,19 @@ Stage& Stage::compute_at(Stage parent, IterVar scope) {  // NOLINT(*)
       found = true;
       break;
     }
+
   }
-  CHECK(found) << "Cannot find the axis " << scope << " in parent's leaf_iter_vars"
-               << " parent=" << parent;
+  if (!found) {
+    std::stringstream s;
+    for(auto& v : parent->leaf_iter_vars) {
+      if(s.tellp() > 0) {
+        s << ", ";
+      }
+      s << v;
+    }
+    CHECK(found) << "Cannot find the axis " << scope << " in parent's leaf_iter_vars"
+                 << " parent=" << parent << " leaf_iter_vars=" << s.str();
+  }
   return *this;
 }
 
