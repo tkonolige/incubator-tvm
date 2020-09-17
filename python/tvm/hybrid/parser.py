@@ -345,6 +345,8 @@ class HybridParser(ast.NodeVisitor):
             if not isinstance(node.value, ast.Call):
                 self.report_error("Unsupported Assign stmt")
             self.scope_emitter.update_symbol(target.id, rhs)
+            # Parse the next node in the AST so we have something to return
+            return self.visit(self.scope_emitter.node_stack[-1].pop())
         elif isinstance(target, ast.Subscript):
             # scenario 2&3
             symbol, indexes = self.visit(target)
