@@ -21,6 +21,30 @@ from tvm import te
 
 
 def gen_ir_1d(data, indices, updates, axis, out):
+    """Generate scatter ir for 1d inputs
+
+    Parameters
+    ----------
+    data : tir.Tensor
+        The input data to the operator.
+
+    indices : tir.Tensor
+        The index locations to update.
+
+    updates : tir.Tensor
+        The values to update.
+
+    axis : int
+        The axis to scatter on
+
+    out : tir.Tensor
+        The output tensor.
+
+    Returns
+    -------
+    ret : tir
+        The computational ir.
+    """
     assert axis == 0
     n = data.shape[0]
 
@@ -50,6 +74,30 @@ def gen_ir_1d(data, indices, updates, axis, out):
 
 
 def gen_ir_2d(data, indices, updates, axis, out):
+    """Generate scatter ir for 2d inputs
+
+    Parameters
+    ----------
+    data : tir.Tensor
+        The input data to the operator.
+
+    indices : tir.Tensor
+        The index locations to update.
+
+    updates : tir.Tensor
+        The values to update.
+
+    axis : int
+        The axis to scatter on
+
+    out : tir.Tensor
+        The output tensor.
+
+    Returns
+    -------
+    ret : tir
+        The computational ir.
+    """
     n = data.shape[0]
     c = data.shape[1]
 
@@ -89,6 +137,30 @@ def gen_ir_2d(data, indices, updates, axis, out):
 
 
 def gen_ir_3d(data, indices, updates, axis, out):
+    """Generate scatter ir for 3d inputs
+
+    Parameters
+    ----------
+    data : tir.Tensor
+        The input data to the operator.
+
+    indices : tir.Tensor
+        The index locations to update.
+
+    updates : tir.Tensor
+        The values to update.
+
+    axis : int
+        The axis to scatter on
+
+    out : tir.Tensor
+        The output tensor.
+
+    Returns
+    -------
+    ret : tir
+        The computational ir.
+    """
     n = data.shape[0]
     c = data.shape[1]
     h = data.shape[2]
@@ -142,6 +214,30 @@ def gen_ir_3d(data, indices, updates, axis, out):
 
 
 def gen_ir_4d(data, indices, updates, axis, out):
+    """Generate scatter ir for 4d inputs
+
+    Parameters
+    ----------
+    data : tir.Tensor
+        The input data to the operator.
+
+    indices : tir.Tensor
+        The index locations to update.
+
+    updates : tir.Tensor
+        The values to update.
+
+    axis : int
+        The axis to scatter on
+
+    out : tir.Tensor
+        The output tensor.
+
+    Returns
+    -------
+    ret : tir
+        The computational ir.
+    """
     n = data.shape[0]
     c = data.shape[1]
     h = data.shape[2]
@@ -254,7 +350,7 @@ def scatter(data, indices, updates, axis=0):
     assert axis < len(data.shape)
 
     rank = len(data.shape)
-    assert rank >= 1 and rank <= 4, "scatter only supports 1-4 dimensions"
+    assert 1 <= rank <= 4, "scatter only supports 1-4 dimensions"
 
     ir_funcs = {
         1: gen_ir_1d,
