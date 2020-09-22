@@ -26,12 +26,6 @@ endif()
 
 set(FASTRPC_SRC "${CMAKE_CURRENT_SOURCE_DIR}")
 
-include_directories(include)
-include_directories(${HEXAGON_SDK_ROOT}/incs)
-include_directories(${HEXAGON_SDK_ROOT}/incs/stddef)
-include_directories(
-    ${HEXAGON_SDK_ROOT}/libs/common/remote/ship/android_Release_aarch64)
-
 set(QAIC_EXE "${HEXAGON_SDK_ROOT}/tools/qaic/Ubuntu16/qaic")
 set(QAIC_FLAGS
     "-I${HEXAGON_SDK_ROOT}/incs/stddef"
@@ -95,36 +89,6 @@ if("${FASTRPC_LIBS}" STREQUAL "SKEL")
             "Please set HEXAGON_ARCH to one of v60, v62, v65, v66")
   endif()
 
-  include_directories(
-      ${HEXAGON_SDK_ROOT}/libs/common/qurt/${HEXARCH_DIR}/include/qurt)
-  include_directories(
-      ${HEXAGON_SDK_ROOT}/libs/common/qurt/${HEXARCH_DIR}/include/posix)
-
-  # Extra compile flags (both C and C++).
-  set(EXTRA_COMP_FLAGS
-    "-O3"
-    "-m${HEXAGON_ARCH}"
-  )
-  string(REGEX REPLACE ";" " " EXTRA_COMP_FLAGS_STR "${EXTRA_COMP_FLAGS}")
-  message(STATUS "EXTRA_COMP_FLAGS_STR: ${EXTRA_COMP_FLAGS_STR}")
-  set(CMAKE_C_FLAGS "${EXTRA_COMP_FLAGS_STR} ${CMAKE_C_FLAGS}")
-  set(CMAKE_CXX_FLAGS "${EXTRA_COMP_FLAGS_STR} ${CMAKE_CXX_FLAGS}")
-
-  set(EXTRA_LINK_FLAGS
-      "-Wl,--no-threads"
-      "-Wl,--wrap=malloc"
-      "-Wl,--wrap=calloc"
-      "-Wl,--wrap=free"
-      "-Wl,--wrap=realloc"
-      "-Wl,--wrap=memalign"
-      "-Wl,--wrap=posix_memalign"
-      "-Wl,--wrap=__stack_chk_fail"
-  )
-  string(REGEX REPLACE ";" " " EXTRA_LINK_FLAGS_STR "${EXTRA_LINK_FLAGS}")
-
-  # Extra linker flags for linking shared libraries.
-  set(CMAKE_SHARED_LINKER_FLAGS
-        "${EXTRA_LINK_FLAGS_STR} ${CMAKE_SHARED_LINKER_FLAGS}")
 
   set(SKEL_ND_SRCS
       "src/tvm_hvx.cc"
@@ -147,6 +111,38 @@ if("${FASTRPC_LIBS}" STREQUAL "SKEL")
       ${SKEL_D_SRCS}
   )
 
+  target_include_directories(tvm_remote_skel PUBLIC
+      ${HEXAGON_SDK_ROOT}/libs/common/qurt/${HEXARCH_DIR}/include/qurt)
+  target_include_directories(tvm_remote_skel PUBLIC
+      ${HEXAGON_SDK_ROOT}/libs/common/qurt/${HEXARCH_DIR}/include/posix)
+
+  # Extra compile flags (both C and C++).
+  set(EXTRA_COMP_FLAGS "-O3 -m${HEXAGON_ARCH}")
+  message(STATUS "EXTRA_COMP_FLAGS: ${EXTRA_COMP_FLAGS}")
+  target_compile_options(tvm_remote_skel PUBLIC "${EXTRA_COMP_FLAGS}")
+
+  set(EXTRA_LINK_FLAGS
+      "-Wl,--no-threads"
+      "-Wl,--wrap=malloc"
+      "-Wl,--wrap=calloc"
+      "-Wl,--wrap=free"
+      "-Wl,--wrap=realloc"
+      "-Wl,--wrap=memalign"
+      "-Wl,--wrap=posix_memalign"
+      "-Wl,--wrap=__stack_chk_fail"
+  )
+  string(REGEX REPLACE ";" " " EXTRA_LINK_FLAGS_STR "${EXTRA_LINK_FLAGS}")
+
+  # Extra linker flags for linking shared libraries.
+  set_target_properties(tvm_remote_skel PROPERTIES LINK_FLAGS "${EXTRA_LINK_FLAGS}")
+
+  target_include_directories(tvm_remote_skel PRIVATE include)
+  target_include_directories(tvm_remote_skel PRIVATE ${HEXAGON_SDK_ROOT}/incs)
+  target_include_directories(tvm_remote_skel PRIVATE ${HEXAGON_SDK_ROOT}/incs/stddef)
+  target_include_directories(tvm_remote_skel PRIVATE
+      ${HEXAGON_SDK_ROOT}/libs/common/remote/ship/android_Release_aarch64)
+
+
   # Separate shared library with __wrap_pthread_create.
   # It is necessary to have it as a separate library because it defines
   # a function that libtvm_runtime.so will call. Because of that, this
@@ -158,22 +154,22 @@ if("${FASTRPC_LIBS}" STREQUAL "SKEL")
 else()
   # Stub libraries.
   #
-  include_directories(${HEXAGON_SDK_ROOT}/incs/a1std)
-  include_directories(${HEXAGON_SDK_ROOT}/incs/qlist)
-  include_directories(${HEXAGON_SDK_ROOT}/libs/common/rpcmem/inc)
-  link_directories(
-      ${HEXAGON_SDK_ROOT}/libs/common/remote/ship/android_Release_aarch64)
-
   add_library(tvm_remote_nd_stub SHARED
       "${FASTRPC_SRC}/include/${TVM_REMOTE_ND_H}"
       "${HEXAGON_SDK_ROOT}/libs/common/rpcmem/src/rpcmem_android.c"
       "${TVM_REMOTE_ND_STUB_C}"
   )
+  target_include_directories(tvm_remote_nd_stub PRIVATE ${HEXAGON_SDK_ROOT}/incs/a1std)
+  target_include_directories(tvm_remote_nd_stub PRIVATE ${HEXAGON_SDK_ROOT}/incs/qlist)
+  target_include_directories(tvm_remote_nd_stub PRIVATE ${HEXAGON_SDK_ROOT}/libs/common/rpcmem/inc)
+  set_target_properties(tvm_remote_nd_stub PROPERTIES LINK_DIRECTORIES
+      ${HEXAGON_SDK_ROOT}/libs/common/remote/ship/android_Release_aarch64)
+
   add_library(tvm_remote_stub SHARED
       "${FASTRPC_SRC}/include/${TVM_REMOTE_D_H}"
       "${HEXAGON_SDK_ROOT}/libs/common/rpcmem/src/rpcmem_android.c"
       "${TVM_REMOTE_D_STUB_C}"
   )
-  target_link_libraries(tvm_remote_nd_stub adsprpc)
-  target_link_libraries(tvm_remote_stub adsprpc)
+  target_link_libraries(tvm_remote_nd_stub PUBLIC adsprpc)
+  target_link_libraries(tvm_remote_stub PUBLIC adsprpc)
 endif()

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.8)
 project(tvm C CXX)
 
 # Utility functions
@@ -77,124 +77,6 @@ tvm_option(USE_TARGET_ONNX "Build with ONNX Codegen support" OFF)
 tvm_option(USE_ARM_COMPUTE_LIB "Build with Arm Compute Library" OFF)
 tvm_option(USE_ARM_COMPUTE_LIB_GRAPH_RUNTIME "Build with Arm Compute Library graph runtime" OFF)
 
-# include directories
-include_directories(${CMAKE_INCLUDE_PATH})
-include_directories("include")
-include_directories(SYSTEM ${DLPACK_PATH})
-include_directories(SYSTEM ${DMLC_PATH})
-include_directories(SYSTEM ${RANG_PATH})
-include_directories(SYSTEM ${COMPILER_RT_PATH})
-include_directories(SYSTEM ${PICOJSON_PATH})
-
-# initial variables
-set(TVM_LINKER_LIBS "")
-set(TVM_RUNTIME_LINKER_LIBS "")
-
-# Generic compilation options
-if(MSVC)
-  add_definitions(-DWIN32_LEAN_AND_MEAN)
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-  add_definitions(-D_SCL_SECURE_NO_WARNINGS)
-  add_definitions(-D_ENABLE_EXTENDED_ALIGNED_STORAGE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /bigobj")
-  if(USE_MSVC_MT)
-    foreach(flag_var
-        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-      if(${flag_var} MATCHES "/MD")
-        string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-      endif(${flag_var} MATCHES "/MD")
-    endforeach(flag_var)
-  endif()
-  # Disable common MSVC warnings
-  # Integer conversion warnings(e.g. int64 to int)
-  add_compile_options(/wd4244)
-  add_compile_options(/wd4267)
-  # Signed unsigned constant comparison
-  add_compile_options(/wd4018)
-  # Aligned alloc may not met(need c++17)
-  add_compile_options(/wd4316)
-  # unreferenced local variables(usually in exception catch)
-  add_compile_options(/wd4101)
-  # always inline keyword not necessary
-  add_compile_options(/wd4180)
-  # DLL interface warning in c++
-  add_compile_options(/wd4251)
-else(MSVC)
-  set(WARNING_FLAG -Wall)
-  if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    message(STATUS "Build in Debug mode")
-    set(CMAKE_C_FLAGS "-O0 -g ${WARNING_FLAG} -fPIC ${CMAKE_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "-O0 -g ${WARNING_FLAG} -fPIC ${CMAKE_CXX_FLAGS}")
-    set(CMAKE_CUDA_FLAGS "-O0 -g -Xcompiler=-Wall -Xcompiler=-fPIC ${CMAKE_CUDA_FLAGS}")
-  else()
-    set(CMAKE_C_FLAGS "-O2 ${WARNING_FLAG} -fPIC ${CMAKE_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "-O2 ${WARNING_FLAG} -fPIC ${CMAKE_CXX_FLAGS}")
-    set(CMAKE_CUDA_FLAGS "-O2 -Xcompiler=-Wall -Xcompiler=-fPIC ${CMAKE_CUDA_FLAGS}")
-    set(TVM_VISIBILITY_FLAG "")
-    if (HIDE_PRIVATE_SYMBOLS)
-      message(STATUS "Hide private symbols...")
-      set(TVM_VISIBILITY_FLAG "-fvisibility=hidden")
-    endif(HIDE_PRIVATE_SYMBOLS)
-  endif ()
-  if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND
-      CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
-    set(CMAKE_CXX_FLAGS "-faligned-new ${CMAKE_CXX_FLAGS}")
-  endif()
-  include(cmake/modules/ClangFlags.cmake)
-
-  # Detect if we're compiling for Hexagon.
-  set(TEST_FOR_HEXAGON_CXX
-      "#ifndef __hexagon__"
-      "#error"
-      "#endif"
-      "int main() {}"
-      # Define _start_main to avoid linking errors with -fPIC.
-      "extern \"C\" void _start_main() {}")
-  set(TEST_FOR_HEXAGON_DIR
-      "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp")
-  set(TEST_FOR_HEXAGON_FILE "${TEST_FOR_HEXAGON_DIR}/test_for_hexagon.cc")
-  string(REPLACE ";" "\n" TEST_FOR_HEXAGON_CXX_TEXT "${TEST_FOR_HEXAGON_CXX}")
-  file(WRITE "${TEST_FOR_HEXAGON_FILE}" "${TEST_FOR_HEXAGON_CXX_TEXT}")
-  try_compile(BUILD_FOR_HEXAGON "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}"
-              "${TEST_FOR_HEXAGON_FILE}")
-  file(REMOVE "${TEST_FOR_HEXAGON_FILE}")
-  if(BUILD_FOR_HEXAGON)
-    message(STATUS "Building for Hexagon")
-  endif()
-
-  # Detect if we're compiling for Android.
-  set(TEST_FOR_ANDROID_CXX
-      "#ifndef __ANDROID__"
-      "#error"
-      "#endif"
-      "int main() {}")
-  set(TEST_FOR_ANDROID_DIR
-      "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp")
-  set(TEST_FOR_ANDROID_FILE "${TEST_FOR_ANDROID_DIR}/test_for_android.cc")
-  string(REPLACE ";" "\n" TEST_FOR_ANDROID_CXX_TEXT "${TEST_FOR_ANDROID_CXX}")
-  file(WRITE "${TEST_FOR_ANDROID_FILE}" "${TEST_FOR_ANDROID_CXX_TEXT}")
-  try_compile(BUILD_FOR_ANDROID "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}"
-              "${TEST_FOR_ANDROID_FILE}")
-  file(REMOVE "${TEST_FOR_ANDROID_FILE}")
-  if(BUILD_FOR_ANDROID)
-    message(STATUS "Building for Android")
-  endif()
-endif(MSVC)
-
-# Hexagon has dlopen built into QuRT (no need for static library).
-if(NOT BUILD_FOR_HEXAGON)
-  list(APPEND TVM_RUNTIME_LINKER_LIBS ${CMAKE_DL_LIBS})
-endif()
-
-if(BUILD_FOR_ANDROID)
-  # EmuTLS on Android is in libgcc. Without it linked in, libtvm_runtime.so
-  # won't load on Android due to missing __emutls_XXX symbols.
-  list(APPEND TVM_RUNTIME_LINKER_LIBS "gcc")
-endif()
-
 # add source group
 FILE(GLOB_RECURSE GROUP_SOURCE "src/*.cc")
 FILE(GLOB_RECURSE GROUP_INCLUDE "src/*.h" "include/*.h")
@@ -263,22 +145,6 @@ file(GLOB RUNTIME_SRCS
   src/runtime/vm/*.cc
 )
 
-if(BUILD_FOR_HEXAGON)
-  # Add file implementing posix_memalign.
-  list(APPEND RUNTIME_SRCS src/runtime/hexagon/hexagon_posix.cc)
-
-  add_definitions(-D_MACH_I32=int)
-endif()
-
-# Package runtime rules
-if(NOT USE_RTTI)
-  add_definitions(-DDMLC_ENABLE_RTTI=0)
-endif()
-
-if (INDEX_DEFAULT_I64)
-  add_definitions(-DTVM_INDEX_DEFAULT_I64=1)
-endif()
-
 list(APPEND RUNTIME_SRCS 3rdparty/bfloat16/bfloat16.cc)
 
 if(USE_RPC)
@@ -317,6 +183,239 @@ if(USE_VM_PROFILER)
   list(APPEND RUNTIME_SRCS ${RUNTIME_VM_PROFILER_SRCS})
 endif(USE_VM_PROFILER)
 
+add_library(tvm_objs OBJECT ${COMPILER_SRCS})
+add_library(tvm_runtime_objs OBJECT ${RUNTIME_SRCS})
+
+# with cmake 3.12 we can just link to the object libraries themselves
+add_library(tvm SHARED $<TARGET_OBJECTS:tvm_objs> $<TARGET_OBJECTS:tvm_runtime_objs>)
+set_property(TARGET tvm APPEND PROPERTY LINK_OPTIONS "${TVM_VISIBILITY_FLAGS}")
+add_library(tvm_runtime SHARED $<TARGET_OBJECTS:tvm_runtime_objs>)
+set_property(TARGET tvm_runtime APPEND PROPERTY LINK_OPTIONS "${TVM_VISIBILITY_FLAGS}")
+
+
+# with cmake 3.12 these are automatically propogated if we use target_link_libraries
+# TODO: need to append, use set_property
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  INTERFACE_COMPILE_FEATURES
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_COMPILE_FEATURES>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_FEATURES>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  INTERFACE_COMPILE_OPTIONS
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_COMPILE_OPTIONS>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_OPTIONS>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  INTERFACE_COMPILE_DEFINITIONS
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_COMPILE_DEFINITIONS>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_DEFINITIONS>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  INTERFACE_SOURCES
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_SOURCES>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_SOURCES>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  INTERFACE_INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_SYSTEM_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_SYSTEM_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  INTERFACE_POSITION_INDEPENDENT_CODE
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_POSITION_INDEPENDENT_CODE>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_POSITION_INDEPENDENT_CODE>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  INTERFACE_LINK_LIBRARIES
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_LINK_LIBRARIES>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_LINK_LIBRARIES>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  COMPILE_FEATURES
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_COMPILE_FEATURES>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_FEATURES>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  COMPILE_OPTIONS
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_COMPILE_OPTIONS>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_OPTIONS>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  COMPILE_DEFINITIONS
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_COMPILE_DEFINITIONS>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_DEFINITIONS>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  SOURCES
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_SOURCES>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_SOURCES>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  SYSTEM_INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_SYSTEM_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_SYSTEM_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  POSITION_INDEPENDENT_CODE
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_POSITION_INDEPENDENT_CODE>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_POSITION_INDEPENDENT_CODE>
+    )
+set_property(TARGET tvm tvm_runtime APPEND PROPERTY
+  LINK_LIBRARIES
+    $<TARGET_PROPERTY:tvm_objs,INTERFACE_LINK_LIBRARIES>
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_LINK_LIBRARIES>
+    )
+
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  INTERFACE_COMPILE_FEATURES
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_FEATURES>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  INTERFACE_COMPILE_OPTIONS
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_OPTIONS>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  INTERFACE_COMPILE_DEFINITIONS
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_DEFINITIONS>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  INTERFACE_SOURCES
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_SOURCES>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  INTERFACE_INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_SYSTEM_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  INTERFACE_POSITION_INDEPENDENT_CODE
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_POSITION_INDEPENDENT_CODE>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  INTERFACE_LINK_LIBRARIES
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_LINK_LIBRARIES>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  COMPILE_FEATURES
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_FEATURES>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  COMPILE_OPTIONS
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_OPTIONS>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  COMPILE_DEFINITIONS
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_COMPILE_DEFINITIONS>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  SOURCES
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_SOURCES>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  SYSTEM_INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_SYSTEM_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  POSITION_INDEPENDENT_CODE
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_POSITION_INDEPENDENT_CODE>
+    )
+set_property(TARGET tvm_runtime APPEND PROPERTY
+  LINK_LIBRARIES
+    $<TARGET_PROPERTY:tvm_runtime_objs,INTERFACE_LINK_LIBRARIES>
+    )
+
+
+
+add_library(tvm_deps INTERFACE) # dummy library to hold dependencies
+# TODO(tkonolige): test against early version of cmake
+# TODO(tkonolige): split public and private dependencies
+target_link_libraries(tvm PUBLIC tvm_deps)
+target_link_libraries(tvm_runtime PUBLIC tvm_deps)
+# in cmake 3.13 we can just us link_libraries
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  INTERFACE_COMPILE_FEATURES
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_COMPILE_FEATURES>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  INTERFACE_COMPILE_OPTIONS
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_COMPILE_OPTIONS>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  INTERFACE_COMPILE_DEFINITIONS
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_COMPILE_DEFINITIONS>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  INTERFACE_SOURCES
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_SOURCES>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  INTERFACE_INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_SYSTEM_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  INTERFACE_POSITION_INDEPENDENT_CODE
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_POSITION_INDEPENDENT_CODE>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  COMPILE_FEATURES
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_COMPILE_FEATURES>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  COMPILE_OPTIONS
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_COMPILE_OPTIONS>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  COMPILE_DEFINITIONS
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_COMPILE_DEFINITIONS>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  SOURCES
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_SOURCES>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  SYSTEM_INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_SYSTEM_INCLUDE_DIRECTORIES>
+    )
+set_property(TARGET tvm_runtime_objs tvm_objs APPEND PROPERTY
+  POSITION_INDEPENDENT_CODE
+    $<TARGET_PROPERTY:tvm_deps,INTERFACE_POSITION_INDEPENDENT_CODE>
+    )
+
+# include directories
+target_include_directories(tvm_deps INTERFACE "${CMAKE_INCLUDE_PATH}")
+target_include_directories(tvm_deps INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                          $<INSTALL_INTERFACE:include>)
+target_include_directories(tvm_deps SYSTEM INTERFACE "${DLPACK_PATH}")
+target_include_directories(tvm_deps SYSTEM INTERFACE "${DMLC_PATH}")
+target_include_directories(tvm_deps SYSTEM INTERFACE "${RANG_PATH}")
+target_include_directories(tvm_deps SYSTEM INTERFACE "${COMPILER_RT_PATH}")
+target_include_directories(tvm_deps SYSTEM INTERFACE "${PICOJSON_PATH}")
+
 # Module rules
 include(cmake/modules/VTA.cmake)
 include(cmake/modules/StandaloneCrt.cmake)
@@ -346,26 +445,118 @@ include(cmake/modules/contrib/ArmComputeLib.cmake)
 include(cmake/modules/Git.cmake)
 include(cmake/modules/LibInfo.cmake)
 
-include(CheckCXXCompilerFlag)
-if(NOT MSVC)
-  check_cxx_compiler_flag("-std=c++14" SUPPORT_CXX14)
-  set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
-  set(CMAKE_CUDA_STANDARD 14)
-else()
-  check_cxx_compiler_flag("/std:c++14" SUPPORT_CXX14)
-  set(CMAKE_CXX_FLAGS "/std:c++14 ${CMAKE_CXX_FLAGS}")
-  set(CMAKE_CUDA_STANDARD 14)
-endif()
-
 add_lib_info(${CMAKE_CURRENT_LIST_DIR}/src/support/libinfo.cc)
 
-add_library(tvm_objs OBJECT ${COMPILER_SRCS} ${RUNTIME_SRCS})
-add_library(tvm_runtime_objs OBJECT ${RUNTIME_SRCS})
+# Generic compilation options
+if(MSVC)
+  target_compile_definitions(tvm_deps INTERFACE WIN32_LEAN_AND_MEAN)
+  target_compile_definitions(tvm_deps INTERFACE _CRT_SECURE_NO_WARNINGS)
+  target_compile_definitions(tvm_deps INTERFACE _SCL_SECURE_NO_WARNINGS)
+  target_compile_definitions(tvm_deps INTERFACE _ENABLE_EXTENDED_ALIGNED_STORAGE)
+  target_compile_options(tvm_deps INTERFACE "/EHsc /MP /bigobj")
+  # TODO(tkonolige): this should not touch globals
+  if(USE_MSVC_MT)
+    foreach(flag_var
+        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+      if(${flag_var} MATCHES "/MD")
+        string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+      endif(${flag_var} MATCHES "/MD")
+    endforeach(flag_var)
+  endif()
+  # Disable common MSVC warnings
+  # Integer conversion warnings(e.g. int64 to int)
+  target_compile_options(tvm_deps INTERFACE /wd4244)
+  target_compile_options(tvm_deps INTERFACE /wd4267)
+  # Signed unsigned constant comparison
+  target_compile_options(tvm_deps INTERFACE /wd4018)
+  # Aligned alloc may not met(need c++17)
+  target_compile_options(tvm_deps INTERFACE /wd4316)
+  # unreferenced local variables(usually in exception catch)
+  target_compile_options(tvm_deps INTERFACE /wd4101)
+  # always inline keyword not necessary
+  target_compile_options(tvm_deps INTERFACE /wd4180)
+  # DLL interface warning in c++
+  target_compile_options(tvm_deps INTERFACE /wd4251)
+else(MSVC)
+  target_compile_options(tvm_deps INTERFACE "-Wall")
+  if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    message(STATUS "Build in Debug mode")
+  else()
+    set(TVM_VISIBILITY_FLAG "")
+    if (HIDE_PRIVATE_SYMBOLS)
+      message(STATUS "Hide private symbols...")
+      set(TVM_VISIBILITY_FLAG "-fvisibility=hidden")
+    endif(HIDE_PRIVATE_SYMBOLS)
+  endif ()
+  if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND
+      CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
+    target_compile_options(tvm_deps "-faligned-new")
+  endif()
+  include(cmake/modules/ClangFlags.cmake)
 
-add_library(tvm SHARED $<TARGET_OBJECTS:tvm_objs>)
-set_property(TARGET tvm APPEND PROPERTY LINK_OPTIONS "${TVM_VISIBILITY_FLAGS}")
-add_library(tvm_runtime SHARED $<TARGET_OBJECTS:tvm_runtime_objs>)
-set_property(TARGET tvm_runtime APPEND PROPERTY LINK_OPTIONS "${TVM_VISIBILITY_FLAGS}")
+  # Detect if we're compiling for Hexagon.
+  set(TEST_FOR_HEXAGON_CXX
+      "#ifndef __hexagon__"
+      "#error"
+      "#endif"
+      "int main() {}"
+      # Define _start_main to avoid linking errors with -fPIC.
+      "extern \"C\" void _start_main() {}")
+  set(TEST_FOR_HEXAGON_DIR
+      "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp")
+  set(TEST_FOR_HEXAGON_FILE "${TEST_FOR_HEXAGON_DIR}/test_for_hexagon.cc")
+  string(REPLACE ";" "\n" TEST_FOR_HEXAGON_CXX_TEXT "${TEST_FOR_HEXAGON_CXX}")
+  file(WRITE "${TEST_FOR_HEXAGON_FILE}" "${TEST_FOR_HEXAGON_CXX_TEXT}")
+  try_compile(BUILD_FOR_HEXAGON "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}"
+              "${TEST_FOR_HEXAGON_FILE}")
+  file(REMOVE "${TEST_FOR_HEXAGON_FILE}")
+  if(BUILD_FOR_HEXAGON)
+    message(STATUS "Building for Hexagon")
+  endif()
+
+  # Detect if we're compiling for Android.
+  set(TEST_FOR_ANDROID_CXX
+      "#ifndef __ANDROID__"
+      "#error"
+      "#endif"
+      "int main() {}")
+  set(TEST_FOR_ANDROID_DIR
+      "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp")
+  set(TEST_FOR_ANDROID_FILE "${TEST_FOR_ANDROID_DIR}/test_for_android.cc")
+  string(REPLACE ";" "\n" TEST_FOR_ANDROID_CXX_TEXT "${TEST_FOR_ANDROID_CXX}")
+  file(WRITE "${TEST_FOR_ANDROID_FILE}" "${TEST_FOR_ANDROID_CXX_TEXT}")
+  try_compile(BUILD_FOR_ANDROID "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}"
+              "${TEST_FOR_ANDROID_FILE}")
+  file(REMOVE "${TEST_FOR_ANDROID_FILE}")
+  if(BUILD_FOR_ANDROID)
+    message(STATUS "Building for Android")
+  endif()
+endif(MSVC)
+
+if(BUILD_FOR_HEXAGON)
+  # Add file implementing posix_memalign.
+  target_sources(tvm_runtime PRIVATE src/runtime/hexagon/hexagon_posix.cc)
+
+  target_compile_definitions(tvm_deps INTERFACE _MACH_I32=int)
+endif()
+
+# Package runtime rules
+if(NOT USE_RTTI)
+  target_compile_definitions(tvm_deps INTERFACE DMLC_ENABLE_RTTI=0)
+endif()
+
+if (INDEX_DEFAULT_I64)
+  target_compile_definitions(tvm_deps INTERFACE TVM_INDEX_DEFAULT_I64=1)
+endif()
+
+if(USE_CUDA)
+  enable_language(CUDA)
+  target_compile_options(tvm_deps INTERFACE cuda_std_14)
+endif()
+
+# C++14 support
+target_compile_features(tvm_deps INTERFACE cxx_std_14)
 
 if(USE_MICRO)
   # NOTE: cmake doesn't track dependencies at the file level across subdirectories. For the
@@ -380,18 +571,18 @@ endif()
 
 if(USE_RELAY_DEBUG)
   message(STATUS "Building Relay in debug mode...")
-  set_target_properties(tvm_objs PROPERTIES COMPILE_DEFINITIONS "USE_RELAY_DEBUG")
-  set_target_properties(tvm_objs PROPERTIES COMPILE_DEFINITIONS "DMLC_LOG_DEBUG")
+  target_compile_definitions(tvm_objs PRIVATE "USE_RELAY_DEBUG")
+  target_compile_definitions(tvm_objs PRIVATE "DMLC_LOG_DEBUG")
 else()
-  set_target_properties(tvm_objs PROPERTIES COMPILE_DEFINITIONS "NDEBUG")
+  target_compile_definitions(tvm_objs PRIVATE "NDEBUG")
 endif(USE_RELAY_DEBUG)
 
 if(USE_FALLBACK_STL_MAP)
   message(STATUS "Building with STL Map...")
-  set_target_properties(tvm_objs PROPERTIES COMPILE_DEFINITIONS "USE_FALLBACK_STL_MAP=1")
+  target_compile_definitions(tvm_objs PRIVATE "USE_FALLBACK_STL_MAP=1")
 else()
   message(STATUS "Building with TVM Map...")
-  set_target_properties(tvm_objs PROPERTIES COMPILE_DEFINITIONS "USE_FALLBACK_STL_MAP=0")
+  target_compile_definitions(tvm_objs PRIVATE "USE_FALLBACK_STL_MAP=0")
 endif(USE_FALLBACK_STL_MAP)
 
 if(BUILD_FOR_HEXAGON)
@@ -415,8 +606,16 @@ if(USE_THREADS AND NOT BUILD_FOR_HEXAGON)
   target_link_libraries(tvm_runtime PUBLIC Threads::Threads)
 endif()
 
-target_link_libraries(tvm PRIVATE ${TVM_LINKER_LIBS} ${TVM_RUNTIME_LINKER_LIBS})
-target_link_libraries(tvm_runtime PRIVATE ${TVM_RUNTIME_LINKER_LIBS})
+# Hexagon has dlopen built into QuRT (no need for static library).
+if(NOT BUILD_FOR_HEXAGON)
+  target_link_libraries(tvm_runtime PRIVATE ${CMAKE_BL_LIBS})
+endif()
+
+if(BUILD_FOR_ANDROID)
+  # EmuTLS on Android is in libgcc. Without it linked in, libtvm_runtime.so
+  # won't load on Android due to missing __emutls_XXX symbols.
+  target_link_libraries(tvm_runtime PRIVATE "gcc")
+endif()
 
 # Related headers
 target_include_directories(
@@ -426,7 +625,7 @@ target_include_directories(
   tvm_objs
   PUBLIC "topi/include")
 set(CRC16_INCLUDE_PATH "3rdparty/libcrc/include")
-target_include_directorieS(
+target_include_directories(
   tvm_objs
   PRIVATE "${CRC16_INCLUDE_PATH}")
 target_include_directorieS(
@@ -444,8 +643,8 @@ if (HIDE_PRIVATE_SYMBOLS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   # Note: 'target_link_options' with 'PRIVATE' keyword would be cleaner
   # but it's not available until CMake 3.13. Switch to 'target_link_options'
   # once minimum CMake version is bumped up to 3.13 or above.
-  target_link_libraries(tvm PRIVATE ${HIDE_SYMBOLS_LINKER_FLAGS})
-  target_link_libraries(tvm_runtime PRIVATE ${HIDE_SYMBOLS_LINKER_FLAGS})
+  set_target_properties(tvm_runtime PROPERTIES LINK_FLAGS ${HIDE_SYMBOLS_LINKER_FLAGS})
+  set_target_properties(tvm PROPERTIES LINK_FLAGS ${HIDE_SYMBOLS_LINKER_FLAGS})
 endif()
 
 # Tests
@@ -511,6 +710,6 @@ endif(INSTALL_DEV)
 
 # More target definitions
 if(MSVC)
-  target_compile_definitions(tvm_objs PRIVATE -DTVM_EXPORTS)
-  target_compile_definitions(tvm_runtime_objs PRIVATE -DTVM_EXPORTS)
+  target_compile_definitions(tvm_objs PRIVATE TVM_EXPORTS)
+  target_compile_definitions(tvm_runtime_objs PRIVATE TVM_EXPORTS)
 endif()

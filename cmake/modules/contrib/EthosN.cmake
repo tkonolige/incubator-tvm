@@ -24,23 +24,23 @@ if(NOT USE_ETHOSN STREQUAL "OFF")
     message(FATAL_ERROR "Cannot find Ethos-N, USE_ETHOSN=" ${USE_ETHOSN})
 
   else()
-    include_directories(${ETHOSN_INCLUDE_DIRS})
-    add_definitions(${ETHOSN_DEFINITIONS})
+    target_include_directories(tvm_deps INTERFACE ${ETHOSN_INCLUDE_DIRS})
+    target_compile_definitions(tvm_deps INTERFACE ${ETHOSN_DEFINITIONS})
 
     message(STATUS "Build with Ethos-N ${ETHOSN_PACKAGE_VERSION}")
 
     file(GLOB ETHOSN_RUNTIME_CONTRIB_SRC
       CONFIGURE_DEPENDS src/runtime/contrib/ethosn/ethosn_runtime.cc
       CONFIGURE_DEPENDS src/runtime/contrib/ethosn/ethosn_device.cc)
-    list(APPEND RUNTIME_SRCS ${ETHOSN_RUNTIME_CONTRIB_SRC})
+    target_sources(tvm_runtime_objs PRIVATE ${ETHOSN_RUNTIME_CONTRIB_SRC})
 
     file(GLOB COMPILER_ETHOSN_SRCS
       CONFIGURE_DEPENDS src/relay/backend/contrib/ethosn/*)
-    list(APPEND COMPILER_SRCS ${COMPILER_ETHOSN_SRCS})
+    target_sources(tvm_objs PRIVATE ${COMPILER_ETHOSN_SRCS})
 
-    list(APPEND TVM_LINKER_LIBS ${ETHOSN_COMPILER_LIBRARY}
+    target_link_libraries(tvm_objs PRIVATE ${ETHOSN_COMPILER_LIBRARY}
       ${ETHOSN_RUNTIME_LIBRARY})
-    list(APPEND TVM_RUNTIME_LINKER_LIBS ${ETHOSN_COMPILER_LIBRARY}
+    target_link_libraries(tvm_runtime_objs PRIVATE ${ETHOSN_COMPILER_LIBRARY}
       ${ETHOSN_RUNTIME_LIBRARY})
 
     if(NOT MSVC)

@@ -22,8 +22,8 @@
 if(USE_ARM_COMPUTE_LIB)
     file(GLOB ACL_RELAY_CONTRIB_SRC src/relay/backend/contrib/arm_compute_lib/*.cc)
     file(GLOB ACL_RUNTIME_MODULE src/runtime/contrib/arm_compute_lib/acl_runtime.cc)
-    list(APPEND COMPILER_SRCS ${ACL_RELAY_CONTRIB_SRC})
-    list(APPEND COMPILER_SRCS ${ACL_RUNTIME_MODULE})
+    target_sources(tvm_objs PRIVATE ${ACL_RELAY_CONTRIB_SRC})
+    target_sources(tvm_objs PRIVATE ${ACL_RUNTIME_MODULE})
     message(STATUS "Build with Arm Compute Library support...")
 endif()
 
@@ -39,7 +39,7 @@ if(USE_ARM_COMPUTE_LIB_GRAPH_RUNTIME)
     # Cmake needs to find arm_compute, include and support directories
     # in the path specified by ACL_PATH.
     set(ACL_INCLUDE_DIRS ${ACL_PATH}/include ${ACL_PATH})
-    include_directories(${ACL_INCLUDE_DIRS})
+    target_include_directories(tvm_deps INTERFACE ${ACL_INCLUDE_DIRS})
 
     find_library(EXTERN_ACL_COMPUTE_LIB
             NAMES arm_compute libarm_compute
@@ -54,15 +54,15 @@ if(USE_ARM_COMPUTE_LIB_GRAPH_RUNTIME)
             HINTS "${ACL_PATH}" "${ACL_PATH}/lib" "${ACL_PATH}/build"
             )
 
-    list(APPEND TVM_RUNTIME_LINKER_LIBS ${EXTERN_ACL_COMPUTE_LIB})
-    list(APPEND TVM_RUNTIME_LINKER_LIBS ${EXTERN_ACL_COMPUTE_CORE_LIB})
-    list(APPEND TVM_RUNTIME_LINKER_LIBS ${EXTERN_ACL_COMPUTE_GRAPH_LIB})
-    list(APPEND RUNTIME_SRCS ${ACL_CONTRIB_SRC})
+    target_link_libraries(tvm_runtime_objs PRIVATE ${EXTERN_ACL_COMPUTE_LIB})
+    target_link_libraries(tvm_runtime_objs PRIVATE ${EXTERN_ACL_COMPUTE_CORE_LIB})
+    target_link_libraries(tvm_runtime_objs PRIVATE ${EXTERN_ACL_COMPUTE_GRAPH_LIB})
+    target_sources(tvm_runtime_objs PRIVATE ${ACL_CONTRIB_SRC})
     message(STATUS "Build with Arm Compute Library graph runtime support: "
             ${EXTERN_ACL_COMPUTE_LIB} ", \n"
             ${EXTERN_ACL_COMPUTE_CORE_LIB} ", \n"
             ${EXTERN_ACL_COMPUTE_GRAPH_LIB})
 
     # Set flag to detect ACL graph runtime support.
-    add_definitions(-DTVM_GRAPH_RUNTIME_ARM_COMPUTE_LIB)
+    target_compile_definitions(tvm_deps INTERFACE TVM_GRAPH_RUNTIME_ARM_COMPUTE_LIB)
 endif()

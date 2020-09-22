@@ -159,8 +159,8 @@ class RPCServer {
         continue;
       }
 
-      int timeout = GetTimeOutFromOpts(opts);
 #if defined(__linux__) || defined(__ANDROID__)
+      int timeout = GetTimeOutFromOpts(opts);
       // step 3: serving
       if (timeout != 0) {
         const pid_t timer_pid = fork();
@@ -209,6 +209,7 @@ class RPCServer {
         LOG(INFO) << "Child pid=" << pid << " exited, Process status =" << status;
       }
 #elif defined(WIN32)
+      int timeout = GetTimeOutFromOpts(opts);
       auto start_time = high_resolution_clock::now();
       try {
         SpawnRPCChild(conn.sockfd, seconds(timeout));

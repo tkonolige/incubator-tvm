@@ -16,42 +16,38 @@
 # under the License.
 
 # CUDA Module
-find_cuda(${USE_CUDA})
-
-if(CUDA_FOUND)
-  # always set the includedir when cuda is available
-  # avoid global retrigger of cmake
-	include_directories(${CUDA_INCLUDE_DIRS})
-endif(CUDA_FOUND)
 
 if(USE_CUDA)
+  find_cuda(${USE_CUDA})
   if(NOT CUDA_FOUND)
     message(FATAL_ERROR "Cannot find CUDA, USE_CUDA=" ${USE_CUDA})
   endif()
   message(STATUS "Build with CUDA support")
-  file(GLOB RUNTIME_CUDA_SRCS src/runtime/cuda/*.cc)
-  list(APPEND RUNTIME_SRCS ${RUNTIME_CUDA_SRCS})
-  list(APPEND COMPILER_SRCS src/target/opt/build_cuda_on.cc)
 
-  list(APPEND TVM_LINKER_LIBS ${CUDA_NVRTC_LIBRARY})
-  list(APPEND TVM_RUNTIME_LINKER_LIBS ${CUDA_CUDART_LIBRARY})
-  list(APPEND TVM_RUNTIME_LINKER_LIBS ${CUDA_CUDA_LIBRARY})
-  list(APPEND TVM_RUNTIME_LINKER_LIBS ${CUDA_NVRTC_LIBRARY})
+  target_include_directories(tvm_deps INTERFACE ${CUDA_INCLUDE_DIRS})
+  file(GLOB RUNTIME_CUDA_SRCS src/runtime/cuda/*.cc)
+  target_sources(tvm_runtime_objs PRIVATE ${RUNTIME_CUDA_SRCS})
+  target_sources(tvm_objs PRIVATE src/target/opt/build_cuda_on.cc)
+
+  target_link_libraries(tvm_objs PRIVATE ${CUDA_NVRTC_LIBRARY})
+  target_link_libraries(tvm_runtime_objs PRIVATE ${CUDA_CUDART_LIBRARY})
+  target_link_libraries(tvm_runtime_objs PRIVATE ${CUDA_CUDA_LIBRARY})
+  target_link_libraries(tvm_runtime_objs PRIVATE ${CUDA_NVRTC_LIBRARY})
 
   if(USE_CUDNN)
     message(STATUS "Build with cuDNN support")
     file(GLOB CONTRIB_CUDNN_SRCS src/runtime/contrib/cudnn/*.cc)
-    list(APPEND RUNTIME_SRCS ${CONTRIB_CUDNN_SRCS})
-    list(APPEND TVM_RUNTIME_LINKER_LIBS ${CUDA_CUDNN_LIBRARY})
+    target_sources(tvm_runtime_objs PRIVATE ${CONTRIB_CUDNN_SRCS})
+    target_link_libraries(tvm_runtime_objs PRIVATE ${CUDA_CUDNN_LIBRARY})
   endif(USE_CUDNN)
 
   if(USE_CUBLAS)
     message(STATUS "Build with cuBLAS support")
     file(GLOB CONTRIB_CUBLAS_SRCS src/runtime/contrib/cublas/*.cc)
-    list(APPEND RUNTIME_SRCS ${CONTRIB_CUBLAS_SRCS})
-    list(APPEND TVM_RUNTIME_LINKER_LIBS ${CUDA_CUBLAS_LIBRARY})
+    target_sources(tvm_runtime_objs PRIVATE ${CONTRIB_CUBLAS_SRCS})
+    target_link_libraries(tvm_runtime_objs PRIVATE ${CUDA_CUBLAS_LIBRARY})
     if(NOT CUDA_CUBLASLT_LIBRARY STREQUAL "CUDA_CUBLASLT_LIBRARY-NOTFOUND")
-      list(APPEND TVM_RUNTIME_LINKER_LIBS ${CUDA_CUBLASLT_LIBRARY})
+      target_link_libraries(tvm_runtime_objs PRIVATE ${CUDA_CUBLASLT_LIBRARY})
     endif()
   endif(USE_CUBLAS)
 
@@ -60,9 +56,9 @@ if(USE_CUDA)
     cmake_minimum_required(VERSION 3.13) # to compile CUDA code
     enable_language(CUDA)
     file(GLOB CONTRIB_THRUST_SRC src/runtime/contrib/thrust/*.cu)
-    list(APPEND RUNTIME_SRCS ${CONTRIB_THRUST_SRC})
+    target_sources(tvm_runtime_objs PRIVATE ${CONTRIB_THRUST_SRC})
   endif(USE_THRUST)
 
 else(USE_CUDA)
-  list(APPEND COMPILER_SRCS src/target/opt/build_cuda_off.cc)
+  target_sources(tvm_objs PRIVATE src/target/opt/build_cuda_off.cc)
 endif(USE_CUDA)

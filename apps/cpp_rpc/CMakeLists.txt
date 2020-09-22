@@ -29,11 +29,4 @@ if(USE_OPENCL)
   endif()
 endif()
 
-target_include_directories(
-  tvm_rpc
-  PUBLIC "../../include"
-  PUBLIC DLPACK_PATH
-  PUBLIC DMLC_PATH
-)
- 
-target_link_libraries(tvm_rpc tvm_runtime)
+target_link_libraries(tvm_rpc PRIVATE tvm_runtime tvm_deps)

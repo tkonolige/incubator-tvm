@@ -18,6 +18,6 @@
 if(USE_MICRO_STANDALONE_RUNTIME)
   message(STATUS "Build with micro.standalone_runtime")
   file(GLOB MICRO_STANDALONE_RUNTIME_SRC src/runtime/micro/standalone/*.cc)
-  list(APPEND RUNTIME_SRCS ${MICRO_STANDALONE_RUNTIME_SRC})
-  add_definitions(-DUSE_MICRO_STANDALONE_RUNTIME=1)
+  target_sources(tvm_runtime PRIVATE ${MICRO_STANDALONE_RUNTIME_SRC})
+  target_compile_definitions(tvm_deps INTERFACE USE_MICRO_STANDALONE_RUNTIME=1)
 endif(USE_MICRO_STANDALONE_RUNTIME)

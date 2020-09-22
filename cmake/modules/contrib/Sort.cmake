@@ -18,5 +18,5 @@
 if(USE_SORT)
   message(STATUS "Build with contrib.sort")
   file(GLOB SORT_CONTRIB_SRC src/runtime/contrib/sort/*.cc)
-  list(APPEND RUNTIME_SRCS ${SORT_CONTRIB_SRC})
+  target_sources(tvm_runtime_objs PRIVATE ${SORT_CONTRIB_SRC})
 endif(USE_SORT)

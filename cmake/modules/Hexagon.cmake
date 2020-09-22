@@ -91,19 +91,19 @@ elseif(USE_HEXAGON_DEVICE STREQUAL "${PICK_HW}")
   find_hexagon_toolchain()
   message(STATUS "Hexagon SDK: ${HEXAGON_SDK_ROOT}")
   file(GLOB RUNTIME_HEXAGON_DEVICE_SRCS src/runtime/hexagon/target/*.cc)
-  include_directories("${HEXAGON_SDK_ROOT}/incs/stddef")
-  include_directories("${HEXAGON_SDK_ROOT}/libs/common/rpcmem/inc")
-  include_directories(
+  target_include_directories(tvm_deps INTERFACE "${HEXAGON_SDK_ROOT}/incs/stddef")
+  target_include_directories(tvm_deps INTERFACE "${HEXAGON_SDK_ROOT}/libs/common/rpcmem/inc")
+  target_include_directories(tvm_deps INTERFACE
       "${HEXAGON_SDK_ROOT}/libs/common/remote/ship/android_Release_aarch64")
-  include_directories("${HEXAGON_TOOLCHAIN}/include/iss")
-  list(APPEND TVM_RUNTIME_LINKER_LIBS "dl")
+  target_include_directories(tvm_deps INTERFACE"${HEXAGON_TOOLCHAIN}/include/iss")
+  target_link_libraries(tvm_runtime_objs PRIVATE "dl")
   if(BUILD_FOR_ANDROID)
     # Hexagon runtime uses __android_log_print, which is in liblog.
-    list(APPEND TVM_RUNTIME_LINKER_LIBS "log")
+    target_link_libraries(tvm_runtime_objs PRIVATE "log")
   endif()
 endif()
 
 file(GLOB RUNTIME_HEXAGON_SRCS src/runtime/hexagon/*.cc)
-list(APPEND RUNTIME_SRCS ${RUNTIME_HEXAGON_SRCS} ${RUNTIME_HEXAGON_SIM_SRCS}
-                         ${RUNTIME_HEXAGON_DEVICE_SRCS})
+target_sources(tvm_runtime_objs PRIVATE ${RUNTIME_HEXAGON_SRCS} ${RUNTIME_HEXAGON_SIM_SRCS}
+                                        ${RUNTIME_HEXAGON_DEVICE_SRCS})
 
