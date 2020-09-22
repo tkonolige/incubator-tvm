@@ -645,6 +645,7 @@ def scatter_cuda(attrs, inputs, out_type, target):
     )
     return strategy
 
+
 @argsort_strategy.register(["cuda", "gpu"])
 def argsort_strategy_cuda(attrs, inputs, out_type, target):
     """argsort cuda strategy"""

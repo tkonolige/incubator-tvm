@@ -1023,10 +1023,11 @@ def scatter_strategy(attrs, outs, out_type, target):
     strategy.add_implementation(
         wrap_compute_scatter(topi.scatter),
         wrap_topi_schedule(topi.generic.schedule_scatter),
-        name="scatter.generic")
+        name="scatter.generic",
+    )
     return strategy
 
-# argsort
+
 def wrap_compute_scatter(topi_compute):
     """Wrap scatter topi compute"""
 
