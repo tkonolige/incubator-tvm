@@ -171,6 +171,8 @@ def gen_ir_3d(data, indices, updates, axis, out):
     c = data.shape[1]
     h = data.shape[2]
 
+    print(data.shape)
+
     warp_size = tvm.target.Target.current(False).thread_warp_size
 
     ib = tvm.tir.ir_builder.create()
@@ -179,17 +181,16 @@ def gen_ir_3d(data, indices, updates, axis, out):
 
     out_ptr = ib.buffer_ptr(out)
     data_ptr = ib.buffer_ptr(data)
-    with ib.new_scope():
+    with ib.for_range(0, 1):
         bx = te.thread_axis("blockIdx.x")
         ib.scope_attr(bx, "thread_extent", n)
         by = te.thread_axis("blockIdx.y")
         ib.scope_attr(by, "thread_extent", c)
         with ib.for_range(0, ceil_div(h, warp_size), name="k") as k_:
             k = k_ * warp_size + tx
-            idx = (bx * c + by) * h + k
-            out_ptr[idx] = data_ptr[idx]
-
-    ib.emit(tvm.tir.Call(None, "tir.tvm_storage_sync", tvm.runtime.convert(["shared"])))
+            with ib.if_scope(k < h):
+                idx = (bx * c + by) * h + k
+                out_ptr[idx] = data_ptr[idx]
 
     indices_ptr = ib.buffer_ptr(indices)
     updates_ptr = ib.buffer_ptr(updates)
@@ -198,7 +199,7 @@ def gen_ir_3d(data, indices, updates, axis, out):
     hi = indices.shape[2]
 
     if axis == 0:
-        with ib.new_scope():
+        with ib.for_range(0, 1):
             bx = te.thread_axis("blockIdx.x")
             ib.scope_attr(bx, "thread_extent", ni)
             by = te.thread_axis("blockIdx.y")
