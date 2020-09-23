@@ -19,6 +19,8 @@
 import tvm
 from tvm import te
 
+def ceil_div(a, b):
+    return (a + b - 1) // b
 
 def gen_ir_1d(data, indices, updates, axis, out):
     """Generate scatter ir for 1d inputs
@@ -45,6 +47,8 @@ def gen_ir_1d(data, indices, updates, axis, out):
     ret : tir
         The computational ir.
     """
+    # Given that there are repeat indices and the "last" index should be the
+    # one written, we are not able to parallelize this function.
     assert axis == 0
     n = data.shape[0]
 
@@ -100,6 +104,8 @@ def gen_ir_2d(data, indices, updates, axis, out):
     """
     n = data.shape[0]
     c = data.shape[1]
+
+    warp_size = tvm.target.Target.current(False).thread_warp_size
 
     ib = tvm.tir.ir_builder.create()
     bx = te.thread_axis("blockIdx.x")
@@ -165,16 +171,25 @@ def gen_ir_3d(data, indices, updates, axis, out):
     c = data.shape[1]
     h = data.shape[2]
 
+    warp_size = tvm.target.Target.current(False).thread_warp_size
+
     ib = tvm.tir.ir_builder.create()
-    bx = te.thread_axis("blockIdx.x")
-    ib.scope_attr(bx, "thread_extent", 1)
+    tx = te.thread_axis("threadIdx.x")
+    ib.scope_attr(tx, "thread_extent", warp_size)
 
     out_ptr = ib.buffer_ptr(out)
     data_ptr = ib.buffer_ptr(data)
-    with ib.for_range(0, n, name="i") as i:
-        with ib.for_range(0, c, name="j") as j:
-            with ib.for_range(0, h, name="k") as k:
-                out_ptr[(i * c + j) * h + k] = data_ptr[(i * c + j) * h + k]
+    with ib.new_scope():
+        bx = te.thread_axis("blockIdx.x")
+        ib.scope_attr(bx, "thread_extent", n)
+        by = te.thread_axis("blockIdx.y")
+        ib.scope_attr(by, "thread_extent", c)
+        with ib.for_range(0, ceil_div(h, warp_size), name="k") as k_:
+            k = k_ * warp_size + tx
+            idx = (bx * c + by) * h + k
+            out_ptr[idx] = data_ptr[idx]
+
+    ib.emit(tvm.tir.Call(None, "tir.tvm_storage_sync", tvm.runtime.convert(["shared"])))
 
     indices_ptr = ib.buffer_ptr(indices)
     updates_ptr = ib.buffer_ptr(updates)
@@ -183,9 +198,16 @@ def gen_ir_3d(data, indices, updates, axis, out):
     hi = indices.shape[2]
 
     if axis == 0:
-        with ib.for_range(0, ni, name="i") as i:
-            with ib.for_range(0, ci, name="j") as j:
-                with ib.for_range(0, hi, name="k") as k:
+        with ib.new_scope():
+            bx = te.thread_axis("blockIdx.x")
+            ib.scope_attr(bx, "thread_extent", ni)
+            by = te.thread_axis("blockIdx.y")
+            ib.scope_attr(by, "thread_extent", ci)
+            i = bx
+            j = by
+            with ib.for_range(0, ceil_div(hi, warp_size), name="k") as k_:
+                k = k_ * warp_size + tx
+                with ib.if_scope(k < hi):
                     index = indices_ptr[(i * ci + j) * hi + k]
                     with ib.if_scope(index < 0):
                         out_ptr[((index + n) * c + j) * h + k] = updates_ptr[(i * ci + j) * hi + k]
@@ -210,7 +232,9 @@ def gen_ir_3d(data, indices, updates, axis, out):
                     with ib.else_scope():
                         out_ptr[(i * c + j) * h + index] = updates_ptr[(i * ci + j) * hi + k]
 
-    return ib.get()
+    code = ib.get()
+    print(code)
+    return code
 
 
 def gen_ir_4d(data, indices, updates, axis, out):
