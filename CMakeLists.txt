@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.10)
 project(tvm C CXX)
 
 # Utility functions
@@ -194,7 +194,6 @@ set_property(TARGET tvm_runtime APPEND PROPERTY LINK_OPTIONS "${TVM_VISIBILITY_F
 
 
 # with cmake 3.12 these are automatically propogated if we use target_link_libraries
-# TODO: need to append, use set_property
 set_property(TARGET tvm tvm_runtime APPEND PROPERTY
   INTERFACE_COMPILE_FEATURES
     $<TARGET_PROPERTY:tvm_objs,INTERFACE_COMPILE_FEATURES>
@@ -344,7 +343,6 @@ set_property(TARGET tvm_runtime APPEND PROPERTY
 
 
 add_library(tvm_deps INTERFACE) # dummy library to hold dependencies
-# TODO(tkonolige): test against early version of cmake
 # TODO(tkonolige): split public and private dependencies
 target_link_libraries(tvm PUBLIC tvm_deps)
 target_link_libraries(tvm_runtime PUBLIC tvm_deps)
