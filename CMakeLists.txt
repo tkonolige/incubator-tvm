@@ -709,6 +709,7 @@ else(INSTALL_DEV)
 endif(INSTALL_DEV)
 
 # More target definitions
+# TODO(tkonolige): TVM_EXPORTS doesn't seem to be defined anywhere
 if(MSVC)
   target_compile_definitions(tvm_objs PRIVATE TVM_EXPORTS)
   target_compile_definitions(tvm_runtime_objs PRIVATE TVM_EXPORTS)
