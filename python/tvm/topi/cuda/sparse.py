@@ -62,6 +62,10 @@ def sparse_dense(cfg, data, weight_data, weight_indices, weight_indptr):
         2-D with shape [M, N]
     """
     # pylint:disable=unused-argument
+    M, K = get_const_tuple(data.shape)
+    nnzb, bs, _ = get_const_tuple(weight_data.shape)
+    N = weight_indptr.shape[0]
+    cfg.add_flop(nnzb * bs * bs * bs * 2 + nnzb + N)
     return nn.sparse_dense(data, weight_data, weight_indices, weight_indptr)
 
 
@@ -114,27 +118,28 @@ def schedule_cuda_transpose(s, out):
     without the padding for shared memory. For better performance, we could
     rewrite it in tir to add the padding.
     """
+    # import ipdb; ipdb.set_trace()
 
     def _callback(op):
         m, n = s[op].op.axis
-        warp_size = int(tvm.target.Target.current(allow_none=False).thread_warp_size)
-        no, ni = s[op].split(n, factor=warp_size)
-        mo, mi = s[op].split(m, factor=warp_size)
-        # TODO: should we use multiple warps?
-        s[op].reorder(mo, no, mi, ni)
-        s[op].bind(mo, te.thread_axis("blockIdx.x"))
-        s[op].bind(no, te.thread_axis("blockIdx.y"))
-        c = s.cache_read(op.input_tensors[0], "shared", op)
-        s[c].compute_at(s[op], no)
-        thread_x = te.thread_axis("threadIdx.x")
-        thread_y = te.thread_axis("threadIdx.y")
-        s[op].bind(ni, thread_x)
-        a, b = s[c].split(s[c].op.axis[1], factor=1)
-        s[c].bind(a, thread_x)
-        ao, ai = s[op].split(mi, nparts=4)
-        s[op].bind(ao, thread_y)
-        ao, ai = s[c].split(s[c].op.axis[0], nparts=4)
-        s[c].bind(ao, thread_y)
+        # warp_size = int(tvm.target.Target.current(allow_none=False).thread_warp_size)
+        # no, ni = s[op].split(n, factor=warp_size)
+        # mo, mi = s[op].split(m, factor=warp_size)
+        # # TODO: should we use multiple warps?
+        # s[op].reorder(mo, no, mi, ni)
+        # s[op].bind(mo, te.thread_axis("blockIdx.x"))
+        # s[op].bind(no, te.thread_axis("blockIdx.y"))
+        # c = s.cache_read(op.input_tensors[0], "shared", op)
+        # s[c].compute_at(s[op], no)
+        # thread_x = te.thread_axis("threadIdx.x")
+        # thread_y = te.thread_axis("threadIdx.y")
+        # s[op].bind(ni, thread_x)
+        # a, b = s[c].split(s[c].op.axis[1], factor=1)
+        # s[c].bind(a, thread_x)
+        # ao, ai = s[op].split(mi, nparts=4)
+        # s[op].bind(ao, thread_y)
+        # ao, ai = s[c].split(s[c].op.axis[0], nparts=4)
+        # s[c].bind(ao, thread_y)
 
     traverse_inline(s, out.op, _callback)
 
@@ -402,4 +407,10 @@ def sparse_dense_cusparse(cfg, data, weight_data, weight_indices, weight_indptr)
 @autotvm.register_topi_schedule("sparse_dense_cusparse.cuda")
 def schedule_sparse_dense_cusparse(_, outs):
     """Create schedule for sparse dense using cusparse"""
-    return generic.schedule_extern(outs)
+    # if main op is not a transpose, then we schedule with nothing
+    if isinstance(outs[0].op, tvm.te.tensor.ExternOp):
+        return generic.schedule_extern(outs)
+    mm = outs[0].op.input_tensors[0]
+    s = generic.schedule_extern([outs[0], mm])
+    schedule_cuda_transpose(s, outs[0])
+    return s

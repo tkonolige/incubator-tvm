@@ -17,6 +17,7 @@
 """External function interface to cuBLAS libraries."""
 import tvm
 from tvm import te
+from tvm import topi
 
 
 def sparse_dense(data, weight_data, weight_indices, weight_indptr):
@@ -48,8 +49,15 @@ def sparse_dense(data, weight_data, weight_indices, weight_indptr):
     """
     m = data.shape[0]
     n = (weight_indptr.shape[0] - 1) * weight_data.shape[1]
-    return te.extern(
-        (m, n), [data, weight_data, weight_indices, weight_indptr],
+    if len(data.shape) == 3 and data.shape[1] > 1 and data.shape[2] > 1:
+        return te.extern(
+            (m, n), [data, weight_data, weight_indices, weight_indptr],
+            lambda ins, outs: tvm.tir.call_packed(
+                "tvm.contrib.cusparse.sparse_dense_bsr",
+                ins[0], ins[1], ins[2], ins[3], outs[0]), dtype=data.dtype, name="C")
+    out = te.extern(
+        (n, m), [data, weight_data, weight_indices, weight_indptr],
         lambda ins, outs: tvm.tir.call_packed(
-            "tvm.contrib.cusparse.sparse_dense",
+            "tvm.contrib.cusparse.sparse_dense_csr_transpose",
             ins[0], ins[1], ins[2], ins[3], outs[0]), dtype=data.dtype, name="C")
+    return topi.transpose(out)

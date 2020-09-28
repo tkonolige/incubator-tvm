@@ -48,9 +48,9 @@ size_t FindLeafVar(ArrayNode* all_vars, ArrayNode* leaf_vars, const IterVar& v) 
   if (pos < leaf_vars->size()) return pos;
 
   if (FindNodeRef(all_vars, v) < all_vars->size()) {
-    LOG(FATAL) << "Operate on iter var " << v << "that has already been split";
+    LOG(FATAL) << "Operate on iter var " << v << " that has already been split";
   } else {
-    LOG(FATAL) << "Operate on iter var " << v << "that is not part of the schedule";
+    LOG(FATAL) << "Operate on iter var " << v << " that is not part of the schedule";
   }
   return 0;
 }
@@ -78,6 +78,9 @@ void SplitHelper(StageNode* self, IterVar parent, PrimExpr factor, PrimExpr npar
   // The splits
   Array<IterVar>& all_vars = self->all_iter_vars;
   Array<IterVar>& leaf_vars = self->leaf_iter_vars;
+  LOG(INFO) << parent;
+  LOG(INFO) << "all_vars " << all_vars;
+  LOG(INFO) << "leaf_vars " << leaf_vars;
   size_t pos = FindLeafVar(all_vars.GetArrayNode(), leaf_vars.GetArrayNode(), parent);
   self->relations.push_back(Split(parent, outer, inner, factor, nparts));
   // add vars to all vars
@@ -216,6 +219,7 @@ Stage& Stage::set_store_predicate(PrimExpr predicate) {
 
 Stage& Stage::split(IterVar parent, PrimExpr factor, IterVar* p_outer,
                     IterVar* p_inner) {  // NOLINT(*)
+  LOG(INFO) << *this;
   SplitHelper(operator->(), parent, factor, PrimExpr(), p_outer, p_inner);
   return *this;
 }

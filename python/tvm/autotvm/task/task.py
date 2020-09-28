@@ -470,6 +470,10 @@ def get_config():
 
 class FlopCalculationError(RuntimeError):
     """Error happens when estimating FLOP for a compute op"""
+    def __init__(self, op, msg):
+        super().__init__(self, msg)
+        self.op = op
+        self.msg = msg
 
 
 def compute_flop(sch):
@@ -486,24 +490,31 @@ def compute_flop(sch):
         number of FLOP in this schedule
     """
 
-    def _prod_length(axes):
+    def _prod_length(op):
         """compute product of the lengths of a list of axes"""
         try:
-            num_iter = int(np.prod([get_const_int(axis.dom.extent) for axis in axes]))
+            num_iter = int(np.prod([get_const_int(axis.dom.extent) for axis in op.axis]))
         except ValueError:
-            raise FlopCalculationError("The length of axis is not constant. ")
+            found = None
+            for axis in op.axis:
+                try:
+                    get_const_int(axis.dom.extent)
+                except ValueError:
+                    found = axis
+
+            raise FlopCalculationError(None, "The length of axis {} is not constant. ".format(found))
         return num_iter
 
     def _count_flop(exp):
         """compute flop for a single expression"""
         if isinstance(exp, expr.Reduce):
-            num_iter = _prod_length(exp.axis)
+            num_iter = _prod_length(exp)
             combiner = exp.combiner.result
             source = exp.source
             if len(combiner) != 1:
-                raise FlopCalculationError("Found multiple output in the combiner of reduce op")
+                raise FlopCalculationError(None, "Found multiple output in the combiner of reduce op")
             if len(source) != 1:
-                raise FlopCalculationError("Found multiple output in the source of reduce op")
+                raise FlopCalculationError(None, "Found multiple output in the source of reduce op")
             return num_iter * (_count_flop(combiner[0]) + _count_flop(source[0]))
         if isinstance(exp, (expr.FloatImm, expr.IntImm)):
             return 0
@@ -551,46 +562,48 @@ def compute_flop(sch):
         if isinstance(exp, expr.Call):
             return sum([_count_flop(x) for x in exp.args])
 
-        raise FlopCalculationError("Found unsupported operator in the compute expr")
+        raise FlopCalculationError(None, "Found unsupported operator {} in the compute expr".format(type(exp)))
 
     def traverse(ops):
         """accumulate flops"""
         ret = 0
         for op in ops:
-            if isinstance(op, tensor.ComputeOp):
-                num_element = _prod_length(op.axis)
+            try:
+                if isinstance(op, tensor.ComputeOp):
+                    num_element = _prod_length(op)
 
-                body = op.body
-                if len(body) != 1:
-                    raise FlopCalculationError("Found multiple output in the compute")
-                exp = body[0]
+                    body = op.body
+                    if len(body) != 1:
+                        raise FlopCalculationError(None, "Found multiple outputs in the compute")
+                    exp = body[0]
 
-                ret += num_element * _count_flop(exp)
-                ret += traverse([t.op for t in op.input_tensors])
+                    ret += num_element * _count_flop(exp)
+                    ret += traverse([t.op for t in op.input_tensors])
 
-            elif isinstance(op, tensor.PlaceholderOp):
-                pass
-            else:
-                raise FlopCalculationError(
-                    "Only support te.compute currently. "
-                    "Other ops like tvm.te.scan/te.extern is not supported"
-                )
+                elif isinstance(op, tensor.PlaceholderOp):
+                    pass
+                else:
+                    raise FlopCalculationError(None,
+                        "Only support te.compute currently. "
+                        "Other ops like tvm.te.scan/te.extern is not supported"
+                    )
+            except FlopCalculationError as exc:
+                raise FlopCalculationError(op, exc.msg)
         return ret
 
     try:
         ret = traverse(sch.outputs)
     except FlopCalculationError as exc:
         raise RuntimeError(
-            "FLOP estimator fails for this operator. Error msg: "
-            + str(exc)
-            + ". Please use `cfg.add_flop` to manually set "
-            "FLOP for this operator"
+            "FLOP estimator fails for operator {}. Error msg: {}"
+            ". Please use `cfg.add_flop` to manually set "
+            "FLOP for this operator".format(exc.op.tag, exc.msg)
         )
 
     if ret == 0:
         raise RuntimeError(
-            "Cannot find float number operation in this operator. "
+            "Cannot find float number operation in the operators {}. "
             "Please use `cfg.add_flop` to manually set "
-            "FLOP for this operator"
+            "FLOP for this operator".format(", ".join([op.tag for op in sch.outputs]))
         )
     return ret
