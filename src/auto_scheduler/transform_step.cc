@@ -752,6 +752,7 @@ String ReorderStepNode::PrintAsPythonAPI(Array<te::Stage>* stages,
 Array<Iterator> ApplySplitToState(State* state, int stage_id, int iter_id,
                                   const Array<Optional<Integer>>& lengths, bool inner_to_outer) {
   const Stage& stage = (*state)->stages[stage_id];
+  LOG(INFO) << "stage->iters " << stage->iters.size() << " " << iter_id;
   const Iterator& it = stage->iters[iter_id];
   size_t old_iter_size = stage->iters.size();
   bool concrete = true;

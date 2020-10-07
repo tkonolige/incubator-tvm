@@ -529,7 +529,7 @@ OperationSet AccessAnalyzer::GetProducers(const State& state, const te::Operatio
 
 int AccessAnalyzer::GetNumCommonOuterIterator(const te::Operation& op,
                                               const te::Operation& target_op) const {
-  int64_t ret = INT64_MAX;
+  int64_t ret = std::numeric_limits<int64_t>::max();
   bool meet = false;
 
   std::function<void(const te::Operation&, int64_t)> traverse;
@@ -543,7 +543,7 @@ int AccessAnalyzer::GetNumCommonOuterIterator(const te::Operation& op,
     for (const auto& iter : operator->()->read_by.at(cur_op)) {
       traverse(
           iter.first,
-          std::min(cur_num, int64_t(operator->()->num_common_outer_iterators.at(cur_op).at(iter.first))));
+          std::min(cur_num, GetIntImm(operator->()->num_common_outer_iterators.at(cur_op).at(iter.first))));
     }
   };
 
