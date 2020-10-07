@@ -37,7 +37,6 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -172,7 +171,7 @@ inline bool NeedsMultilevelTiling(const SearchTask& task, const State& state, in
 
 /*! \brief Get all consumers for a stage. This function propagates the relation for inlined ops. */
 inline std::set<int> GetConsumers(const SearchTask& task, const State& state, int stage_id) {
-  std::unordered_set<te::Operation, ObjectHash, ObjectEqual> consumers;
+  Array<te::Operation> consumers;
   std::set<int> ret;
 
   if (state->current_compute_dag) {
@@ -228,7 +227,7 @@ inline int GetSingleConsumerId(const SearchTask& task, const State& state, int s
 
 /*! \brief Get all producers for a stage. This function propagates the relation for inlined ops. */
 inline std::set<int> GetProducers(const SearchTask& task, const State& state, int stage_id) {
-  std::unordered_set<te::Operation, ObjectHash, ObjectEqual> producers;
+  Array<te::Operation> producers;
   std::set<int> ret;
 
   if (state->current_compute_dag) {
@@ -247,7 +246,7 @@ inline std::set<int> GetProducers(const SearchTask& task, const State& state, in
 /*! \brief Get all producers for a stage. This function DOES NOT propagates the relation for
  * inlined ops. */
 inline std::set<int> GetDirectProducers(const SearchTask& task, const State& state, int stage_id) {
-  std::unordered_set<te::Operation, ObjectHash, ObjectEqual> producers;
+  Array<te::Operation> producers;
   std::set<int> ret;
 
   if (state->current_compute_dag) {

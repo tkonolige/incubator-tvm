@@ -449,6 +449,10 @@ class ReorderStepNode : public StepNode {
    */
   String PrintAsPythonAPI(Array<te::Stage>* stages, StageToAxesMap* stage_to_axes) const;
 
+  void VisitAttrs(tvm::AttrVisitor* v) {
+    v->Visit("after_ids", &after_ids);
+  }
+
   static constexpr const char* record_prefix_str = "RE";
 
   static constexpr const char* _type_key = "auto_scheduler.ReorderStep";
@@ -485,7 +489,7 @@ class ReorderStep : public Step {
 class SplitStepNode : public StepNode {
  public:
   /*! \brief The id of the iter to split. */
-  int iter_id;
+  Integer iter_id;
   /*! \brief The extent length of the axis to split. */
   Optional<PrimExpr> extent;
   /*! \brief The split factors. */
@@ -494,7 +498,7 @@ class SplitStepNode : public StepNode {
    * \brief If true, the `lengths` denote the lengths of iterators
    * from inner level to outer level
    */
-  bool inner_to_outer;
+  Bool inner_to_outer{Bool(false)};
 
   void WriteToRecord(dmlc::JSONWriter* writer) const final;
 
@@ -523,6 +527,13 @@ class SplitStepNode : public StepNode {
    * \return Python schedule code.
    */
   String PrintAsPythonAPI(Array<te::Stage>* stages, StageToAxesMap* stage_to_axes) const;
+
+  void VisitAttrs(tvm::AttrVisitor* v) {
+    v->Visit("iter_id", &iter_id);
+    v->Visit("extent", &extent);
+    v->Visit("lengths", &lengths);
+    v->Visit("inner_to_outer", &inner_to_outer);
+  }
 
   static constexpr const char* record_prefix_str = "SP";
 

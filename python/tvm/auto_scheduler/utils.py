@@ -166,18 +166,18 @@ def kill_child_processes(parent_pid, sig=signal.SIGTERM):
         except psutil.NoSuchProcess:
             return
 
+def _func_wrapper(que, func, args, kwargs):
+    if kwargs:
+        que.put(func(*args, **kwargs))
+    else:
+        que.put(func(*args))
 
 def call_func_with_timeout(timeout, func, args=(), kwargs=None):
     """Call a function with timeout"""
 
-    def func_wrapper(que):
-        if kwargs:
-            que.put(func(*args, **kwargs))
-        else:
-            que.put(func(*args))
 
     que = multiprocessing.Queue(2)
-    process = multiprocessing.Process(target=func_wrapper, args=(que,))
+    process = multiprocessing.Process(target=_func_wrapper, args=(que, func, args, kwargs))
     process.start()
     process.join(timeout)
 

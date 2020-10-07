@@ -670,6 +670,8 @@ String PragmaStepNode::PrintAsPythonAPI(Array<te::Stage>* stages,
 }
 
 /********** Reorder **********/
+TVM_REGISTER_NODE_TYPE(ReorderStepNode);
+
 ReorderStep::ReorderStep(int stage_id, const Array<Integer>& after_ids) {
   auto node = make_object<ReorderStepNode>();
   node->stage_id = stage_id;
@@ -903,6 +905,8 @@ String PrintSplitAsPythonAPI(Array<te::Stage>* stages, StageToAxesMap* stage_to_
   return ss.str();
 }
 
+TVM_REGISTER_NODE_TYPE(SplitStepNode);
+
 SplitStep::SplitStep(int stage_id, int iter_id, Optional<PrimExpr> extent,
                      const Array<Optional<Integer>>& lengths, bool inner_to_outer) {
   auto node = make_object<SplitStepNode>();
@@ -913,7 +917,7 @@ SplitStep::SplitStep(int stage_id, int iter_id, Optional<PrimExpr> extent,
   }
   node->iter_id = iter_id;
   node->lengths = lengths;
-  node->inner_to_outer = inner_to_outer;
+  node->inner_to_outer = Bool(inner_to_outer);
   data_ = std::move(node);
 }
 
@@ -925,7 +929,9 @@ SplitStep::SplitStep(dmlc::JSONReader* reader) {
   reader->Read(&node->stage_id);
   s = reader->NextArrayItem();
   CHECK(s);
-  reader->Read(&node->iter_id);
+  int64_t val;
+  reader->Read(&val);
+  node->iter_id = Integer(val);
   int int_val;
   s = reader->NextArrayItem();
   CHECK(s);
@@ -938,7 +944,9 @@ SplitStep::SplitStep(dmlc::JSONReader* reader) {
   reader->Read(&node->lengths);
   s = reader->NextArrayItem();
   CHECK(s);
-  reader->Read(&node->inner_to_outer);
+  int b;
+  reader->Read(&b);
+  node->inner_to_outer = Bool(b);
   data_ = std::move(node);
 }
 
@@ -946,7 +954,7 @@ void SplitStepNode::WriteToRecord(dmlc::JSONWriter* writer) const {
   writer->WriteArraySeperator();
   writer->WriteString(record_prefix_str);
   writer->WriteArrayItem(stage_id);
-  writer->WriteArrayItem(iter_id);
+  writer->WriteArrayItem(GetIntImm(iter_id));
   writer->WriteArrayItem(extent ? GetIntImm(extent.value()) : 0);
   writer->WriteArrayItem(lengths);
   writer->WriteArrayItem(static_cast<int>(inner_to_outer));

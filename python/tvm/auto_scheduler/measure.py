@@ -458,30 +458,61 @@ def make_error_msg():
         )
     return error_msg
 
+def _timed_func(inp, build_func, verbose):
+    tic = time.time()
+    task = inp.task
 
-def local_build_worker(index):
+    error_no = MeasureErrorNo.NO_ERROR
+    error_msg = None
+    args = []
+
+    # try:
+    sch, args = task.compute_dag.apply_steps_from_state(inp.state, layout_rewrite=True)
+    # pylint: disable=broad-except
+    # except Exception:
+    #     error_no = MeasureErrorNo.INSTANTIATION_ERROR
+    #     error_msg = make_error_msg()
+
+    if error_no == 0:
+        dirname = tempfile.mkdtemp()
+        filename = os.path.join(dirname, "tmp_func." + build_func.output_format)
+
+        try:
+            # TODO(merrymercy): Port the unroll pass.
+            with transform.PassContext():
+                func = build_module.build(
+                    sch, args, target=task.target, target_host=task.target_host
+                )
+            func.export_library(filename, build_func)
+        # pylint: disable=broad-except
+        except Exception:
+            error_no = MeasureErrorNo.COMPILE_HOST
+            error_msg = make_error_msg()
+    else:
+        filename = ""
+
+    if verbose >= 1:
+        if error_no == MeasureErrorNo.NO_ERROR:
+            print(".", end="")
+        else:
+            print(".E", end="")  # Build error
+    return filename, args, error_no, error_msg, time.time() - tic
+
+def local_build_worker(args):
     """
     Build function of LocalBuilder to be ran in the Builder thread pool.
 
     Parameters
     ----------
-    index : int
-        The MeasureInput index to be processed by the current Builder thread.
+    args: Tuple[MeasureInput, str, int, int]
+        inputs, build-func, time, verbose args passed to local_builder_build
 
     Returns
     -------
     res : BuildResult
         The build result of this Builder thread.
     """
-    global GLOBAL_BUILD_ARGUMENTS
-
-    # We use fork and a global variable to copy arguments between processes.
-    # This can avoid expensive serialization of TVM IR when using multiprocessing.Pool
-    if not GLOBAL_BUILD_ARGUMENTS:
-        raise ValueError("GLOBAL_BUILD_ARGUMENTS not found")
-    measure_inputs, build_func, timeout, verbose = GLOBAL_BUILD_ARGUMENTS
-    assert isinstance(build_func, str)
-
+    inp, build_func, timeout, verbose = args
     if build_func == "default":
         build_func = tar.tar
     elif build_func == "ndk":
@@ -489,48 +520,8 @@ def local_build_worker(index):
     else:
         raise ValueError("Invalid build_func" + build_func)
 
-    def timed_func():
-        tic = time.time()
-        inp = measure_inputs[index]
-        task = inp.task
 
-        error_no = MeasureErrorNo.NO_ERROR
-        error_msg = None
-        args = []
-
-        try:
-            sch, args = task.compute_dag.apply_steps_from_state(inp.state, layout_rewrite=True)
-        # pylint: disable=broad-except
-        except Exception:
-            error_no = MeasureErrorNo.INSTANTIATION_ERROR
-            error_msg = make_error_msg()
-
-        if error_no == 0:
-            dirname = tempfile.mkdtemp()
-            filename = os.path.join(dirname, "tmp_func." + build_func.output_format)
-
-            try:
-                # TODO(merrymercy): Port the unroll pass.
-                with transform.PassContext():
-                    func = build_module.build(
-                        sch, args, target=task.target, target_host=task.target_host
-                    )
-                func.export_library(filename, build_func)
-            # pylint: disable=broad-except
-            except Exception:
-                error_no = MeasureErrorNo.COMPILE_HOST
-                error_msg = make_error_msg()
-        else:
-            filename = ""
-
-        if verbose >= 1:
-            if error_no == MeasureErrorNo.NO_ERROR:
-                print(".", end="")
-            else:
-                print(".E", end="")  # Build error
-        return filename, args, error_no, error_msg, time.time() - tic
-
-    res = call_func_with_timeout(timeout, timed_func)
+    res = call_func_with_timeout(timeout, _timed_func, args=(inp, build_func, verbose))
     if isinstance(res, TimeoutError):
         if verbose >= 1:
             print(".T", end="")  # Build timeout
@@ -563,14 +554,8 @@ def local_builder_build(inputs, timeout, n_parallel, build_func="default", verbo
     res : List[BuildResult]
         The build results of these MeasureInputs.
     """
-    # We use fork and a global variable to copy arguments between processes.
-    # This can avoid expensive serialization of TVM IR when using multiprocessing.Pool
-    global GLOBAL_BUILD_ARGUMENTS
-
-    GLOBAL_BUILD_ARGUMENTS = (inputs, build_func, timeout, verbose)
-
     pool = NoDaemonPool(n_parallel)
-    tuple_res = pool.map(local_build_worker, range(len(inputs)))
+    tuple_res = pool.map(local_build_worker, [(i, build_func, timeout, verbose) for i in inputs])
     pool.terminate()
     pool.join()
     del pool

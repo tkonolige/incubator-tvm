@@ -38,10 +38,7 @@
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/te/schedule.h>
 
-#include <unordered_map>
-#include <unordered_set>
 #include <utility>
-#include <vector>
 
 namespace tvm {
 namespace auto_scheduler {
@@ -50,33 +47,44 @@ namespace auto_scheduler {
 class AccessAnalyzerNode : public Object {
  public:
   template <class T>
-  using OperationMap = std::unordered_map<te::Operation, T, ObjectPtrHash, ObjectPtrEqual>;
+  using OperationMap = Map<te::Operation, T>;
 
   /*! \brief Map an operation to all operations it reads from.
    * For each operation pair, use a two-dimensional array for multiple multi-dimensional accesses
    * The inner vector represents the indices of multi-dimensional access.*/
-  OperationMap<OperationMap<std::vector<std::vector<PrimExpr>>>> read_from;
+  OperationMap<OperationMap<Array<Array<PrimExpr>>>> read_from;
   /*! \brief Map an operation to all operations it is read by.
    * For each operation pair, use a two-dimensional array for multiple multi-dimensional accesses
    * The inner vector represents the indices of multi-dimensional access.*/
-  OperationMap<OperationMap<std::vector<std::vector<PrimExpr>>>> read_by;
+  OperationMap<OperationMap<Array<Array<PrimExpr>>>> read_by;
   /*! \brief Store the number of common outer iterators for operation pairs that have
    * read-write relations. */
-  OperationMap<OperationMap<int>> num_common_outer_iterators;
+  OperationMap<OperationMap<Integer>> num_common_outer_iterators;
   /*! \brief Store whether the operation is an op with only simple access.
    *  (e.g., injective, broadcast and elementwise ops without reduction) */
-  OperationMap<bool> is_simple_access;
+  OperationMap<Bool> is_simple_access;
   /*! \brief Store whether the operation is strictly inlineable
    * (e.g., injective, broadcast and elementwise without reduction, branch or expensive operations)
    */
-  OperationMap<bool> is_strictly_inlineable;
+  OperationMap<Bool> is_strictly_inlineable;
   /*! \brief Store whether the operation needs multi-level tiling
    * (e.g., computation-intensive ops with data reuse opportunity like matmul, conv2d) */
-  OperationMap<bool> needs_multi_level_tiling;
+  OperationMap<Bool> needs_multi_level_tiling;
   /*! \brief Store whether the operation is an output operation */
-  OperationMap<bool> is_output;
+  OperationMap<Bool> is_output;
   /*! \brief Store the topological order of operations */
   Array<te::Operation> ops_topo_order;
+
+  void VisitAttrs(AttrVisitor* v) {
+    v->Visit("read_from", &read_from);
+    v->Visit("read_by", &read_by);
+    v->Visit("num_common_outer_iterators", &num_common_outer_iterators);
+    v->Visit("is_simple_access", &is_simple_access);
+    v->Visit("is_strictly_inlineable", &is_strictly_inlineable);
+    v->Visit("needs_multi_level_tiling", &needs_multi_level_tiling);
+    v->Visit("is_output", &is_output);
+    v->Visit("ops_topo_order", &ops_topo_order);
+  }
 
   static constexpr const char* _type_key = "auto_scheduler.AccessAnalyzer";
   TVM_DECLARE_FINAL_OBJECT_INFO(AccessAnalyzerNode, Object);
@@ -124,7 +132,7 @@ class AccessAnalyzer : public ObjectRef {
    * \return The set of consumers
    * \note This function propagates the relation for inlined ops
    */
-  TVM_DLL std::unordered_set<te::Operation, ObjectHash, ObjectEqual> GetConsumers(
+  TVM_DLL Array<te::Operation> GetConsumers(
       const State& state, const te::Operation& op) const;
 
   /*!
@@ -134,7 +142,7 @@ class AccessAnalyzer : public ObjectRef {
    * \return The set of producers
    * \note This function propagates the relation for inlined ops
    */
-  TVM_DLL std::unordered_set<te::Operation, ObjectHash, ObjectEqual> GetProducers(
+  TVM_DLL Array<te::Operation> GetProducers(
       const State& state, const te::Operation& op) const;
 
   /*!
@@ -143,7 +151,7 @@ class AccessAnalyzer : public ObjectRef {
    * \return The set of direct producers
    * \note This function DOES NOT propagate the relation for inlined ops
    */
-  TVM_DLL std::unordered_set<te::Operation, ObjectHash, ObjectEqual> GetDirectProducers(
+  TVM_DLL Array<te::Operation> GetDirectProducers(
       const te::Operation& op) const;
 
   /*!

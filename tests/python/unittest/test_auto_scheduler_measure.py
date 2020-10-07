@@ -182,6 +182,7 @@ def test_measure_local_builder_runner(enable_cpu_cache_flush=False):
     )
 
     bress = local_builder.build([minp])
+    print(bress[0].error_msg)
     assert bress[0].error_no == 0
     mress = local_runner.run([minp], bress)
     assert mress[0].error_no == 0
