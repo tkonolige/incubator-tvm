@@ -24,7 +24,11 @@
 #ifndef TVM_SUPPORT_LOGGING_H_
 #define TVM_SUPPORT_LOGGING_H_
 
-#include <dmlc/logging.h>
+#include <ctime>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 // a technique that enables overriding macro names on the number of parameters. This is used
 // to define other macros below
@@ -113,8 +117,77 @@
 
 namespace tvm {
 
+std::string backtrace();
+
+struct Error : public std::runtime_error {
+  explicit Error(const std::string &s) : std::runtime_error(s) {}
+};
+
+class InternalError : public std::exception {
+ public:
+  InternalError(const std::string& file, int lineno, const std::string& message,
+        const std::time_t& time = std::time(nullptr), std::string stacktrace = backtrace())
+      : file_(file), lineno_(lineno), message_(message), time_(time), stacktrace_(stacktrace) {
+    std::ostringstream s;
+    s << "[" << std::put_time(std::localtime(&time), "%H:%M:%S") << "] " << file << ":" << lineno
+      << ": " << std::endl
+      << stacktrace << std::endl
+      << message << std::endl;
+    full_message_ = s.str();
+  }
+  const std::string& file() const { return file_; }
+  const std::string& message() const { return message_; }
+  const std::string& full_message() const { return full_message_; }
+  const std::string& stacktrace() const { return stacktrace_; }
+  const std::time_t& time() const { return time_; }
+  int lineno() const { return lineno_; }
+  virtual const char* what() const noexcept { return full_message_.c_str(); }
+
+ private:
+  std::string file_;
+  int lineno_;
+  std::string message_;
+  std::time_t time_;
+  std::string stacktrace_;
+  std::string full_message_;  // holds the full error string
+};
+
+class LogFatal {
+ public:
+  LogFatal(const std::string& file, int lineno) : file_(file), lineno_(lineno) {}
+  ~LogFatal() noexcept(false) {
+    throw InternalError(file_, lineno_, stream_.str());
+  }
+  std::ostringstream& stream() { return stream_; }
+
+ private:
+  std::ostringstream stream_;
+  std::string file_;
+  int lineno_;
+};
+
+class LogMessage {
+ public:
+  LogMessage(const std::string& file, int lineno) {
+    std::time_t t = std::time(nullptr);
+    stream_ << "[" << std::put_time(std::localtime(&t), "%H:%M:%S") << "] " << file << ":" << lineno
+            << ": ";
+  }
+  ~LogMessage() { std::cerr << stream_.str() << std::endl; }
+  std::ostringstream& stream() { return stream_; }
+
+ private:
+  std::ostringstream stream_;
+};
+
+#define LOG(level) TVM_LOG_##level
+#define TVM_LOG_FATAL tvm::LogFatal(__FILE__, __LINE__).stream()
+#define TVM_LOG_INFO tvm::LogMessage(__FILE__, __LINE__).stream()
+#define TVM_LOG_ERROR tvm::LogMessage(__FILE__, __LINE__).stream()
+#define TVM_LOG_WARNING tvm::LogMessage(__FILE__, __LINE__).stream()
+
 constexpr const char* kTVM_INTERNAL_ERROR_MESSAGE =
-    "\n---------------------------------------------------------------\n"
+    "---------------------------------------------------------------\n"
     "An internal invariant was violated during the execution of TVM.\n"
     "Please read TVM's error reporting guidelines.\n"
     "More details can be found here: https://discuss.tvm.ai/t/error-reporting/7793.\n"
@@ -123,14 +196,14 @@ constexpr const char* kTVM_INTERNAL_ERROR_MESSAGE =
 #define ICHECK_INDENT "  "
 
 #define ICHECK_BINARY_OP(name, op, x, y)                           \
-  if (dmlc::LogCheckError _check_err = dmlc::LogCheck##name(x, y)) \
-  dmlc::LogMessageFatal(__FILE__, __LINE__).stream()               \
+  if (!((x) op (y))) \
+  tvm::LogFatal(__FILE__, __LINE__).stream()                       \
       << tvm::kTVM_INTERNAL_ERROR_MESSAGE << std::endl             \
-      << ICHECK_INDENT << "Check failed: " << #x " " #op " " #y << *(_check_err.str) << ": "
+      << ICHECK_INDENT << "Check failed: " << #x " " #op " " #y << ": "
 
-#define ICHECK(x)                                    \
-  if (!(x))                                          \
-  dmlc::LogMessageFatal(__FILE__, __LINE__).stream() \
+#define ICHECK(x)                            \
+  if (!(x))                                  \
+  tvm::LogFatal(__FILE__, __LINE__).stream() \
       << tvm::kTVM_INTERNAL_ERROR_MESSAGE << ICHECK_INDENT << "Check failed: " #x << " == false: "
 
 #define ICHECK_LT(x, y) ICHECK_BINARY_OP(_LT, <, x, y)
@@ -140,7 +213,7 @@ constexpr const char* kTVM_INTERNAL_ERROR_MESSAGE =
 #define ICHECK_EQ(x, y) ICHECK_BINARY_OP(_EQ, ==, x, y)
 #define ICHECK_NE(x, y) ICHECK_BINARY_OP(_NE, !=, x, y)
 #define ICHECK_NOTNULL(x)                                                                        \
-  ((x) == nullptr ? dmlc::LogMessageFatal(__FILE__, __LINE__).stream()                           \
+  ((x) == nullptr ? tvm::LogFatal(__FILE__, __LINE__).stream()                                   \
                         << tvm::kTVM_INTERNAL_ERROR_MESSAGE << __INDENT << "Check not null: " #x \
                         << ' ',                                                                  \
    (x) : (x))  // NOLINT(*)

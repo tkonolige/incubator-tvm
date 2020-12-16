@@ -379,6 +379,10 @@ set_property(TARGET tvm APPEND PROPERTY LINK_OPTIONS "${TVM_VISIBILITY_FLAGS}")
 add_library(tvm_runtime SHARED $<TARGET_OBJECTS:tvm_runtime_objs>)
 set_property(TARGET tvm_runtime APPEND PROPERTY LINK_OPTIONS "${TVM_VISIBILITY_FLAGS}")
 
+include(cmake/modules/Libbacktrace.cmake)
+target_link_libraries(tvm PRIVATE libbacktrace)
+target_link_libraries(tvm_runtime PRIVATE libbacktrace)
+
 if(USE_MICRO)
   # NOTE: cmake doesn't track dependencies at the file level across subdirectories. For the
   # Unix Makefiles generator, need to add these explicit target-level dependency)
@@ -525,4 +529,26 @@ endif(INSTALL_DEV)
 if(MSVC)
   target_compile_definitions(tvm_objs PRIVATE -DTVM_EXPORTS)
   target_compile_definitions(tvm_runtime_objs PRIVATE -DTVM_EXPORTS)
+endif()
+
+set(IS_DEBUG_BUILD OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo" OR CMAKE_CXX_FLAGS MATCHES "-g")
+  set(IS_DEBUG_BUILD ON)
+endif()
+
+# Change relative paths in backtrace to absolute ones
+if(IS_DEBUG_BUILD)
+  target_compile_options(tvm PRIVATE "-ffile-prefix-map=..=${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
+
+# Run dsymutil to generate debugging symbols for backtraces
+if(APPLE AND IS_DEBUG_BUILD)
+  find_program(DSYMUTIL dsymutil)
+  mark_as_advanced(DSYMUTIL)
+  add_custom_command(TARGET tvm
+		  POST_BUILD
+		  COMMAND ${DSYMUTIL} ARGS $<TARGET_FILE:tvm>
+      COMMENT "Running dsymutil"
+		  VERBATIM
+		  )
 endif()
