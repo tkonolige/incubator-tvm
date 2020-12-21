@@ -22,7 +22,7 @@
  * \brief The implementation of a virtual machine executable APIs.
  */
 
-#include <dmlc/memory_io.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/registry.h>
 #include <tvm/runtime/vm/executable.h>
@@ -558,23 +558,23 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
   switch (opcode) {
     case Opcode::Move: {
       // Number of fields = 2
-      DCHECK_EQ(instr.fields.size(), 2U);
+      TVM_DCHECK_EQ(instr.fields.size(), 2U);
       return Instruction::Move(instr.fields[0], instr.fields[1]);
     }
     case Opcode::Ret: {
       // Number of fields = 1
-      DCHECK_EQ(instr.fields.size(), 1U);
+      TVM_DCHECK_EQ(instr.fields.size(), 1U);
       return Instruction::Ret(instr.fields[0]);
     }
     case Opcode::Fatal: {
       // Number of fields = 0
-      DCHECK(instr.fields.empty());
+      TVM_DCHECK(instr.fields.empty());
       return Instruction::Fatal();
     }
     case Opcode::InvokePacked: {
       // Number of fields = 3 + instr.arity
-      DCHECK_GE(instr.fields.size(), 3U);
-      DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
+      TVM_DCHECK_GE(instr.fields.size(), 3U);
+      TVM_DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
 
       Index packed_index = instr.fields[0];
       Index arity = instr.fields[1];
@@ -584,8 +584,8 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::AllocTensor: {
       // Number of fields = 7 + instr.alloc_tensor.ndim
-      DCHECK_GE(instr.fields.size(), 7U);
-      DCHECK_EQ(instr.fields.size(), 7U + static_cast<size_t>(instr.fields[5]));
+      TVM_DCHECK_GE(instr.fields.size(), 7U);
+      TVM_DCHECK_EQ(instr.fields.size(), 7U + static_cast<size_t>(instr.fields[5]));
 
       RegName storage_reg = instr.fields[0];
       RegName offset = instr.fields[1];
@@ -604,7 +604,7 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::AllocTensorReg: {
       // Number of fields = 7
-      DCHECK_EQ(instr.fields.size(), 7U);
+      TVM_DCHECK_EQ(instr.fields.size(), 7U);
 
       RegName storage_reg = instr.fields[0];
       RegName offset = instr.fields[1];
@@ -621,8 +621,8 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::AllocADT: {
       // Number of fields = 3 + instr.num_fields
-      DCHECK_GE(instr.fields.size(), 3U);
-      DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
+      TVM_DCHECK_GE(instr.fields.size(), 3U);
+      TVM_DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
 
       Index constructor_tag = instr.fields[0];
       Index num_fields = instr.fields[1];
@@ -633,8 +633,8 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::AllocClosure: {
       // Number of fields = 3 + instr.num_freevar
-      DCHECK_GE(instr.fields.size(), 3U);
-      DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
+      TVM_DCHECK_GE(instr.fields.size(), 3U);
+      TVM_DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
 
       Index clo_index = instr.fields[0];
       Index num_freevar = instr.fields[1];
@@ -645,7 +645,7 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::AllocStorage: {
       // Number of fields = 7
-      DCHECK_GE(instr.fields.size(), 7U);
+      TVM_DCHECK_GE(instr.fields.size(), 7U);
       Index allocation_size = instr.fields[0];
       Index alignment = instr.fields[1];
 
@@ -661,7 +661,7 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::If: {
       // Number of fields = 4
-      DCHECK_EQ(instr.fields.size(), 4U);
+      TVM_DCHECK_EQ(instr.fields.size(), 4U);
       Index test = instr.fields[0];
       Index target = instr.fields[1];
       Index true_offset = instr.fields[2];
@@ -671,8 +671,8 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::Invoke: {
       // Number of fields = 3 + instr.num_args
-      DCHECK_GE(instr.fields.size(), 3U);
-      DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
+      TVM_DCHECK_GE(instr.fields.size(), 3U);
+      TVM_DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
 
       Index func_index = instr.fields[0];
       Index num_args = instr.fields[1];
@@ -683,8 +683,8 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::InvokeClosure: {
       // Number of fields = 3 + instr.num_closure_args
-      DCHECK_GE(instr.fields.size(), 3U);
-      DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
+      TVM_DCHECK_GE(instr.fields.size(), 3U);
+      TVM_DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
 
       Index closure = instr.fields[0];
       Index num_closure_args = instr.fields[1];
@@ -695,42 +695,42 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::LoadConst: {
       // Number of fields = 2
-      DCHECK_EQ(instr.fields.size(), 2U);
+      TVM_DCHECK_EQ(instr.fields.size(), 2U);
       return Instruction::LoadConst(instr.fields[0], instr.fields[1]);
     }
     case Opcode::LoadConsti: {
       // Number of fields = 2
-      DCHECK_EQ(instr.fields.size(), 2U);
+      TVM_DCHECK_EQ(instr.fields.size(), 2U);
       return Instruction::LoadConsti(instr.fields[0], instr.fields[1]);
     }
     case Opcode::GetField: {
       // Number of fields = 3
-      DCHECK_EQ(instr.fields.size(), 3U);
+      TVM_DCHECK_EQ(instr.fields.size(), 3U);
       return Instruction::GetField(instr.fields[0], instr.fields[1], instr.fields[2]);
     }
     case Opcode::GetTag: {
       // Number of fields = 2
-      DCHECK_EQ(instr.fields.size(), 2U);
+      TVM_DCHECK_EQ(instr.fields.size(), 2U);
       return Instruction::GetTag(instr.fields[0], instr.fields[1]);
     }
     case Opcode::Goto: {
       // Number of fields = 1
-      DCHECK_EQ(instr.fields.size(), 1U);
+      TVM_DCHECK_EQ(instr.fields.size(), 1U);
       return Instruction::Goto(instr.fields[0]);
     }
     case Opcode::ShapeOf: {
       // Number of fields = 2
-      DCHECK_EQ(instr.fields.size(), 2U);
+      TVM_DCHECK_EQ(instr.fields.size(), 2U);
       return Instruction::ShapeOf(instr.fields[0], instr.fields[1]);
     }
     case Opcode::ReshapeTensor: {
       // Number of fields = 3
-      DCHECK_EQ(instr.fields.size(), 3U);
+      TVM_DCHECK_EQ(instr.fields.size(), 3U);
       return Instruction::ReshapeTensor(instr.fields[0], instr.fields[1], instr.fields[2]);
     }
     case Opcode::DeviceCopy: {
       // Number of fields = 4
-      DCHECK_EQ(instr.fields.size(), 4U);
+      TVM_DCHECK_EQ(instr.fields.size(), 4U);
       return Instruction::DeviceCopy(instr.fields[0], instr.fields[1], instr.fields[2],
                                      instr.fields[3]);
     }

@@ -25,7 +25,6 @@
 #ifndef TVM_IR_OP_H_
 #define TVM_IR_OP_H_
 
-#include <dmlc/registry.h>
 #include <tvm/ir/attrs.h>
 #include <tvm/ir/expr.h>
 #include <tvm/ir/type.h>
@@ -342,7 +341,7 @@ class OpAttrMap : public AttrRegistryMap<Op, ValueType> {
 };
 
 // internal macros to make
-#define TVM_OP_REGISTER_VAR_DEF static DMLC_ATTRIBUTE_UNUSED ::tvm::OpRegEntry& __make_##Op
+#define TVM_OP_REGISTER_VAR_DEF static __attribute__((unused)) ::tvm::OpRegEntry& __make_##Op
 
 /*!
  * \def TVM_REGISTER_OP

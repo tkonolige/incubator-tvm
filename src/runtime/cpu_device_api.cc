@@ -20,7 +20,7 @@
 /*!
  * \file cpu_device_api.cc
  */
-#include <dmlc/thread_local.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/device_api.h>
 #include <tvm/runtime/registry.h>
 #include <tvm/support/logging.h>

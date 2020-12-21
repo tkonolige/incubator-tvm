@@ -24,7 +24,7 @@
  */
 #include "param_dict.h"
 
-#include <dmlc/memory_io.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/registry.h>
 
 #include <string>

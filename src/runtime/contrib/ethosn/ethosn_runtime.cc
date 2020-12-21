@@ -24,7 +24,7 @@
 
 #include "ethosn_runtime.h"
 
-#include <dmlc/memory_io.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/memory.h>
 #include <tvm/runtime/module.h>

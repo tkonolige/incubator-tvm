@@ -30,6 +30,8 @@
 #include <sstream>
 #include <string>
 
+#include "./dmlc.h" // for dmlc::DebugLoggingEnabled and dmlc::LogMessageVoidify
+
 // a technique that enables overriding macro names on the number of parameters. This is used
 // to define other macros below
 #define GET_MACRO(_1, _2, _3, _4, _5, NAME, ...) NAME
@@ -207,6 +209,51 @@ class LogMessage {
                         << "Check not null: " #x \
                         << ' ',                                                                  \
    (x) : (x))  // NOLINT(*)
+
+#define TVM_LOG_IF(severity, condition) \
+  !(condition) ? (void)0 : dmlc::LogMessageVoidify() & TVM_LOG(severity)
+
+#if TVM_LOG_DEBUG
+
+#define LOG_DFATAL LOG_FATAL
+#define DFATAL FATAL
+#define DLOG(severity) TVM_LOG_IF(severity, ::dmlc::DebugLoggingEnabled())
+#define DLOG_IF(severity, condition) TVM_LOG_IF(severity, ::dmlc::DebugLoggingEnabled() && (condition))
+
+#else
+
+#define LOG_DFATAL LOG_ERROR
+#define DFATAL ERROR
+#define DLOG(severity) true ? (void)0 : dmlc::LogMessageVoidify() & TVM_LOG(severity)
+#define DLOG_IF(severity, condition) \
+  (true || !(condition)) ? (void)0 : dmlc::LogMessageVoidify() & TVM_LOG(severity)
+
+#endif
+
+#if TVM_LOG_DEBUG
+#define TVM_DCHECK(x) \
+  while (false) TVM_CHECK(x)
+#define TVM_DCHECK_LT(x, y) \
+  while (false) TVM_CHECK((x) < (y))
+#define TVM_DCHECK_GT(x, y) \
+  while (false) TVM_CHECK((x) > (y))
+#define TVM_DCHECK_LE(x, y) \
+  while (false) TVM_CHECK((x) <= (y))
+#define TVM_DCHECK_GE(x, y) \
+  while (false) TVM_CHECK((x) >= (y))
+#define TVM_DCHECK_EQ(x, y) \
+  while (false) TVM_CHECK((x) == (y))
+#define TVM_DCHECK_NE(x, y) \
+  while (false) TVM_CHECK((x) != (y))
+#else
+#define TVM_DCHECK(x) TVM_CHECK(x)
+#define TVM_DCHECK_LT(x, y) TVM_CHECK((x) < (y))
+#define TVM_DCHECK_GT(x, y) TVM_CHECK((x) > (y))
+#define TVM_DCHECK_LE(x, y) TVM_CHECK((x) <= (y))
+#define TVM_DCHECK_GE(x, y) TVM_CHECK((x) >= (y))
+#define TVM_DCHECK_EQ(x, y) TVM_CHECK((x) == (y))
+#define TVM_DCHECK_NE(x, y) TVM_CHECK((x) != (y))
+#endif
 
 constexpr const char* kTVM_INTERNAL_ERROR_MESSAGE =
     "---------------------------------------------------------------\n"

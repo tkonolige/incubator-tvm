@@ -22,7 +22,7 @@
  * \brief JSON runtime implementation for TensorRT.
  */
 
-#include <dmlc/parameter.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/ndarray.h>
 #include <tvm/runtime/registry.h>
 

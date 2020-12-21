@@ -22,7 +22,7 @@
  * \brief Json serialization format for dumping and loading tuning records.
  */
 
-#include <dmlc/json.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/auto_scheduler/loop_state.h>
 #include <tvm/auto_scheduler/measure_record.h>
 #include <tvm/auto_scheduler/transform_step.h>

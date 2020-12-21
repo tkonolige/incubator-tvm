@@ -22,7 +22,7 @@
  */
 #include "miopen_utils.h"
 
-#include <dmlc/thread_local.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/registry.h>
 
 #include <string>

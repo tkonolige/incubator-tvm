@@ -25,7 +25,7 @@
 #ifndef TVM_RELAY_BACKEND_CONTRIB_ETHOSN_CODEGEN_ETHOSN_H_
 #define TVM_RELAY_BACKEND_CONTRIB_ETHOSN_CODEGEN_ETHOSN_H_
 
-#include <dmlc/memory_io.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/relay/attrs/nn.h>
 #include <tvm/relay/expr_functor.h>
 #include <tvm/relay/transform.h>

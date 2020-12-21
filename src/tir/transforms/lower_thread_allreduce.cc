@@ -509,7 +509,6 @@ class ThreadAllreduceBuilder final : public StmtExprMutator {
     }
 
     const AttrStmtNode* op = thread_extents_.back();
-    DCHECK_EQ(op->attr_key, attr::thread_extent);
 
     IterVar iv = Downcast<IterVar>(op->node);
     ThreadEntry e;

@@ -18,35 +18,34 @@
  */
 
 /*!
- * \file Use external cudnn utils function
+ * \file tvm/support/dmlc.h
+ * \brief dmlc headers without polluting the global namespace.
  */
-#include "cublas_utils.h"
 
-#include <tvm/support/dmlc.h>
-#include <tvm/runtime/registry.h>
+#ifndef TVM_SUPPORT_DMLC_H_
+#define TVM_SUPPORT_DMLC_H_
 
-#include "../../cuda/cuda_common.h"
+#include <dmlc/common.h>
+#include <dmlc/io.h>
+#include <dmlc/json.h>
+#include <dmlc/memory_io.h>
+#include <dmlc/optional.h>
+#include <dmlc/parameter.h>
+#include <dmlc/serializer.h>
+#include <dmlc/thread_local.h>
 
-namespace tvm {
-namespace contrib {
+// Undefine common macros from dmlc so they are not accidentally used
+#undef CHECK
+#undef CHECK_EQ
+#undef CHECK_NE
+#undef CHECK_LT
+#undef CHECK_LE
+#undef CHECK_GT
+#undef CHECK_GE
+#undef CHECK_NOTNULL
+#undef LOG
+#undef TVM_LOG_IF
+#undef DLOG
+#undef DLOG_IF
 
-CuBlasThreadEntry::CuBlasThreadEntry() { TVM_CHECK_CUBLAS_ERROR(cublasCreate(&handle)); }
-
-CuBlasThreadEntry::~CuBlasThreadEntry() {
-  if (handle) {
-    cublasDestroy(handle);
-    handle = 0;
-  }
-}
-
-typedef dmlc::ThreadLocalStore<CuBlasThreadEntry> CuBlasThreadStore;
-
-CuBlasThreadEntry* CuBlasThreadEntry::ThreadLocal() {
-  auto stream = runtime::CUDAThreadEntry::ThreadLocal()->stream;
-  CuBlasThreadEntry* retval = CuBlasThreadStore::Get();
-  TVM_CHECK_CUBLAS_ERROR(cublasSetStream(retval->handle, static_cast<cudaStream_t>(stream)));
-  return retval;
-}
-
-}  // namespace contrib
-}  // namespace tvm
+#endif

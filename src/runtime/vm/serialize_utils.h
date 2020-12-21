@@ -24,8 +24,8 @@
 #ifndef TVM_RUNTIME_VM_SERIALIZE_UTILS_H_
 #define TVM_RUNTIME_VM_SERIALIZE_UTILS_H_
 
-#include <dmlc/common.h>
-#include <dmlc/memory_io.h>
+#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/vm/executable.h>
 
 #include <functional>

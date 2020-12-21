@@ -24,7 +24,7 @@
 #ifndef TVM_RELAY_BACKEND_UTILS_H_
 #define TVM_RELAY_BACKEND_UTILS_H_
 
-#include <dmlc/json.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/driver/driver_api.h>
 #include <tvm/relay/expr.h>
 #include <tvm/relay/expr_functor.h>

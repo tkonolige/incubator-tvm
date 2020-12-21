@@ -21,7 +21,7 @@
  * \file codegen.cc
  * \brief Common utilities to generated C style code.
  */
-#include <dmlc/memory_io.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/ir/module.h>
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/container.h>

@@ -100,7 +100,7 @@ class VulkanStream {
     if (std::any_of(deferred_tokens_[deferred_token.descriptor_set_].begin(),
                     deferred_tokens_[deferred_token.descriptor_set_].end(),
                     [&](const VulkanStreamToken& token) {
-                      DCHECK(token.descriptor_set_ == deferred_token.descriptor_set_);
+                      TVM_DCHECK(token.descriptor_set_ == deferred_token.descriptor_set_);
                       return token.descriptor_set_ == deferred_token.descriptor_set_ &&
                              token.buffers_ != deferred_token.buffers_;
                     })) {
@@ -111,7 +111,7 @@ class VulkanStream {
     if (!std::any_of(deferred_tokens_[deferred_token.descriptor_set_].begin(),
                      deferred_tokens_[deferred_token.descriptor_set_].end(),
                      [&](const VulkanStreamToken& token) {
-                       DCHECK(token.descriptor_set_ == deferred_token.descriptor_set_);
+                       TVM_DCHECK(token.descriptor_set_ == deferred_token.descriptor_set_);
                        return token.descriptor_set_ == deferred_token.descriptor_set_ &&
                               token.buffers_ == deferred_token.buffers_;
                      })) {
@@ -131,8 +131,8 @@ class VulkanStream {
       deferred_kernels_.clear();
       deferred_tokens_.clear();
     } else {
-      DCHECK_EQ(deferred_kernels_.size(), 0);
-      DCHECK_EQ(deferred_tokens_.size(), 0);
+      TVM_DCHECK_EQ(deferred_kernels_.size(), 0);
+      TVM_DCHECK_EQ(deferred_tokens_.size(), 0);
     }
 
     VULKAN_CALL(vkEndCommandBuffer(state_->cmd_buffer_));

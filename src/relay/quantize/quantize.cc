@@ -25,7 +25,7 @@
  */
 #include "./quantize.h"
 
-#include <dmlc/thread_local.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/relay/op_attr_types.h>
 #include <tvm/relay/transform.h>
 

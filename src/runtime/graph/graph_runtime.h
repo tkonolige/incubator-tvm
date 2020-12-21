@@ -26,8 +26,8 @@
 #define TVM_RUNTIME_GRAPH_GRAPH_RUNTIME_H_
 
 #include <dlpack/dlpack.h>
-#include <dmlc/json.h>
-#include <dmlc/memory_io.h>
+#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/ndarray.h>
 #include <tvm/runtime/packed_func.h>
 

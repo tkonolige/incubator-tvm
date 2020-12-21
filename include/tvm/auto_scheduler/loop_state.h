@@ -48,7 +48,8 @@
 #ifndef TVM_AUTO_SCHEDULER_LOOP_STATE_H_
 #define TVM_AUTO_SCHEDULER_LOOP_STATE_H_
 
-#include <dmlc/common.h>
+#include <tvm/support/dmlc.h>
+
 #include <tvm/auto_scheduler/transform_step.h>
 #include <tvm/runtime/container.h>
 

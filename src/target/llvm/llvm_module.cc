@@ -253,7 +253,7 @@ class LLVMModuleNode final : public runtime::ModuleNode {
 
     std::string verify_errors_storage;
     llvm::raw_string_ostream verify_errors(verify_errors_storage);
-    LOG_IF(FATAL, llvm::verifyModule(*module_, &verify_errors))
+    TVM_LOG_IF(FATAL, llvm::verifyModule(*module_, &verify_errors))
         << "LLVM module verification failed with the following errors: \n"
         << verify_errors.str();
     target_ = target;

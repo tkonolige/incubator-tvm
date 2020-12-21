@@ -24,7 +24,6 @@
 #ifndef TVM_RUNTIME_PACKED_FUNC_H_
 #define TVM_RUNTIME_PACKED_FUNC_H_
 
-#include <dmlc/logging.h>
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/container.h>
 #include <tvm/runtime/data_type.h>

@@ -25,7 +25,7 @@
 #ifndef TVM_AUTO_SCHEDULER_UTILS_H_
 #define TVM_AUTO_SCHEDULER_UTILS_H_
 
-#include <dmlc/common.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/tir/expr.h>
 
 #include <algorithm>

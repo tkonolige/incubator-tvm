@@ -24,8 +24,8 @@
 #ifndef TVM_RUNTIME_META_DATA_H_
 #define TVM_RUNTIME_META_DATA_H_
 
-#include <dmlc/io.h>
-#include <dmlc/json.h>
+#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/module.h>
 #include <tvm/runtime/ndarray.h>
 #include <tvm/runtime/packed_func.h>

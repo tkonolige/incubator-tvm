@@ -22,7 +22,7 @@
  */
 #include "stackvm_module.h"
 
-#include <dmlc/memory_io.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/module.h>
 #include <tvm/runtime/registry.h>
 

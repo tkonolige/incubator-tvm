@@ -20,7 +20,7 @@
 /*!
  * \file aocl_device_api.cc
  */
-#include <dmlc/thread_local.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/registry.h>
 
 #include "aocl_common.h"

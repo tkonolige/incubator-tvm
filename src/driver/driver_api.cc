@@ -21,7 +21,7 @@
  *  Compile executable modules.
  * \file driver_api.cc
  */
-#include <dmlc/thread_local.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/driver/driver_api.h>
 #include <tvm/ir/transform.h>
 #include <tvm/runtime/container.h>

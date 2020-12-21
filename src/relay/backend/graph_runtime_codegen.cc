@@ -22,8 +22,8 @@
  * \brief Graph runtime codegen
  */
 
-#include <dmlc/any.h>
-#include <dmlc/json.h>
+#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/ir/module.h>
 #include <tvm/relay/expr_functor.h>
 #include <tvm/runtime/device_api.h>

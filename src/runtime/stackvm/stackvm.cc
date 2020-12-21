@@ -23,7 +23,7 @@
  */
 #include "stackvm.h"
 
-#include <dmlc/thread_local.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/c_backend_api.h>
 
 #include <algorithm>

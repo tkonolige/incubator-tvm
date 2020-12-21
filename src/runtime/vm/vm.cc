@@ -22,7 +22,7 @@
  * \brief The Relay virtual machine runtime.
  */
 
-#include <dmlc/memory_io.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/runtime/container.h>
 #include <tvm/runtime/memory.h>
 #include <tvm/runtime/object.h>

@@ -25,8 +25,18 @@
 #ifndef TVM_RUNTIME_SERIALIZER_H_
 #define TVM_RUNTIME_SERIALIZER_H_
 
-#include <dmlc/io.h>
-#include <dmlc/serializer.h>
+#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc.h>
+#undef LOG
+#undef CHECK
+#undef CHECK_EQ
+#undef CHECK_GT
+#undef CHECK_GE
+#undef CHECK_LT
+#undef CHECK_LE
+#undef CHECK_NE
+#undef CHECK_NOTNULL
+
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/ndarray.h>
 

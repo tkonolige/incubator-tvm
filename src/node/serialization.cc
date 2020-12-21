@@ -21,8 +21,8 @@
  * \file node/serialization.cc
  * \brief Utilities to serialize TVM AST/IR objects.
  */
-#include <dmlc/json.h>
-#include <dmlc/memory_io.h>
+#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc.h>
 #include <tvm/ir/attrs.h>
 #include <tvm/node/container.h>
 #include <tvm/node/reflection.h>
