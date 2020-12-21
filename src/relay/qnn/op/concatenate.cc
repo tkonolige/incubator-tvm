@@ -51,7 +51,7 @@ bool QnnConcatenateRel(const Array<Type>& types, int num_inputs, const Attrs& at
     if (types[1].as<IncompleteTypeNode>()) {
       return false;
     } else {
-      throw Error(ErrorBuilder()
+      throw CompileError(ErrorBuilder()
                   << "qnn concatenate requires a tuple of scales as the second argument, found "
                   << PrettyPrint(types[1]));
     }
@@ -68,7 +68,7 @@ bool QnnConcatenateRel(const Array<Type>& types, int num_inputs, const Attrs& at
     if (types[2].as<IncompleteTypeNode>()) {
       return false;
     } else {
-      throw Error(ErrorBuilder()
+      throw CompileError(ErrorBuilder()
                   << "qnn concatenate requires a tuple of zero_points as the third argument, found "
                   << PrettyPrint(types[2]));
     }

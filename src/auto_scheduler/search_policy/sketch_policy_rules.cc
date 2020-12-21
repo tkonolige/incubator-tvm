@@ -1080,7 +1080,7 @@ PopulationGenerationRule::ResultKind MutateComputeLocation::Apply(SketchPolicyNo
     }
     try {
       StepApplyToState(tmp_s->transform_steps.back(), &tmp_s, policy->search_task->compute_dag);
-    } catch (dmlc::Error& e) {
+    } catch (Error& e) {
       return ResultKind::kInvalid;
     }
   }
@@ -1202,7 +1202,7 @@ PopulationGenerationRule::ResultKind MutateParallel::Apply(SketchPolicyNode* pol
     tmp_s.CopyOnWrite()->transform_steps.push_back(step);
     try {
       StepApplyToState(tmp_s->transform_steps.back(), &tmp_s, policy->search_task->compute_dag);
-    } catch (dmlc::Error& e) {
+    } catch (Error& e) {
       return ResultKind::kInvalid;
     }
   }

@@ -157,7 +157,7 @@ class AnnotatedRegionSet::Creator : protected MixedModeVisitor {
       // Check if the argument already belongs to a region
       auto region = region_set_->GetRegion(call->args[0]);
       if (!region.defined()) {
-        throw Error(ErrorBuilder() << "Cannot find the corresponding region for end annotation:\n"
+        throw CompileError(ErrorBuilder() << "Cannot find the corresponding region for end annotation:\n"
                                    << AsText(GetRef<Call>(call), false));
       } else {
         // If the argument is belonged to a region, it must have the same target.

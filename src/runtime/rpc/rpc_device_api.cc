@@ -60,7 +60,7 @@ class RPCDeviceAPI final : public DeviceAPI {
     auto remote_ctx = RemoveRPCSessionMask(ctx);
     try {
       GetSess(ctx)->GetDeviceAPI(remote_ctx)->FreeDataSpace(remote_ctx, space->data);
-    } catch (const dmlc::Error& e) {
+    } catch (const Error& e) {
       // fault tolerance to remote close.
     }
     delete space;

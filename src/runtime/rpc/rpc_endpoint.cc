@@ -543,7 +543,7 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
 
       try {
         fconstructor->CallPacked(constructor_args, &con_ret);
-      } catch (const dmlc::Error& e) {
+      } catch (const Error& e) {
         LOG(FATAL) << "Server[" << name_ << "]:"
                    << " Error caught from session constructor " << constructor_name << ":\n"
                    << e.what();
@@ -736,7 +736,7 @@ void RPCEndpoint::Shutdown() {
             writer_.bytes_available());
         if (n == 0) break;
       }
-    } catch (const dmlc::Error& e) {
+    } catch (const Error& e) {
     }
     channel_.reset(nullptr);
   }
