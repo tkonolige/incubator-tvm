@@ -92,12 +92,12 @@ Stmt MakeCrossThreadReduction(const ComputeOpNode* self, const Stage& stage,
                            debug_keep_trivial_loop);
 
   size_t size = self->body.size();
-  ICHECK_GT(size, 0);
+  TVM_ICHECK_GT(size, 0);
   std::vector<const ReduceNode*> reduces(size);
   for (size_t i = 0; i < size; ++i) {
     const ReduceNode* reduce = self->body[i].as<ReduceNode>();
-    ICHECK(reduce);
-    ICHECK(reduce->init.empty())
+    TVM_ICHECK(reduce);
+    TVM_ICHECK(reduce->init.empty())
         << "Cannot perform cross_thread_reduction for reductions with init";
     reduces[i] = reduce;
   }
@@ -141,7 +141,7 @@ Stmt MakeCrossThreadReduction(const ComputeOpNode* self, const Stage& stage,
     normal_init.reserve(size);
     normal_update.resize(size);
     const CommReducerNode* combiner = reduces[0]->combiner.as<CommReducerNode>();
-    ICHECK(combiner);
+    TVM_ICHECK(combiner);
     Array<PrimExpr> lhs;
     for (size_t i = 0; i < size; ++i) {
       DataType t = reduces[i]->dtype;

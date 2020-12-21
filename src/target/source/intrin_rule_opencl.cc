@@ -74,10 +74,10 @@ TVM_REGISTER_GLOBAL("tvm.intrin.rule.opencl.cosh").set_body(DispatchPureExtern<D
 static void DispatchIntelShuffle(const TVMArgs& args, TVMRetValue* rv) {
   PrimExpr e = args[0];
   const CallNode* call = e.as<CallNode>();
-  ICHECK(call != nullptr);
-  ICHECK_EQ(call->args.size(), 5);  // mask, value, warp_id, width, warp_size
+  TVM_ICHECK(call != nullptr);
+  TVM_ICHECK_EQ(call->args.size(), 5);  // mask, value, warp_id, width, warp_size
   arith::Analyzer analyzer;
-  ICHECK(analyzer.CanProve(call->args[3] == call->args[4]))
+  TVM_ICHECK(analyzer.CanProve(call->args[3] == call->args[4]))
       << "Intel warp shuffle dose not support width != warp_size";
   Array<PrimExpr> opencl_args{{StringImm("intel_sub_group_shuffle"), call->args[1], call->args[2]}};
   *rv = Call(call->dtype, builtin::call_pure_extern(), opencl_args);

@@ -43,7 +43,7 @@ PackedFunc VirtualMachineDebug::GetFunction(const std::string& name,
                                             const ObjectPtr<Object>& sptr_to_self) {
   if (name == "get_stat") {
     return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-      ICHECK_EQ(args.size(), 1U);
+      TVM_ICHECK_EQ(args.size(), 1U);
       std::vector<std::pair<Index, double>> op_acc_time;
       for (auto kv : op_durations_) {
         auto val =
@@ -95,7 +95,7 @@ PackedFunc VirtualMachineDebug::GetFunction(const std::string& name,
 
 void VirtualMachineDebug::LoadExecutable(const Executable* exec) {
   VirtualMachine::LoadExecutable(exec);
-  ICHECK(exec_);
+  TVM_ICHECK(exec_);
   for (auto kv : exec_->primitive_map) {
     packed_index_map_[kv.second] = kv.first;
     op_invokes_[kv.second] = 0;
@@ -104,17 +104,17 @@ void VirtualMachineDebug::LoadExecutable(const Executable* exec) {
 
 void VirtualMachineDebug::InvokePacked(Index packed_index, const PackedFunc& func, Index arg_count,
                                        Index output_size, const std::vector<ObjectRef>& args) {
-  ICHECK(exec_);
-  ICHECK(!ctxs_.empty()) << "Context has not been initialized yet.";
+  TVM_ICHECK(exec_);
+  TVM_ICHECK(!ctxs_.empty()) << "Context has not been initialized yet.";
   // The device context of any input of the operator is used for
   // synchronization.
-  ICHECK_GT(arg_count, 0U);
+  TVM_ICHECK_GT(arg_count, 0U);
   ObjectRef arg = args[0];
   while (arg->IsInstance<ADTObj>()) {
     ADT adt = Downcast<ADT>(arg);
     arg = adt[0];
   }
-  ICHECK(arg->IsInstance<NDArray::ContainerType>());
+  TVM_ICHECK(arg->IsInstance<NDArray::ContainerType>());
   auto nd_array = Downcast<NDArray>(arg);
   auto ctx = nd_array->ctx;
 
@@ -140,7 +140,7 @@ runtime::Module CreateVirtualMachineDebug(const Executable* exec) {
 TVM_REGISTER_GLOBAL("runtime._VirtualMachineDebug").set_body([](TVMArgs args, TVMRetValue* rv) {
   runtime::Module mod = args[0];
   const auto* exec = dynamic_cast<Executable*>(mod.operator->());
-  ICHECK(exec) << "Virtual machine has not been defined yet."
+  TVM_ICHECK(exec) << "Virtual machine has not been defined yet."
                << "\n";
   *rv = CreateVirtualMachineDebug(exec);
 });

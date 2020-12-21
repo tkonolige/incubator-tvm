@@ -53,7 +53,7 @@ struct Handler<::tvm::Array<::tvm::auto_scheduler::Stage>> {
     bool s;
     reader->BeginArray();
     s = reader->NextArrayItem();
-    ICHECK(!s);
+    TVM_ICHECK(!s);
   }
 };
 
@@ -80,7 +80,7 @@ struct Handler<::tvm::Array<::tvm::auto_scheduler::Step>> {
       reader->BeginArray();
       data->push_back(::tvm::auto_scheduler::StepReadFromRecord(reader));
       s = reader->NextArrayItem();
-      ICHECK(!s);
+      TVM_ICHECK(!s);
     }
   }
 };
@@ -97,13 +97,13 @@ struct Handler<::tvm::auto_scheduler::StateNode> {
     bool s;
     reader->BeginArray();
     s = reader->NextArrayItem();
-    ICHECK(s);
+    TVM_ICHECK(s);
     reader->Read(&data->stages);
     s = reader->NextArrayItem();
-    ICHECK(s);
+    TVM_ICHECK(s);
     reader->Read(&data->transform_steps);
     s = reader->NextArrayItem();
-    ICHECK(!s);
+    TVM_ICHECK(!s);
   }
 };
 
@@ -127,31 +127,31 @@ struct Handler<::tvm::auto_scheduler::HardwareParamsNode> {
     bool s;
     reader->BeginArray();
     s = reader->NextArrayItem();
-    CHECK(s);
+    TVM_CHECK(s);
     reader->Read(&data->num_cores);
     s = reader->NextArrayItem();
-    CHECK(s);
+    TVM_CHECK(s);
     reader->Read(&data->vector_unit_bytes);
     s = reader->NextArrayItem();
-    CHECK(s);
+    TVM_CHECK(s);
     reader->Read(&data->cache_line_bytes);
     s = reader->NextArrayItem();
-    CHECK(s);
+    TVM_CHECK(s);
     reader->Read(&data->max_shared_memory_per_block);
     s = reader->NextArrayItem();
-    CHECK(s);
+    TVM_CHECK(s);
     reader->Read(&data->max_local_memory_per_block);
     s = reader->NextArrayItem();
-    CHECK(s);
+    TVM_CHECK(s);
     reader->Read(&data->max_threads_per_block);
     s = reader->NextArrayItem();
-    CHECK(s);
+    TVM_CHECK(s);
     reader->Read(&data->max_vthread_extent);
     s = reader->NextArrayItem();
-    CHECK(s);
+    TVM_CHECK(s);
     reader->Read(&data->warp_size);
     s = reader->NextArrayItem();
-    CHECK(!s);
+    TVM_CHECK(!s);
   }
 };
 
@@ -174,11 +174,11 @@ struct Handler<::tvm::auto_scheduler::SearchTaskNode> {
     auto hardware_params_node = ::tvm::make_object<::tvm::auto_scheduler::HardwareParamsNode>();
     reader->BeginArray();
     s = reader->NextArrayItem();
-    ICHECK(s);
+    TVM_ICHECK(s);
     reader->Read(&str_value);
     data->workload_key = std::move(str_value);
     s = reader->NextArrayItem();
-    ICHECK(s);
+    TVM_ICHECK(s);
     reader->Read(&str_value);
     data->target = ::tvm::Target(str_value);
     s = reader->NextArrayItem();
@@ -190,7 +190,7 @@ struct Handler<::tvm::auto_scheduler::SearchTaskNode> {
         reader->Read(&str_value);
         data->target_host = ::tvm::Target(str_value);
         s = reader->NextArrayItem();
-        ICHECK(!s);
+        TVM_ICHECK(!s);
       }
     }
   }
@@ -213,13 +213,13 @@ struct Handler<::tvm::auto_scheduler::MeasureInputNode> {
     bool s;
     reader->BeginArray();
     s = reader->NextArrayItem();
-    ICHECK(s);
+    TVM_ICHECK(s);
     reader->Read(task_node.get());
     s = reader->NextArrayItem();
-    ICHECK(s);
+    TVM_ICHECK(s);
     reader->Read(state_node.get());
     s = reader->NextArrayItem();
-    ICHECK(!s);
+    TVM_ICHECK(!s);
 
     data->task = ::tvm::auto_scheduler::SearchTask(task_node);
     data->state = ::tvm::auto_scheduler::State(state_node);
@@ -235,7 +235,7 @@ struct Handler<::tvm::auto_scheduler::MeasureResultNode> {
     writer->BeginArray(false);
     for (const auto& x : data.costs) {
       auto pf = x.as<::tvm::tir::FloatImmNode>();
-      ICHECK(pf != nullptr) << "Cost can only contain float values";
+      TVM_ICHECK(pf != nullptr) << "Cost can only contain float values";
       writer->WriteArrayItem(pf->value);
     }
     writer->EndArray();
@@ -250,23 +250,23 @@ struct Handler<::tvm::auto_scheduler::MeasureResultNode> {
     bool s;
     reader->BeginArray();
     s = reader->NextArrayItem();
-    ICHECK(s);
+    TVM_ICHECK(s);
     reader->Read(&double_list);
     data->costs.clear();
     for (const auto& i : double_list) {
       data->costs.push_back(::tvm::FloatImm(::tvm::DataType::Float(64), i));
     }
     s = reader->NextArrayItem();
-    ICHECK(s);
+    TVM_ICHECK(s);
     reader->Read(&data->error_no);
     s = reader->NextArrayItem();
-    ICHECK(s);
+    TVM_ICHECK(s);
     reader->Read(&data->all_cost);
     s = reader->NextArrayItem();
-    ICHECK(s);
+    TVM_ICHECK(s);
     reader->Read(&data->timestamp);
     s = reader->NextArrayItem();
-    ICHECK(!s);
+    TVM_ICHECK(!s);
   }
 };
 
@@ -315,7 +315,7 @@ void ReadMeasureRecord(const std::string& str, MeasureInputNode* inp, MeasureRes
     } else if (key == "v") {
       reader.Read(log_version);
     } else {
-      LOG(FATAL) << "Invalid key in json log: " << key;
+      TVM_LOG(FATAL) << "Invalid key in json log: " << key;
     }
   }
 }

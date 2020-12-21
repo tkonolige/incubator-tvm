@@ -102,7 +102,7 @@ void DiagnosticContext::Render() {
 
   if (errs) {
     (*this)->renderer = DiagnosticRenderer();
-    LOG(FATAL) << "DiagnosticError: one or more error diagnostics were "
+    TVM_LOG(FATAL) << "DiagnosticError: one or more error diagnostics were "
                << "emitted, please check diagnostic render for output.";
   }
 }
@@ -113,7 +113,7 @@ TVM_REGISTER_GLOBAL("diagnostics.DiagnosticRendererRender")
     });
 
 DiagnosticContext::DiagnosticContext(const IRModule& module, const DiagnosticRenderer& renderer) {
-  CHECK(renderer.defined()) << "can not initialize a diagnostic renderer with a null function";
+  TVM_CHECK(renderer.defined()) << "can not initialize a diagnostic renderer with a null function";
   auto n = make_object<DiagnosticContextNode>();
   n->module = module;
   n->renderer = renderer;
@@ -155,7 +155,7 @@ DiagnosticRenderer GetRenderer() {
     pf = tvm::runtime::TypedPackedFunc<ObjectRef()>(*override_pf);
   } else {
     auto default_pf = tvm::runtime::Registry::Get(DEFAULT_RENDERER);
-    ICHECK(default_pf != nullptr)
+    TVM_ICHECK(default_pf != nullptr)
         << "Can not find registered function for " << DEFAULT_RENDERER << "." << std::endl
         << "Either this is an internal error or the default function was overloaded incorrectly.";
     pf = tvm::runtime::TypedPackedFunc<ObjectRef()>(*default_pf);
@@ -230,12 +230,12 @@ void ReportAt(const DiagnosticContext& context, std::ostream& out, const Span& s
     return;
   }
 
-  ICHECK(context->module->source_map.defined());
+  TVM_ICHECK(context->module->source_map.defined());
   auto it = context->module->source_map->source_map.find(span->source_name);
 
   // If the source name is not in the current source map, sources were not annotated.
   if (it == context->module->source_map->source_map.end()) {
-    LOG(FATAL) << "The source maps are not populated for this module. "
+    TVM_LOG(FATAL) << "The source maps are not populated for this module. "
                << "Please use `tvm.relay.transform.AnnotateSpans` to attach source maps for error "
                   "reporting. "
                << "Error: " << diagnostic->message;

@@ -64,15 +64,15 @@ class MetalWorkspace final : public DeviceAPI {
   ~MetalWorkspace();
   // Get command queue for given context.
   id<MTLCommandQueue> GetCommandQueue(TVMContext ctx) {
-    ICHECK_EQ(ctx.device_type, kDLMetal);
-    ICHECK(ctx.device_id >= 0 && static_cast<size_t>(ctx.device_id) < queues.size())
+    TVM_ICHECK_EQ(ctx.device_type, kDLMetal);
+    TVM_ICHECK(ctx.device_id >= 0 && static_cast<size_t>(ctx.device_id) < queues.size())
         << "Invalid Metal device_id=" << ctx.device_id;
     return queues[ctx.device_id];
   }
   // Get device for given context
   id<MTLDevice> GetDevice(TVMContext ctx) {
-    ICHECK_EQ(ctx.device_type, kDLMetal);
-    ICHECK(ctx.device_id >= 0 && static_cast<size_t>(ctx.device_id) < devices.size())
+    TVM_ICHECK_EQ(ctx.device_type, kDLMetal);
+    TVM_ICHECK(ctx.device_id >= 0 && static_cast<size_t>(ctx.device_id) < devices.size())
         << "Invalid Metal device_id=" << ctx.device_id;
     return devices[ctx.device_id];
   }

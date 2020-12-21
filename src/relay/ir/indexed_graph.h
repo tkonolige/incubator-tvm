@@ -115,8 +115,8 @@ class IndexedGraph {
       return nullptr;
     }
     while (lhs != rhs) {
-      ICHECK(lhs);
-      ICHECK(rhs);
+      TVM_ICHECK(lhs);
+      TVM_ICHECK(rhs);
       if (lhs->depth_ < rhs->depth_) {
         rhs = rhs->dominator_parent_;
       } else if (lhs->depth_ > rhs->depth_) {

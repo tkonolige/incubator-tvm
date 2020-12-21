@@ -75,7 +75,7 @@ namespace support {
 inline std::string GetHostName() {
   std::string buf;
   buf.resize(256);
-  ICHECK_NE(gethostname(&buf[0], 256), -1);
+  TVM_ICHECK_NE(gethostname(&buf[0], 256), -1);
   return std::string(buf.c_str());
 }
 
@@ -117,7 +117,7 @@ struct SockAddr {
     size_t sep = url.find(",");
     std::string host = url.substr(2, sep - 3);
     std::string port = url.substr(sep + 1, url.length() - 1);
-    ICHECK(ValidateIP(host)) << "Url address is not valid " << url;
+    TVM_ICHECK(ValidateIP(host)) << "Url address is not valid " << url;
     if (host == "localhost") {
       host = "127.0.0.1";
     }
@@ -137,7 +137,7 @@ struct SockAddr {
     hints.ai_socktype = SOCK_STREAM;
     addrinfo* res = nullptr;
     int sig = getaddrinfo(host, nullptr, &hints, &res);
-    ICHECK(sig == 0 && res != nullptr) << "cannot obtain address of " << host;
+    TVM_ICHECK(sig == 0 && res != nullptr) << "cannot obtain address of " << host;
     switch (res->ai_family) {
       case AF_INET: {
         sockaddr_in* addr4 = reinterpret_cast<sockaddr_in*>(&addr);
@@ -152,7 +152,7 @@ struct SockAddr {
         addr6->sin6_family = AF_INET6;
       } break;
       default:
-        ICHECK(false) << "cannot decode address";
+        TVM_ICHECK(false) << "cannot decode address";
     }
     freeaddrinfo(res);
   }
@@ -177,7 +177,7 @@ struct SockAddr {
       const in_addr& addr4 = reinterpret_cast<const sockaddr_in*>(&addr)->sin_addr;
       sinx_addr = reinterpret_cast<const void*>(&addr4);
     } else {
-      ICHECK(false) << "illegal address";
+      TVM_ICHECK(false) << "illegal address";
     }
 
 #ifdef _WIN32
@@ -187,7 +187,7 @@ struct SockAddr {
     const char* s =
         inet_ntop(addr.ss_family, sinx_addr, &buf[0], static_cast<socklen_t>(buf.length()));
 #endif
-    ICHECK(s != nullptr) << "cannot decode address";
+    TVM_ICHECK(s != nullptr) << "cannot decode address";
     std::ostringstream os;
     os << s << ":" << port();
     return os.str();
@@ -260,7 +260,7 @@ class Socket {
           0) {
         return port;
       } else {
-        LOG(WARNING) << "Bind failed to " << host << ":" << port;
+        TVM_LOG(WARNING) << "Bind failed to " << host << ":" << port;
       }
 #if defined(_WIN32)
       if (WSAGetLastError() != WSAEADDRINUSE) {
@@ -336,7 +336,7 @@ class Socket {
     }
     if (LOBYTE(wsa_data.wVersion) != 2 || HIBYTE(wsa_data.wVersion) != 2) {
       WSACleanup();
-      LOG(FATAL) << "Could not find a usable version of Winsock.dll";
+      TVM_LOG(FATAL) << "Could not find a usable version of Winsock.dll";
     }
 #endif
   }
@@ -355,9 +355,9 @@ class Socket {
   static void Error(const char* msg) {
     int errsv = GetLastError();
 #ifdef _WIN32
-    LOG(FATAL) << "Socket " << msg << " Error:WSAError-code=" << errsv;
+    TVM_LOG(FATAL) << "Socket " << msg << " Error:WSAError-code=" << errsv;
 #else
-    LOG(FATAL) << "Socket " << msg << " Error:" << strerror(errsv);
+    TVM_LOG(FATAL) << "Socket " << msg << " Error:" << strerror(errsv);
 #endif
   }
 
@@ -509,7 +509,7 @@ class TCPSocket : public Socket {
       ssize_t ret = recv(sockfd, buf, static_cast<sock_size_t>(len - ndone), MSG_WAITALL);
       if (ret == -1) {
         if (LastErrorWouldBlock()) {
-          LOG(FATAL) << "would block";
+          TVM_LOG(FATAL) << "would block";
           return ndone;
         }
         Socket::Error("RecvAll");
@@ -526,8 +526,8 @@ class TCPSocket : public Socket {
    */
   void SendBytes(std::string data) {
     int datalen = data.length();
-    ICHECK_EQ(SendAll(&datalen, sizeof(datalen)), sizeof(datalen));
-    ICHECK_EQ(SendAll(data.c_str(), datalen), datalen);
+    TVM_ICHECK_EQ(SendAll(&datalen, sizeof(datalen)), sizeof(datalen));
+    TVM_ICHECK_EQ(SendAll(data.c_str(), datalen), datalen);
   }
   /*!
    * \brief Receive the data to remote.
@@ -535,10 +535,10 @@ class TCPSocket : public Socket {
    */
   std::string RecvBytes() {
     int datalen = 0;
-    ICHECK_EQ(RecvAll(&datalen, sizeof(datalen)), sizeof(datalen));
+    TVM_ICHECK_EQ(RecvAll(&datalen, sizeof(datalen)), sizeof(datalen));
     std::string data;
     data.resize(datalen);
-    ICHECK_EQ(RecvAll(&data[0], datalen), datalen);
+    TVM_ICHECK_EQ(RecvAll(&data[0], datalen), datalen);
     return data;
   }
 };

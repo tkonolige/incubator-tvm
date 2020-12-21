@@ -167,14 +167,14 @@ class MicroTransportChannel : public RPCChannel {
     using ::std::chrono::steady_clock;
 
     steady_clock::time_point start_time = steady_clock::now();
-    ICHECK_EQ(kTvmErrorNoError, session_.Initialize());
-    ICHECK_EQ(kTvmErrorNoError, session_.StartSession());
+    TVM_ICHECK_EQ(kTvmErrorNoError, session_.Initialize());
+    TVM_ICHECK_EQ(kTvmErrorNoError, session_.StartSession());
 
     if (session_start_timeout_ == microseconds::zero() &&
         session_start_retry_timeout_ == microseconds::zero()) {
-      ICHECK(ReceiveUntil([this]() -> bool { return session_.IsEstablished(); }, nullptr))
+      TVM_ICHECK(ReceiveUntil([this]() -> bool { return session_.IsEstablished(); }, nullptr))
           << "ReceiveUntil indicated timeout expired, but no timeout set!";
-      ICHECK(session_.IsEstablished()) << "Session not established, but should be";
+      TVM_ICHECK(session_.IsEstablished()) << "Session not established, but should be";
       return true;
     }
 
@@ -198,8 +198,8 @@ class MicroTransportChannel : public RPCChannel {
       }
       end_time += session_start_retry_timeout_;
 
-      ICHECK_EQ(kTvmErrorNoError, session_.Initialize());
-      ICHECK_EQ(kTvmErrorNoError, session_.StartSession());
+      TVM_ICHECK_EQ(kTvmErrorNoError, session_.Initialize());
+      TVM_ICHECK_EQ(kTvmErrorNoError, session_.StartSession());
     }
 
     return true;
@@ -207,7 +207,7 @@ class MicroTransportChannel : public RPCChannel {
 
  public:
   bool StartSession() {
-    ICHECK(state_ == State::kReset)
+    TVM_ICHECK(state_ == State::kReset)
         << "MicroSession: state_: expected kReset, got " << uint8_t(state_);
 
     bool to_return = StartSessionInternal();
@@ -221,7 +221,7 @@ class MicroTransportChannel : public RPCChannel {
   size_t Send(const void* data, size_t size) override {
     const uint8_t* data_bytes = static_cast<const uint8_t*>(data);
     tvm_crt_error_t err = session_.SendMessage(MessageType::kNormal, data_bytes, size);
-    ICHECK(err == kTvmErrorNoError) << "SendMessage returned " << err;
+    TVM_ICHECK(err == kTvmErrorNoError) << "SendMessage returned " << err;
 
     return size;
   }
@@ -236,14 +236,14 @@ class MicroTransportChannel : public RPCChannel {
           session_.ClearReceiveBuffer();
         }
         if (num_bytes_recv == size) {
-          ICHECK(message_buffer_ == nullptr || message_buffer_->ReadAvailable() > 0);
+          TVM_ICHECK(message_buffer_ == nullptr || message_buffer_->ReadAvailable() > 0);
           return num_bytes_recv;
         }
       }
 
       did_receive_message_ = false;
       if (session_established_timeout_ == ::std::chrono::microseconds::zero()) {
-        ICHECK(ReceiveUntil([this]() -> bool { return did_receive_message_; }, nullptr))
+        TVM_ICHECK(ReceiveUntil([this]() -> bool { return did_receive_message_; }, nullptr))
             << "ReceiveUntil timeout expired, but no timeout configured!";
       } else {
         if (!ReceiveUntil([this]() -> bool { return did_receive_message_; },
@@ -286,11 +286,11 @@ class MicroTransportChannel : public RPCChannel {
       int unframer_error = unframer_.Write((const uint8_t*)pending_chunk_.data(),
                                            pending_chunk_.size(), &bytes_consumed);
 
-      ICHECK(bytes_consumed <= pending_chunk_.size())
+      TVM_ICHECK(bytes_consumed <= pending_chunk_.size())
           << "consumed " << bytes_consumed << " want <= " << pending_chunk_.size();
       pending_chunk_ = pending_chunk_.substr(bytes_consumed);
       if (unframer_error < 0) {
-        LOG(ERROR) << "unframer got error code: " << unframer_error;
+        TVM_LOG(ERROR) << "unframer got error code: " << unframer_error;
       } else {
         if (pf()) {
           return true;
@@ -319,10 +319,10 @@ class MicroTransportChannel : public RPCChannel {
         if (state_ == State::kReset) {
           state_ = State::kSessionTerminated;
         } else if (state_ == State::kSessionTerminated) {
-          LOG(FATAL) << "SessionTerminatedError: multiple session-terminated messages received; "
+          TVM_LOG(FATAL) << "SessionTerminatedError: multiple session-terminated messages received; "
                         "device in reboot loop?";
         } else if (state_ == State::kSessionEstablished) {
-          LOG(FATAL) << "SessionTerminatedError: remote device terminated connection";
+          TVM_LOG(FATAL) << "SessionTerminatedError: remote device terminated connection";
         }
         break;
 
@@ -332,14 +332,14 @@ class MicroTransportChannel : public RPCChannel {
         if (message_size_bytes == 0) {
           return;
         } else if (message_size_bytes > sizeof(message) - 1) {
-          LOG(ERROR) << "Remote log message is too long to display: " << message_size_bytes
+          TVM_LOG(ERROR) << "Remote log message is too long to display: " << message_size_bytes
                      << " bytes";
           return;
         }
 
-        ICHECK_EQ(buf->Read(message, sizeof(message) - 1), message_size_bytes);
+        TVM_ICHECK_EQ(buf->Read(message, sizeof(message) - 1), message_size_bytes);
         message[message_size_bytes] = 0;
-        LOG(INFO) << "remote: " << message;
+        TVM_LOG(INFO) << "remote: " << message;
         session_.ClearReceiveBuffer();
         return;
 
@@ -394,8 +394,8 @@ void TVMLogf(const char* fmt, ...) {
   va_start(args, fmt);
   vsnprintf(msg_buf, sizeof(msg_buf), fmt, args);
   va_end(args);
-  LOG(INFO) << msg_buf;
+  TVM_LOG(INFO) << msg_buf;
 }
 
-void TVMPlatformAbort(int error_code) { ICHECK(false) << "TVMPlatformAbort: " << error_code; }
+void TVMPlatformAbort(int error_code) { TVM_ICHECK(false) << "TVMPlatformAbort: " << error_code; }
 }

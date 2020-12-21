@@ -38,7 +38,7 @@ TVM_REGISTER_NODE_TYPE(DequantizeAttrs);
 
 bool DequantizeRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
                    const TypeReporter& reporter) {
-  ICHECK_EQ(types.size(), 4);
+  TVM_ICHECK_EQ(types.size(), 4);
   const auto* data = types[0].as<TensorTypeNode>();
 
   if (data == nullptr) {
@@ -46,7 +46,7 @@ bool DequantizeRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
   }
 
   const auto input_dtype = data->dtype;
-  ICHECK(input_dtype == DataType::Int(8) || input_dtype == DataType::UInt(8) ||
+  TVM_ICHECK(input_dtype == DataType::Int(8) || input_dtype == DataType::UInt(8) ||
          input_dtype == DataType::Int(32))
       << "Input type should be one of the quantized types [unit8, int8, int32] but was "
       << input_dtype;
@@ -54,9 +54,9 @@ bool DequantizeRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
   const auto* dequantize_attrs = attrs.as<DequantizeAttrs>();
   int axis = dequantize_attrs->axis;
   axis = (axis == -1) ? data->shape.size() - 1 : axis;
-  ICHECK_LT(axis, static_cast<int>(data->shape.size()))
+  TVM_ICHECK_LT(axis, static_cast<int>(data->shape.size()))
       << "axis " << dequantize_attrs->axis << " is out of range";
-  ICHECK_GE(axis, 0) << "axis " << dequantize_attrs->axis << " is out of range";
+  TVM_ICHECK_GE(axis, 0) << "axis " << dequantize_attrs->axis << " is out of range";
 
   // Check and assign types for scale and zero points.
   AssignType(types[1], DataType::Float(32), data->shape[axis], reporter);  // scale
@@ -83,10 +83,10 @@ Expr DequantizeLower(const Expr& input_tensor, const Expr& input_scale,
                      const DequantizeAttrs* attrs) {
   const auto axis = attrs->axis;
 
-  ICHECK_EQ(types.size(), 4);
+  TVM_ICHECK_EQ(types.size(), 4);
   auto in_type = types[0];
   auto in_tensor_type = in_type.as<TensorTypeNode>();
-  ICHECK(in_tensor_type != nullptr) << "Type information missing"
+  TVM_ICHECK(in_tensor_type != nullptr) << "Type information missing"
                                     << " Please run infer_type pass.";
   Array<IndexExpr> input_shape = in_tensor_type->shape;
 
@@ -110,15 +110,15 @@ Expr DequantizeLower(const Expr& input_tensor, const Expr& input_scale,
 
 Expr DequantizeQnnCanonicalize(const Attrs& attrs, const Array<Expr>& new_args,
                                const Array<tvm::relay::Type>& types) {
-  ICHECK_EQ(new_args.size(), 3);
+  TVM_ICHECK_EQ(new_args.size(), 3);
   auto& data = new_args[0];
   auto& input_scale = new_args[1];
   auto& input_zero_point = new_args[2];
-  ICHECK_EQ(types.size(), 4);
+  TVM_ICHECK_EQ(types.size(), 4);
 
   // Get attrs.
   const auto* dequantize_attrs = attrs.as<DequantizeAttrs>();
-  ICHECK(dequantize_attrs != nullptr);
+  TVM_ICHECK(dequantize_attrs != nullptr);
 
   return DequantizeLower(data, input_scale, input_zero_point, types, dequantize_attrs);
 }

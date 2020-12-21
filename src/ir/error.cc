@@ -46,7 +46,7 @@ void ErrorReporter::RenderErrors(const IRModule& module, bool use_color) {
   // First we pick an error reporting strategy for each error.
   // TODO(@jroesch): Spanned errors are currently not supported.
   for (auto err : this->errors_) {
-    ICHECK(!err.span.defined()) << "attempting to use spanned errors, currently not supported";
+    TVM_ICHECK(!err.span.defined()) << "attempting to use spanned errors, currently not supported";
   }
 
   NodeMap<GlobalVar, NodeMap<ObjectRef, std::string>> error_maps;
@@ -62,7 +62,7 @@ void ErrorReporter::RenderErrors(const IRModule& module, bool use_color) {
 
     auto has_errs = this->node_to_error_.find(node);
 
-    ICHECK(has_errs != this->node_to_error_.end());
+    TVM_ICHECK(has_errs != this->node_to_error_.end());
 
     const auto& error_indicies = has_errs->second;
 
@@ -113,7 +113,7 @@ void ErrorReporter::RenderErrors(const IRModule& module, bool use_color) {
     annotated_prog << AsText(func, false, [&err_map](const ObjectRef& expr) {
       auto it = err_map.find(expr);
       if (it != err_map.end()) {
-        ICHECK_NE(it->second.size(), 0);
+        TVM_ICHECK_NE(it->second.size(), 0);
         return it->second;
       } else {
         return std::string("");
@@ -127,9 +127,9 @@ void ErrorReporter::RenderErrors(const IRModule& module, bool use_color) {
     rang::setControlMode(rang::control::Auto);
   }
 
-  // Finally we report the error, currently we do so to LOG(FATAL),
+  // Finally we report the error, currently we do so to TVM_LOG(FATAL),
   // it may be good to instead report it to std::cout.
-  LOG(FATAL) << annotated_prog.str() << std::endl;
+  TVM_LOG(FATAL) << annotated_prog.str() << std::endl;
 }
 
 void ErrorReporter::ReportAt(const GlobalVar& global, const ObjectRef& node, const CompileError& err) {

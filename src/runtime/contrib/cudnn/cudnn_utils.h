@@ -36,7 +36,7 @@ namespace contrib {
 #define CUDNN_CALL(func)                                                       \
   {                                                                            \
     cudnnStatus_t e = (func);                                                  \
-    ICHECK_EQ(e, CUDNN_STATUS_SUCCESS) << "cuDNN: " << cudnnGetErrorString(e); \
+    TVM_ICHECK_EQ(e, CUDNN_STATUS_SUCCESS) << "cuDNN: " << cudnnGetErrorString(e); \
   }
 
 /*! breif Convert DLTensor type to CuDNN type */

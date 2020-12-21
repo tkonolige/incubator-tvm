@@ -89,16 +89,16 @@ StorageScope InferStorageScope(const Stage& stage, const GraphContext& ctx) {
 
 void InferRootBound(const Stage& stage, const GraphContext& ctx,
                     std::unordered_map<IterVar, Range>* rmap) {
-  ICHECK_NE(stage->attach_type, kInline) << "call schedule.normalize before scheduleops";
+  TVM_ICHECK_NE(stage->attach_type, kInline) << "call schedule.normalize before scheduleops";
   if (stage->attach_type == kInlinedAlready) return;
   if (stage->is_output) {
     // verify correctness.
-    ICHECK_EQ(stage.GetAttachSpec()->attach_type, kGroupRoot) << "Output must be attached at root";
+    TVM_ICHECK_EQ(stage.GetAttachSpec()->attach_type, kGroupRoot) << "Output must be attached at root";
   }
   if (stage->is_output || stage->op.as<PlaceholderOpNode>()) {
     for (auto iv : stage->op->root_iter_vars()) {
-      ICHECK(iv->dom.defined());
-      ICHECK(!rmap->count(iv));
+      TVM_ICHECK(iv->dom.defined());
+      TVM_ICHECK(!rmap->count(iv));
       (*rmap)[iv] = iv->dom;
     }
     return;
@@ -116,7 +116,7 @@ void InferRootBound(const Stage& stage, const GraphContext& ctx,
         consumers.insert(op);
       }
     } else {
-      LOG(INFO) << "not in feed graph consumer = " << stage->op;
+      TVM_LOG(INFO) << "not in feed graph consumer = " << stage->op;
     }
   }
   // storage scope.
@@ -132,7 +132,7 @@ void InferRootBound(const Stage& stage, const GraphContext& ctx,
     Map<Var, IntSet> relax_set;
     std::unordered_map<IterVar, IntSet> up_state;
     bool found_attach = false;
-    ICHECK(ctx.op2stage_.count(op.get()));
+    TVM_ICHECK(ctx.op2stage_.count(op.get()));
     const Stage& op_stage = ctx.op2stage_.at(op.get());
     // Consumer nest
     for (size_t i = op_stage->leaf_iter_vars.size(); i != 0; --i) {
@@ -141,12 +141,12 @@ void InferRootBound(const Stage& stage, const GraphContext& ctx,
         found_attach = true;
       }
       auto it = rmap->find(iv);
-      ICHECK(it != rmap->end());
+      TVM_ICHECK(it != rmap->end());
       const Range& vrange = it->second;
       if (is_one(vrange->extent)) {
         up_state[iv] = IntSet::SinglePoint(vrange->min);
       } else if (!NeedRelax(iv, found_attach, ctx.bind_map, scope)) {
-        ICHECK(is_zero(vrange->min)) << "InferBound requires every leaf iter var's min equals 0, "
+        TVM_ICHECK(is_zero(vrange->min)) << "InferBound requires every leaf iter var's min equals 0, "
                                      << " call schedule.normalize to achieve this. ";
         if (ctx.bind_map.count(iv)) {
           up_state[iv] = IntSet::SinglePoint(ctx.bind_map.at(iv)->var);
@@ -163,7 +163,7 @@ void InferRootBound(const Stage& stage, const GraphContext& ctx,
         found_attach = true;
       }
       Range vrange = rmap->at(iv);
-      ICHECK(is_zero(vrange->min)) << "InferBound requires every leaf iter var's min equals 0, "
+      TVM_ICHECK(is_zero(vrange->min)) << "InferBound requires every leaf iter var's min equals 0, "
                                    << "call schedule.normalize to achieve this.";
       if (NeedRelax(iv, found_attach, ctx.bind_map, scope)) {
         relax_set.Set(iv->var, IntSet::FromRange(vrange));
@@ -172,7 +172,7 @@ void InferRootBound(const Stage& stage, const GraphContext& ctx,
         }
       }
     }
-    ICHECK(found_attach || stage_attach.size() == 0)
+    TVM_ICHECK(found_attach || stage_attach.size() == 0)
         << "Invalid Schedule, cannot find the producer " << stage->op
         << " along the loop nest specified by compute_at of consumer " << op;
     // Get the domain of the consumer
@@ -218,7 +218,7 @@ Map<IterVar, Range> InferBound(const Schedule& sch) {
   for (Stage stage : sch->stages) {
     for (auto kv : stage->iter_var_attrs) {
       if (kv.second->bind_thread.defined()) {
-        ICHECK(!ctx.bind_map.count(kv.first));
+        TVM_ICHECK(!ctx.bind_map.count(kv.first));
         ctx.bind_map[kv.first] = kv.second->bind_thread;
       }
     }
@@ -242,7 +242,7 @@ Map<IterVar, Range> InferBound(const Schedule& sch) {
     // pass down to get bound of all iter vars.
     PassDownDomain(stage, &ret, &analyzer);
     for (IterVar iv : stage->env_threads) {
-      ICHECK(iv->dom.defined());
+      TVM_ICHECK(iv->dom.defined());
       ret[iv] = iv->dom;
     }
   }

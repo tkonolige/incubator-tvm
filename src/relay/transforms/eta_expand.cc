@@ -62,7 +62,7 @@ class EtaExpander : public ExprMutator {
         type_var_replacer_(TypeVarReplacer()),
         expand_constructor_(expand_constructor),
         expand_global_var_(expand_global_var) {
-    ICHECK(expand_constructor || expand_global_var) << "must expand at least one language feature";
+    TVM_ICHECK(expand_constructor || expand_global_var) << "must expand at least one language feature";
   }
 
   IRModule Expand() {

@@ -39,7 +39,7 @@ void ModuleNode::Import(Module other) {
     static const PackedFunc* fimport_ = nullptr;
     if (fimport_ == nullptr) {
       fimport_ = runtime::Registry::Get("rpc.ImportRemoteModule");
-      ICHECK(fimport_ != nullptr);
+      TVM_ICHECK(fimport_ != nullptr);
     }
     (*fimport_)(GetRef<Module>(this), other);
     return;
@@ -57,7 +57,7 @@ void ModuleNode::Import(Module other) {
       stack.push_back(next);
     }
   }
-  ICHECK(!visited.count(this)) << "Cyclic dependency detected during import";
+  TVM_ICHECK(!visited.count(this)) << "Cyclic dependency detected during import";
   this->imports_.emplace_back(std::move(other));
 }
 
@@ -78,27 +78,27 @@ PackedFunc ModuleNode::GetFunction(const std::string& name, bool query_imports) 
 
 Module Module::LoadFromFile(const std::string& file_name, const std::string& format) {
   std::string fmt = GetFileFormat(file_name, format);
-  ICHECK(fmt.length() != 0) << "Cannot deduce format of file " << file_name;
+  TVM_ICHECK(fmt.length() != 0) << "Cannot deduce format of file " << file_name;
   if (fmt == "dll" || fmt == "dylib" || fmt == "dso") {
     fmt = "so";
   }
   std::string load_f_name = "runtime.module.loadfile_" + fmt;
   const PackedFunc* f = Registry::Get(load_f_name);
-  ICHECK(f != nullptr) << "Loader of " << format << "(" << load_f_name << ") is not presented.";
+  TVM_ICHECK(f != nullptr) << "Loader of " << format << "(" << load_f_name << ") is not presented.";
   Module m = (*f)(file_name, format);
   return m;
 }
 
 void ModuleNode::SaveToFile(const std::string& file_name, const std::string& format) {
-  LOG(FATAL) << "Module[" << type_key() << "] does not support SaveToFile";
+  TVM_LOG(FATAL) << "Module[" << type_key() << "] does not support SaveToFile";
 }
 
 void ModuleNode::SaveToBinary(dmlc::Stream* stream) {
-  LOG(FATAL) << "Module[" << type_key() << "] does not support SaveToBinary";
+  TVM_LOG(FATAL) << "Module[" << type_key() << "] does not support SaveToBinary";
 }
 
 std::string ModuleNode::GetSource(const std::string& format) {
-  LOG(FATAL) << "Module[" << type_key() << "] does not support GetSource";
+  TVM_LOG(FATAL) << "Module[" << type_key() << "] does not support GetSource";
   return "";
 }
 
@@ -112,7 +112,7 @@ const PackedFunc* ModuleNode::GetFuncFromEnv(const std::string& name) {
   }
   if (pf == nullptr) {
     const PackedFunc* f = Registry::Get(name);
-    ICHECK(f != nullptr) << "Cannot find function " << name
+    TVM_ICHECK(f != nullptr) << "Cannot find function " << name
                          << " in the imported modules or global registry";
     return f;
   } else {
@@ -152,7 +152,7 @@ bool RuntimeEnabled(const std::string& target) {
     if (pf == nullptr) return false;
     return (*pf)(target);
   } else {
-    LOG(FATAL) << "Unknown optional runtime " << target;
+    TVM_LOG(FATAL) << "Unknown optional runtime " << target;
   }
   return runtime::Registry::Get(f_name) != nullptr;
 }

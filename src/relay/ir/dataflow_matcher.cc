@@ -85,7 +85,7 @@ void DFPatternMatcher::ClearMap(size_t watermark) {
 
 bool DFPatternMatcher::VisitDFPattern(const DFPattern& pattern, const Expr& expr) {
   if (memoize_ && memo_.count(pattern)) {
-    ICHECK_EQ(memo_[pattern].size(), 1);
+    TVM_ICHECK_EQ(memo_[pattern].size(), 1);
     return expr.same_as(memo_[pattern][0]);
   } else {
     auto watermark = matched_nodes_.size();
@@ -133,7 +133,7 @@ bool MatchRetValue(const ObjectRef& lhs, const TVMRetValue& rhs) {
       }
       break;
     default:
-      ICHECK(false) << "Unsupported type code in Pattern Node " << rhs.type_code();
+      TVM_ICHECK(false) << "Unsupported type code in Pattern Node " << rhs.type_code();
   }
   return false;
 }
@@ -763,7 +763,7 @@ class PatternRewriter : protected MixedModeMutator {
     int count = 0;
     bool equal = true;
     static auto* structural_equal = runtime::Registry::Get("node.StructuralEqual");
-    ICHECK(structural_equal) << "node.StructuralEqual is not registered.";
+    TVM_ICHECK(structural_equal) << "node.StructuralEqual is not registered.";
     do {
       last = post;
       for (auto callback : callbacks) {
@@ -781,7 +781,7 @@ class PatternRewriter : protected MixedModeMutator {
       equal = (*structural_equal)(last, post, false, true);
     } while (!equal && count < 100);
     if (count >= 100) {
-      LOG(FATAL) << "Observed 100 rewrite passes, possible conflicting passes?";
+      TVM_LOG(FATAL) << "Observed 100 rewrite passes, possible conflicting passes?";
     }
     return post;
   }

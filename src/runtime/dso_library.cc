@@ -63,7 +63,7 @@ class DSOLibrary final : public Library {
     // use wstring version that is needed by LLVM.
     std::wstring wname(name.begin(), name.end());
     lib_handle_ = LoadLibraryW(wname.c_str());
-    ICHECK(lib_handle_ != nullptr) << "Failed to load dynamic shared library " << name;
+    TVM_ICHECK(lib_handle_ != nullptr) << "Failed to load dynamic shared library " << name;
   }
 
   void Unload() {
@@ -76,7 +76,7 @@ class DSOLibrary final : public Library {
   // load the library
   void Load(const std::string& name) {
     lib_handle_ = dlopen(name.c_str(), RTLD_LAZY | RTLD_LOCAL);
-    ICHECK(lib_handle_ != nullptr)
+    TVM_ICHECK(lib_handle_ != nullptr)
         << "Failed to load dynamic shared library " << name << " " << dlerror();
   }
 

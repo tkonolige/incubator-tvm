@@ -77,7 +77,7 @@ class LLVMModuleNode final : public runtime::ModuleNode {
     if (name == runtime::symbol::tvm_module_main) {
       const char* entry_name =
           reinterpret_cast<const char*>(GetGlobalAddr(runtime::symbol::tvm_module_main));
-      ICHECK(entry_name != nullptr)
+      TVM_ICHECK(entry_name != nullptr)
           << "Symbol " << runtime::symbol::tvm_module_main << " is not presented";
       faddr = reinterpret_cast<TVMBackendPackedCFunc>(GetFunctionAddr(entry_name));
     } else {
@@ -91,7 +91,7 @@ class LLVMModuleNode final : public runtime::ModuleNode {
     std::string fmt = runtime::GetFileFormat(file_name, format);
     std::error_code ecode;
     llvm::raw_fd_ostream dest(file_name, ecode, llvm::sys::fs::F_None);
-    ICHECK_EQ(ecode.value(), 0) << "Cannot open file: " << file_name << " " << ecode.message();
+    TVM_ICHECK_EQ(ecode.value(), 0) << "Cannot open file: " << file_name << " " << ecode.message();
     if (fmt == "o" || fmt == "obj") {
 #if TVM_LLVM_VERSION <= 60
       std::unique_ptr<llvm::Module> m = llvm::CloneModule(mptr_);
@@ -99,16 +99,16 @@ class LLVMModuleNode final : public runtime::ModuleNode {
       std::unique_ptr<llvm::Module> m = llvm::CloneModule(*mptr_);
 #endif
       llvm::legacy::PassManager pass;
-      ICHECK(tm_);
+      TVM_ICHECK(tm_);
 #if TVM_LLVM_VERSION <= 60
-      ICHECK(tm_->addPassesToEmitFile(pass, dest, llvm::TargetMachine::CGFT_ObjectFile) == 0)
+      TVM_ICHECK(tm_->addPassesToEmitFile(pass, dest, llvm::TargetMachine::CGFT_ObjectFile) == 0)
           << "Cannot emit target CGFT_ObjectFile";
 #elif TVM_LLVM_VERSION <= 90
-      ICHECK(tm_->addPassesToEmitFile(pass, dest, nullptr, llvm::TargetMachine::CGFT_ObjectFile) ==
+      TVM_ICHECK(tm_->addPassesToEmitFile(pass, dest, nullptr, llvm::TargetMachine::CGFT_ObjectFile) ==
              0)
           << "Cannot emit target CGFT_ObjectFile";
 #else
-      ICHECK(tm_->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_ObjectFile) == 0)
+      TVM_ICHECK(tm_->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_ObjectFile) == 0)
           << "Cannot emit target CGFT_ObjectFile";
 #endif
       pass.run(*m);
@@ -119,16 +119,16 @@ class LLVMModuleNode final : public runtime::ModuleNode {
       std::unique_ptr<llvm::Module> m = llvm::CloneModule(*mptr_);
 #endif
       llvm::legacy::PassManager pass;
-      ICHECK(tm_);
+      TVM_ICHECK(tm_);
 #if TVM_LLVM_VERSION <= 60
-      ICHECK(tm_->addPassesToEmitFile(pass, dest, llvm::TargetMachine::CGFT_AssemblyFile) == 0)
+      TVM_ICHECK(tm_->addPassesToEmitFile(pass, dest, llvm::TargetMachine::CGFT_AssemblyFile) == 0)
           << "Cannot emit target CGFT_AssemblyFile";
 #elif TVM_LLVM_VERSION <= 90
-      ICHECK(tm_->addPassesToEmitFile(pass, dest, nullptr,
+      TVM_ICHECK(tm_->addPassesToEmitFile(pass, dest, nullptr,
                                       llvm::TargetMachine::CGFT_AssemblyFile) == 0)
           << "Cannot emit target CGFT_AssemblyFile";
 #else
-      ICHECK(tm_->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_AssemblyFile) == 0)
+      TVM_ICHECK(tm_->addPassesToEmitFile(pass, dest, nullptr, llvm::CGFT_AssemblyFile) == 0)
           << "Cannot emit target CGFT_AssemblyFile";
 #endif
       pass.run(*m);
@@ -141,14 +141,14 @@ class LLVMModuleNode final : public runtime::ModuleNode {
       llvm::WriteBitcodeToFile(*mptr_, dest);
 #endif
     } else {
-      LOG(FATAL) << "Do not know how to save file " << file_name << " with format=\'" << format
+      TVM_LOG(FATAL) << "Do not know how to save file " << file_name << " with format=\'" << format
                  << "\'";
     }
     dest.close();
   }
 
   void SaveToBinary(dmlc::Stream* stream) final {
-    LOG(FATAL) << "LLVMModule: SaveToBinary not supported";
+    TVM_LOG(FATAL) << "LLVMModule: SaveToBinary not supported";
   }
 
   std::string GetSource(const std::string& format) final {
@@ -164,16 +164,16 @@ class LLVMModuleNode final : public runtime::ModuleNode {
       std::unique_ptr<llvm::Module> m = llvm::CloneModule(*mptr_);
 #endif
       llvm::legacy::PassManager pass;
-      ICHECK(tm_);
+      TVM_ICHECK(tm_);
 #if TVM_LLVM_VERSION <= 60
-      ICHECK(tm_->addPassesToEmitFile(pass, rso, llvm::TargetMachine::CGFT_AssemblyFile) == 0)
+      TVM_ICHECK(tm_->addPassesToEmitFile(pass, rso, llvm::TargetMachine::CGFT_AssemblyFile) == 0)
           << "Cannot emit target CGFT_AssemblyFile";
 #elif TVM_LLVM_VERSION <= 90
-      ICHECK(tm_->addPassesToEmitFile(pass, rso, nullptr, llvm::TargetMachine::CGFT_AssemblyFile) ==
+      TVM_ICHECK(tm_->addPassesToEmitFile(pass, rso, nullptr, llvm::TargetMachine::CGFT_AssemblyFile) ==
              0)
           << "Cannot emit target CGFT_AssemblyFile";
 #else
-      ICHECK(tm_->addPassesToEmitFile(pass, rso, nullptr, llvm::CGFT_AssemblyFile) == 0)
+      TVM_ICHECK(tm_->addPassesToEmitFile(pass, rso, nullptr, llvm::CGFT_AssemblyFile) == 0)
           << "Cannot emit target CGFT_AssemblyFile";
 #endif
       pass.run(*m);
@@ -181,11 +181,11 @@ class LLVMModuleNode final : public runtime::ModuleNode {
     } else if (fmt == "" || fmt == "ll") {
       std::string type_str;
       llvm::raw_string_ostream rso(type_str);
-      ICHECK(mptr_ != nullptr);
+      TVM_ICHECK(mptr_ != nullptr);
       mptr_->print(rso, nullptr);
       return rso.str();
     } else {
-      LOG(FATAL) << "Do not know how to get source code with format: " << format << "\'";
+      TVM_LOG(FATAL) << "Do not know how to get source code with format: " << format << "\'";
     }
     return "";
   }
@@ -208,24 +208,24 @@ class LLVMModuleNode final : public runtime::ModuleNode {
           kv.first->name_hint == ::tvm::runtime::symbol::tvm_lookup_linked_param) {
         Map<String, ObjectRef> attrs_dict =
             Downcast<Map<String, ObjectRef>>(kv.second->attrs->dict);
-        CHECK(attrs_dict.find(::tvm::tir::attr::kLinkedParams) != attrs_dict.end())
+        TVM_CHECK(attrs_dict.find(::tvm::tir::attr::kLinkedParams) != attrs_dict.end())
             << "no " << ::tvm::tir::attr::kLinkedParams << " attribute found!";
         linked_params =
             Downcast<Map<String, LinkedParam>>(attrs_dict[::tvm::tir::attr::kLinkedParams]);
         found_linked_params = true;
         continue;
       }
-      ICHECK(kv.second->IsInstance<PrimFuncNode>())
+      TVM_ICHECK(kv.second->IsInstance<PrimFuncNode>())
           << "Can only lower IR Module with PrimFuncs, but got " << kv.second->GetTypeKey();
       auto f = Downcast<PrimFunc>(kv.second);
       if (f->HasNonzeroAttr(tir::attr::kIsEntryFunc)) {
         auto global_symbol = f->GetAttr<String>(tvm::attr::kGlobalSymbol);
-        ICHECK(global_symbol.defined());
+        TVM_ICHECK(global_symbol.defined());
         entry_func = global_symbol.value();
       }
       funcs.push_back(f);
     }
-    ICHECK(funcs.size() > 0 || (could_have_linked_params && found_linked_params));
+    TVM_ICHECK(funcs.size() > 0 || (could_have_linked_params && found_linked_params));
     // TODO(tqchen): remove the entry function behavior as it does not
     // makes sense when we start to use multiple modules.
     cg->Init("TVMMod", tm_.get(), ctx_.get(), system_lib, system_lib, target_c_runtime);
@@ -267,13 +267,13 @@ class LLVMModuleNode final : public runtime::ModuleNode {
     module_ = std::move(module);
     if (module_ == nullptr) {
       std::string msg = std::string(err.getMessage());
-      LOG(FATAL) << "Fail to load module: " << msg;
+      TVM_LOG(FATAL) << "Fail to load module: " << msg;
     }
     std::string target_metadata;
     llvm::Metadata* tvm_target = module_->getModuleFlag("tvm_target");
     if (tvm_target != nullptr) {
       llvm::MDString* pstr = llvm::dyn_cast<llvm::MDString>(tvm_target);
-      ICHECK(pstr != nullptr);
+      TVM_ICHECK(pstr != nullptr);
       target_metadata = pstr->getString().str();
       if (!(target_metadata.length() >= 4 && target_metadata.substr(0, 4) == "llvm")) {
         target_metadata = "llvm " + target_metadata;
@@ -293,7 +293,7 @@ class LLVMModuleNode final : public runtime::ModuleNode {
     auto module = llvm::parseIRFile(file_name, err, *ctx);
     if (module == nullptr) {
       std::string msg = std::string(err.getMessage());
-      LOG(FATAL) << "Fail to load ir file " << file_name << "\n"
+      TVM_LOG(FATAL) << "Fail to load ir file " << file_name << "\n"
                  << "line " << err.getLineNo() << ":" << msg;
     }
     Init(std::move(module), ctx);
@@ -325,17 +325,17 @@ class LLVMModuleNode final : public runtime::ModuleNode {
     auto tm = std::unique_ptr<llvm::TargetMachine>(builder.selectTarget());
     std::unique_ptr<llvm::TargetMachine> tm_sys = GetLLVMTargetMachine(Target("llvm"));
     if (tm_sys->getTargetTriple().getArch() != tm->getTargetTriple().getArch()) {
-      LOG(FATAL) << "Cannot run module, architecture mismatch "
+      TVM_LOG(FATAL) << "Cannot run module, architecture mismatch "
                  << " module=" << tm->getTargetTriple().str()
                  << " system=" << tm_sys->getTargetTriple().str();
     }
     llvm::DataLayout layout(tm->createDataLayout());
-    ICHECK(layout == mptr_->getDataLayout())
+    TVM_ICHECK(layout == mptr_->getDataLayout())
         << "Data layout mismatch between module("
         << mptr_->getDataLayout().getStringRepresentation() << ")"
         << " and ExecutionEngine (" << layout.getStringRepresentation() << ")";
     ee_ = builder.create(tm.release());
-    ICHECK(ee_ != nullptr) << "Failed to initialize jit engine for " << mptr_->getTargetTriple();
+    TVM_ICHECK(ee_ != nullptr) << "Failed to initialize jit engine for " << mptr_->getTargetTriple();
     ee_->runStaticConstructorsDestructors(false);
 
     if (void** ctx_addr =

@@ -48,9 +48,9 @@ size_t FindLeafVar(ArrayNode* all_vars, ArrayNode* leaf_vars, const IterVar& v) 
   if (pos < leaf_vars->size()) return pos;
 
   if (FindNodeRef(all_vars, v) < all_vars->size()) {
-    LOG(FATAL) << "Operate on iter var " << v << "that has already been split";
+    TVM_LOG(FATAL) << "Operate on iter var " << v << "that has already been split";
   } else {
-    LOG(FATAL) << "Operate on iter var " << v << "that is not part of the schedule";
+    TVM_LOG(FATAL) << "Operate on iter var " << v << "that is not part of the schedule";
   }
   return 0;
 }
@@ -58,8 +58,8 @@ size_t FindLeafVar(ArrayNode* all_vars, ArrayNode* leaf_vars, const IterVar& v) 
 DataType MatchDataType(std::vector<DataType> dtypes) {
   int max_bits = -1;
   for (const auto& dtype : dtypes) {
-    ICHECK(dtype.is_int());
-    ICHECK(dtype.is_scalar());
+    TVM_ICHECK(dtype.is_int());
+    TVM_ICHECK(dtype.is_scalar());
     max_bits = std::max(max_bits, dtype.bits());
   }
   return DataType::Int(max_bits);
@@ -68,7 +68,7 @@ DataType MatchDataType(std::vector<DataType> dtypes) {
 void SplitHelper(StageNode* self, IterVar parent, PrimExpr factor, PrimExpr nparts,
                  IterVar* p_outer, IterVar* p_inner) {
   // Check if split is valid.
-  ICHECK(parent->iter_type == kDataPar || parent->iter_type == kCommReduce ||
+  TVM_ICHECK(parent->iter_type == kDataPar || parent->iter_type == kCommReduce ||
          parent->iter_type == kOrdered)
       << "Cannot split on " << IterVarType2String(parent->iter_type);
   IterVar outer = IterVar(Range(), parent->var.copy_with_suffix(".outer"), parent->iter_type);
@@ -127,7 +127,7 @@ Stage& Stage::set_scope(std::string scope) {  // NOLINT(*)
 }
 
 Stage& Stage::compute_at(Stage parent, IterVar scope) {  // NOLINT(*)
-  ICHECK_NE((*this)->attach_type, kScanUpdate) << "Cannot specify compute_at for scan updates";
+  TVM_ICHECK_NE((*this)->attach_type, kScanUpdate) << "Cannot specify compute_at for scan updates";
   // Group constraint checking.
   Stage group = (*this)->group;
   if (group.defined()) {
@@ -135,7 +135,7 @@ Stage& Stage::compute_at(Stage parent, IterVar scope) {  // NOLINT(*)
     while (pg.defined() && !pg.same_as(group)) {
       pg = pg->group;
     }
-    ICHECK(pg.same_as(group)) << "Can only assign compute_at to stages within the same group";
+    TVM_ICHECK(pg.same_as(group)) << "Can only assign compute_at to stages within the same group";
   }
 
   (*this)->attach_type = kScope;
@@ -148,28 +148,28 @@ Stage& Stage::compute_at(Stage parent, IterVar scope) {  // NOLINT(*)
       break;
     }
   }
-  ICHECK(found) << "Cannot find the axis " << scope << " in parent's leaf_iter_vars"
+  TVM_ICHECK(found) << "Cannot find the axis " << scope << " in parent's leaf_iter_vars"
                 << " parent=" << parent;
   return *this;
 }
 
 Stage& Stage::compute_inline() {  // NOLINT(*)
-  ICHECK_NE((*this)->attach_type, kScanUpdate) << "Cannot specify compute_at for scan updates";
+  TVM_ICHECK_NE((*this)->attach_type, kScanUpdate) << "Cannot specify compute_at for scan updates";
   (*this)->attach_type = kInline;
   return *this;
 }
 
 Stage& Stage::compute_root() {  // NOLINT(*)
-  ICHECK_NE((*this)->attach_type, kScanUpdate) << "Cannot specify compute_at for scan updates";
+  TVM_ICHECK_NE((*this)->attach_type, kScanUpdate) << "Cannot specify compute_at for scan updates";
   (*this)->attach_type = kGroupRoot;
   return *this;
 }
 
 Stage& Stage::bind(IterVar ivar, IterVar thread_ivar) {  // NOLINT(*)
   StageNode* self = operator->();
-  ICHECK(ivar->iter_type == kDataPar || ivar->iter_type == kCommReduce)
+  TVM_ICHECK(ivar->iter_type == kDataPar || ivar->iter_type == kCommReduce)
       << "Cannot bind " << IterVarType2String(ivar->iter_type) << " to thread";
-  ICHECK(thread_ivar->iter_type == kThreadIndex)
+  TVM_ICHECK(thread_ivar->iter_type == kThreadIndex)
       << "Cannot rebase by " << IterVarType2String(ivar->iter_type)
       << ", only thread axis is allowed so far";
   ArrayNode* all_vars = self->all_iter_vars.CopyOnWrite();
@@ -181,7 +181,7 @@ Stage& Stage::bind(IterVar ivar, IterVar thread_ivar) {  // NOLINT(*)
   if (it != self->iter_var_attrs.end()) {
     n = make_object<IterVarAttrNode>(*(*it).second.operator->());
     if (n->bind_thread.defined() && !n->bind_thread.same_as(thread_ivar)) {
-      LOG(WARNING) << "Axis " << ivar << " is already bind to another thread " << n->bind_thread;
+      TVM_LOG(WARNING) << "Axis " << ivar << " is already bind to another thread " << n->bind_thread;
     }
   } else {
     n = make_object<IterVarAttrNode>();
@@ -193,9 +193,9 @@ Stage& Stage::bind(IterVar ivar, IterVar thread_ivar) {  // NOLINT(*)
 
 Stage& Stage::env_threads(Array<IterVar> threads) {
   StageNode* self = operator->();
-  ICHECK(self->op.defined() && self->op.as<ScanOpNode>())
+  TVM_ICHECK(self->op.defined() && self->op.as<ScanOpNode>())
       << "env_threads is only valid for composite ops such as ScanOp";
-  ICHECK_EQ(self->env_threads.size(), 0U) << "Already set env_threads";
+  TVM_ICHECK_EQ(self->env_threads.size(), 0U) << "Already set env_threads";
   Array<IterVar>& leaf_vars = self->leaf_iter_vars;
   Array<IterVar>& all_vars = self->all_iter_vars;
   std::vector<ObjectRef> temp;
@@ -228,10 +228,10 @@ Stage& Stage::split_by_nparts(IterVar parent, PrimExpr nparts, IterVar* p_outer,
 
 Stage& Stage::fuse(IterVar outer, IterVar inner, IterVar* p_target) {  // NOLINT(*)
   StageNode* self = operator->();
-  ICHECK(outer->iter_type == kDataPar || outer->iter_type == kCommReduce ||
+  TVM_ICHECK(outer->iter_type == kDataPar || outer->iter_type == kCommReduce ||
          outer->iter_type == kOrdered)
       << "Cannot fuse " << IterVarType2String(outer->iter_type);
-  ICHECK(inner->iter_type == kDataPar || inner->iter_type == kCommReduce ||
+  TVM_ICHECK(inner->iter_type == kDataPar || inner->iter_type == kCommReduce ||
          inner->iter_type == kOrdered)
       << "Cannot fuse " << IterVarType2String(inner->iter_type);
 
@@ -251,7 +251,7 @@ Stage& Stage::fuse(IterVar outer, IterVar inner, IterVar* p_target) {  // NOLINT
     std::swap(outer, inner);
     std::swap(pos_inner, pos_outer);
   }
-  ICHECK_EQ(pos_inner, pos_outer + 1)
+  TVM_ICHECK_EQ(pos_inner, pos_outer + 1)
       << "Can only fuse iterations that are consecutive between each other";
   self->relations.push_back(Fuse(outer, inner, fused));
   all_vars.push_back(fused);
@@ -288,11 +288,11 @@ Stage& Stage::reorder(const Array<IterVar>& order) {  // NOLINT(*)
   std::unordered_set<IterVar> seen_var;
   StageNode* self = operator->();
   for (IterVar iv : order) {
-    ICHECK(iv->iter_type == kDataPar || iv->iter_type == kCommReduce ||
+    TVM_ICHECK(iv->iter_type == kDataPar || iv->iter_type == kCommReduce ||
            iv->iter_type == kThreadIndex)
         << "Cannot reorder IterVar(" << IterVarType2String(iv->iter_type) << ")";
 
-    ICHECK_EQ(seen_var.count(iv), 0) << "Same axis can not appear more than once " << iv;
+    TVM_ICHECK_EQ(seen_var.count(iv), 0) << "Same axis can not appear more than once " << iv;
     seen_var.insert(iv);
   }
   ArrayNode* all_vars = self->all_iter_vars.CopyOnWrite();
@@ -345,7 +345,7 @@ inline void SetAttrIterType(StageNode* self, IterVar var, IterVarType iter_type)
 }
 
 Stage& Stage::vectorize(IterVar var) {  // NOLINT(*)
-  ICHECK(var->iter_type == kDataPar || var->iter_type == kOpaque || var->iter_type == kUnrolled ||
+  TVM_ICHECK(var->iter_type == kDataPar || var->iter_type == kOpaque || var->iter_type == kUnrolled ||
          var->iter_type == kVectorized || var->iter_type == kTensorized ||
          var->iter_type == kParallelized)
       << "Cannot vectorize on " << IterVarType2String(var->iter_type);
@@ -418,7 +418,7 @@ Stage& Stage::storage_align(IterVar axis, int factor, int offset) {
 
 Stage& Stage::double_buffer() {
   StageNode* self = operator->();
-  ICHECK(!self->is_output) << "Cannot apply double buffer on output";
+  TVM_ICHECK(!self->is_output) << "Cannot apply double buffer on output";
   self->double_buffer = true;
   return *this;
 }
@@ -451,23 +451,23 @@ Schedule Schedule::copy() const {
   }
   for (Stage s : n->stages) {
     if (s->attach_stage.defined()) {
-      ICHECK(smap.find(s->attach_stage) != smap.end())
+      TVM_ICHECK(smap.find(s->attach_stage) != smap.end())
           << s->attach_stage << " not found in " << (*this);
       s->attach_stage = smap.at(s->attach_stage);
     }
     if (s->group.defined()) {
-      ICHECK(smap.find(s->group) != smap.end()) << s->group << " not found in " << (*this);
+      TVM_ICHECK(smap.find(s->group) != smap.end()) << s->group << " not found in " << (*this);
       s->group = smap.at(s->group);
     }
   }
   for (Stage s : n->groups) {
     if (s->attach_stage.defined()) {
-      ICHECK(smap.find(s->attach_stage) != smap.end())
+      TVM_ICHECK(smap.find(s->attach_stage) != smap.end())
           << s->attach_stage << " not found in " << (*this);
       s->attach_stage = smap.at(s->attach_stage);
     }
     if (s->group.defined()) {
-      ICHECK(smap.find(s->group) != smap.end()) << s->group << " not found in " << (*this);
+      TVM_ICHECK(smap.find(s->group) != smap.end()) << s->group << " not found in " << (*this);
       s->group = smap.at(s->group);
     }
   }
@@ -476,7 +476,7 @@ Schedule Schedule::copy() const {
 
 Stage Schedule::operator[](const Operation& op) {
   auto it = (*this)->stage_map.find(op);
-  ICHECK(it != (*this)->stage_map.end())
+  TVM_ICHECK(it != (*this)->stage_map.end())
       << "Cannot find Stage for operator " << op << " in the schedule";
   return (*it).second;
 }
@@ -504,7 +504,7 @@ Array<Tensor> RemapTensor(ScheduleNode* self, const Array<Tensor>& arr) {
   Array<Tensor> ret;
   for (Tensor t : arr) {
     if (!op2stage_cache.count(t->op.get())) {
-      ICHECK(self->stage_map.count(t->op)) << "Given tensor is not in the schedule plan";
+      TVM_ICHECK(self->stage_map.count(t->op)) << "Given tensor is not in the schedule plan";
       t = self->stage_map[t->op]->op.output(t->value_index);
     }
     ret.push_back(t);
@@ -534,7 +534,7 @@ Stage Schedule::create_group(const Array<Tensor>& outputs, const Array<Tensor>& 
   for (size_t i = 0; i < ops.size(); ++i) {
     Operation op = ops[i];
     auto it = op2stage_cache.find(op.get());
-    ICHECK(it != op2stage_cache.end());
+    TVM_ICHECK(it != op2stage_cache.end());
     Stage op_group = it->second->group;
     if (i == 0) {
       parent_group = op_group;
@@ -575,7 +575,7 @@ Stage Schedule::create_group(const Array<Tensor>& outputs, const Array<Tensor>& 
   // Verification and remappig the subgroups.
   for (auto& kv : counter) {
     if (kv.first.same_as(parent_group)) continue;
-    ICHECK_EQ(kv.first->num_child_stages, kv.second.count)
+    TVM_ICHECK_EQ(kv.first->num_child_stages, kv.second.count)
         << "Trying to group region that intersect with an already existed group";
     if (kv.first->group.same_as(parent_group)) {
       Stage s = kv.first;
@@ -589,7 +589,7 @@ Stage Schedule::create_group(const Array<Tensor>& outputs, const Array<Tensor>& 
   // Remap the group of op stages.
   for (Operation op : ops) {
     auto it = op2stage_cache.find(op.get());
-    ICHECK(it != op2stage_cache.end());
+    TVM_ICHECK(it != op2stage_cache.end());
     Stage s = it->second;
     if (s->group.same_as(parent_group)) {
       s->group = gstage;
@@ -602,12 +602,12 @@ Stage Schedule::create_group(const Array<Tensor>& outputs, const Array<Tensor>& 
   // Correct the attach to keep everything in group.
   for (Operation op : ops) {
     auto it = op2stage_cache.find(op.get());
-    ICHECK(it != op2stage_cache.end());
+    TVM_ICHECK(it != op2stage_cache.end());
     Stage s = it->second;
     if (s->attach_type == kScope) {
       Stage cg = LeastCommonAncestor(s->attach_stage->group, gstage);
       if (!cg.same_as(gstage)) {
-        LOG(WARNING) << "group invalidates some previous compute_at relation "
+        TVM_LOG(WARNING) << "group invalidates some previous compute_at relation "
                      << " and keeps things to be computed inside the group";
         s.compute_root();
       }
@@ -628,7 +628,7 @@ void ScheduleNode::InitCache() {
       op2stage_cache_[s->op.get()] = s;
     }
   }
-  ICHECK_EQ(op2stage_cache_.size(), stages.size());
+  TVM_ICHECK_EQ(op2stage_cache_.size(), stages.size());
 }
 
 bool ScheduleNode::Contain(const Operation& op) const {
@@ -667,7 +667,7 @@ Schedule::Schedule(Array<Operation> ops) {
 
       for (size_t i = 0; i < scan->update.size(); ++i) {
         Stage s = n->stage_map[scan->update[i]->op];
-        ICHECK(scan_group.same_as(s->group));
+        TVM_ICHECK(scan_group.same_as(s->group));
       }
     }
   }
@@ -726,8 +726,8 @@ void SpecializedCondition::EnterWithScope() {
 
 void SpecializedCondition::ExitWithScope() {
   TVMSpecializationThreadLocalEntry* entry = TVMSpecializationThreadLocalStore::Get();
-  ICHECK(!entry->condition_stack.empty());
-  ICHECK(entry->condition_stack.top().same_as(*this));
+  TVM_ICHECK(!entry->condition_stack.empty());
+  TVM_ICHECK(entry->condition_stack.top().same_as(*this));
   entry->condition_stack.pop();
 }
 

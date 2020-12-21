@@ -49,7 +49,7 @@ class StorageAccessInfoLower : public StmtExprMutator {
     if (it != storage_info_.end() && it->second.info.defined()) {
       const MemoryInfo& info = it->second.info;
       ++it->second.alloc_count;
-      ICHECK_LE(it->second.alloc_count, 1)
+      TVM_ICHECK_LE(it->second.alloc_count, 1)
           << "Double allocation of " << it->second.scope.to_string();
 
       if (info->head_address.defined()) {
@@ -69,7 +69,7 @@ class StorageAccessInfoLower : public StmtExprMutator {
       e.scope = scope;
       if (scope.tag.length() != 0) {
         e.info = GetMemoryInfo(op->value.as<StringImmNode>()->value);
-        ICHECK(e.info.defined()) << "Cannot find memory info of " << scope.to_string();
+        TVM_ICHECK(e.info.defined()) << "Cannot find memory info of " << scope.to_string();
       }
       storage_info_[buf] = e;
       return StmtExprMutator::VisitStmt_(op);
@@ -93,7 +93,7 @@ class StorageAccessInfoLower : public StmtExprMutator {
     // Specially handle the buffer packed intrinsic
     PrimExpr expr = StmtExprMutator::VisitExpr_(op);
     op = expr.as<CallNode>();
-    ICHECK_EQ(op->args.size(), 5U);
+    TVM_ICHECK_EQ(op->args.size(), 5U);
     DataType dtype = op->args[0].dtype();
     const VarNode* buffer = op->args[1].as<VarNode>();
     Var buffer_var = Downcast<Var>(op->args[1]);
@@ -102,7 +102,7 @@ class StorageAccessInfoLower : public StmtExprMutator {
     if (it != storage_info_.end() && it->second.info.defined()) {
       return MakeTaggedAccessPtr(op->dtype, buffer_var, dtype, offset, it->second.info);
     }
-    ICHECK(op->dtype.is_handle());
+    TVM_ICHECK(op->dtype.is_handle());
     // Change to address_of
     return AddressOffset(buffer_var, dtype, offset);
   }
@@ -110,11 +110,11 @@ class StorageAccessInfoLower : public StmtExprMutator {
   PrimExpr MakeTaggedAccessPtr(DataType ptr_type, Var buffer_var, DataType dtype, PrimExpr offset,
                                const MemoryInfo& info) {
     if (ptr_type.is_handle()) {
-      ICHECK(info->head_address.defined()) << buffer_var << " is not adddressable.";
+      TVM_ICHECK(info->head_address.defined()) << buffer_var << " is not adddressable.";
       return AddressOffset(buffer_var, dtype, offset);
     }
     int dtype_bits = dtype.bits() * dtype.lanes();
-    ICHECK_EQ(info->unit_bits % dtype_bits, 0);
+    TVM_ICHECK_EQ(info->unit_bits % dtype_bits, 0);
     return cast(ptr_type, analyzer_.Simplify(
                               offset / make_const(offset.dtype(), info->unit_bits / dtype_bits)));
   }

@@ -61,8 +61,8 @@ class ParallelDenseToBatchCombiner : public ParallelOpBatchCombiner {
     StructuralEqual eq;
     const auto* attrs_a = a->attrs.as<DenseAttrs>();
     const auto* attrs_b = b->attrs.as<DenseAttrs>();
-    ICHECK(attrs_a);
-    ICHECK(attrs_b);
+    TVM_ICHECK(attrs_a);
+    TVM_ICHECK(attrs_b);
     const auto* weight_a = a->args[1]->type_as<TensorTypeNode>();
     const auto* weight_b = b->args[1]->type_as<TensorTypeNode>();
 
@@ -89,7 +89,7 @@ class ParallelDenseToDenseCombiner : public ParallelOpCombiner {
     const auto* attrs_b = b->attrs.as<DenseAttrs>();
     const auto* weight_a = a->args[1]->type_as<TensorTypeNode>();
     const auto* weight_b = b->args[1]->type_as<TensorTypeNode>();
-    ICHECK(attrs_a != nullptr && attrs_b != nullptr && weight_a != nullptr && weight_b != nullptr);
+    TVM_ICHECK(attrs_a != nullptr && attrs_b != nullptr && weight_a != nullptr && weight_b != nullptr);
     // output dims (weight->shape[0]) can be different
     return eq(attrs_a->out_dtype, attrs_b->out_dtype) && eq(weight_a->shape[1], weight_b->shape[1]);
   }
@@ -102,7 +102,7 @@ class ParallelDenseToDenseCombiner : public ParallelOpCombiner {
     // concat all weights into one
     std::tie(new_weight, new_output_dims) = TransformWeight(branches);
     const auto* origin_attrs = branches[0][0]->attrs.as<DenseAttrs>();
-    ICHECK(origin_attrs);
+    TVM_ICHECK(origin_attrs);
     const auto dense_attrs = make_object<DenseAttrs>();
     dense_attrs->units = new_output_dims;
     dense_attrs->out_dtype = origin_attrs->out_dtype;
@@ -115,7 +115,7 @@ class ParallelDenseToDenseCombiner : public ParallelOpCombiner {
     auto tb = b->args[index]->type_as<TensorTypeNode>();
     auto toutput_a = a->type_as<TensorTypeNode>();
     auto toutput_b = b->type_as<TensorTypeNode>();
-    ICHECK(ta != nullptr && tb != nullptr && toutput_a != nullptr && toutput_b != nullptr);
+    TVM_ICHECK(ta != nullptr && tb != nullptr && toutput_a != nullptr && toutput_b != nullptr);
 
     if (!eq(ta->dtype, tb->dtype) || ta->shape.size() != tb->shape.size()) {
       return false;
@@ -148,7 +148,7 @@ class ParallelDenseToDenseCombiner : public ParallelOpCombiner {
         auto parent = branch[depth]->args[parent_index];
         auto& parent_shape = parent->type_as<TensorTypeNode>()->shape;
         auto out_dim = tir::as_const_int(parent_shape[parent_shape.size() - 1]);
-        ICHECK(out_dim != nullptr);
+        TVM_ICHECK(out_dim != nullptr);
 
         auto arg = branch[depth]->args[i];
         auto& arg_shape = arg->type_as<TensorTypeNode>()->shape;
@@ -158,7 +158,7 @@ class ParallelDenseToDenseCombiner : public ParallelOpCombiner {
           arg = MakeExpandDims(arg, -1, 1);
         } else {
           auto arg_last_dim = tir::as_const_int(arg_shape[arg_shape.size() - 1]);
-          ICHECK(arg_last_dim != nullptr);
+          TVM_ICHECK(arg_last_dim != nullptr);
           if (*out_dim > 1 && *arg_last_dim == 1) {
             repeat_last_dim = true;
           }
@@ -182,7 +182,7 @@ class ParallelDenseToDenseCombiner : public ParallelOpCombiner {
       const CallNode* call = branch[depth];
       auto& out_shape = call->type_as<TensorTypeNode>()->shape;
       auto out_dims = tir::as_const_int(out_shape[out_shape.size() - 1]);
-      ICHECK(out_dims != nullptr);
+      TVM_ICHECK(out_dims != nullptr);
       Array<Integer> begin;
       Array<Integer> end;
       Array<Integer> strides;

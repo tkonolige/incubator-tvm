@@ -70,7 +70,7 @@ inline ObjectRef CopyTo(ObjectRef src, const DLContext& ctx) {
     }
     return src;
   } else {
-    ICHECK(src->IsInstance<ADTObj>())
+    TVM_ICHECK(src->IsInstance<ADTObj>())
         << "VM data must be NDArray or a list of NDArray, but received: " << src->_type_key;
     std::vector<ObjectRef> ret;
     ADT adt = Downcast<ADT>(src);
@@ -93,7 +93,7 @@ std::vector<int64_t> ToShape(NDArray shape_tensor) {
 
   // Otherwise we should be rank-1, and we will extract the number of dimensions
   // for the output vector.
-  ICHECK_EQ(rank, 1U) << "shape tensor should be a k-length vector, found " << rank;
+  TVM_ICHECK_EQ(rank, 1U) << "shape tensor should be a k-length vector, found " << rank;
   int64_t ndim = shape_tensor.Shape().at(0);
   shape.resize(ndim);
 
@@ -105,7 +105,7 @@ std::vector<int64_t> ToShape(NDArray shape_tensor) {
     int64_t* dims = reinterpret_cast<int64_t*>(dl_tensor->data);
     shape.assign(dims, dims + ndim);
   } else {
-    LOG(FATAL) << "invalid shape tensor datatype: " << dtype;
+    TVM_LOG(FATAL) << "invalid shape tensor datatype: " << dtype;
   }
 
   return shape;
@@ -115,24 +115,24 @@ PackedFunc VirtualMachine::GetFunction(const std::string& name,
                                        const ObjectPtr<Object>& sptr_to_self) {
   if (name == "invoke") {
     return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-      ICHECK(exec_) << "The executable is not created yet.";
+      TVM_ICHECK(exec_) << "The executable is not created yet.";
       std::string func_name = args[0];
       auto git = exec_->global_map.find(func_name);
-      ICHECK(git != exec_->global_map.end())
+      TVM_ICHECK(git != exec_->global_map.end())
           << "Cannot find function " << func_name << " in the executable";
       auto func = exec_->functions[git->second];
       if (func.params.empty()) {
         *rv = Invoke(func, {});
       } else {
         auto it = inputs_.find(func_name);
-        ICHECK(it != inputs_.end()) << "Input has not been set for function " << func_name;
+        TVM_ICHECK(it != inputs_.end()) << "Input has not been set for function " << func_name;
         const std::vector<ObjectRef>& func_args = it->second;
         *rv = Invoke(func, func_args);
       }
     });
   } else if (name == "init") {
     return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-      ICHECK_EQ(args.size() % 3, 0);
+      TVM_ICHECK_EQ(args.size() % 3, 0);
       std::vector<TVMContext> contexts;
       std::vector<AllocatorType> alloc_types;
       for (int i = 0; i < args.size() / 3; ++i) {
@@ -148,16 +148,16 @@ PackedFunc VirtualMachine::GetFunction(const std::string& name,
     });
   } else if (name == "set_input") {
     return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-      ICHECK(exec_) << "The executable is not created yet.";
+      TVM_ICHECK(exec_) << "The executable is not created yet.";
       std::string func_name = args[0];
       auto gvit = exec_->global_map.find(func_name);
-      ICHECK(gvit != exec_->global_map.end()) << "Cannot find function " << func_name;
+      TVM_ICHECK(gvit != exec_->global_map.end()) << "Cannot find function " << func_name;
       auto func_index = gvit->second;
       const auto& vm_func = exec_->functions[func_index];
       const auto& param_names = vm_func.params;
-      ICHECK_EQ(args.size() - 1, param_names.size())
+      TVM_ICHECK_EQ(args.size() - 1, param_names.size())
           << "The number of provided parameters doesn't match the number of arguments";
-      ICHECK_EQ(param_names.size(), vm_func.params_device_type.size())
+      TVM_ICHECK_EQ(param_names.size(), vm_func.params_device_type.size())
           << "The number of provided parameters doesn't match the number of assigned devices";
       std::vector<ObjectRef> func_args(param_names.size());
       for (int i = 1; i < args.size(); ++i) {
@@ -170,16 +170,16 @@ PackedFunc VirtualMachine::GetFunction(const std::string& name,
       inputs_.emplace(func_name, func_args);
     });
   } else {
-    LOG(FATAL) << "Unknown packed function: " << name;
+    TVM_LOG(FATAL) << "Unknown packed function: " << name;
     return PackedFunc([sptr_to_self, name](TVMArgs args, TVMRetValue* rv) {});
   }
 }
 
 inline TVMContext VirtualMachine::GetContext(Index device_type) const {
-  ICHECK_GE(ctxs_.size(), device_type) << "ctxs_ list doesn't contain device:" << device_type;
+  TVM_ICHECK_GE(ctxs_.size(), device_type) << "ctxs_ list doesn't contain device:" << device_type;
 
   auto ctx = ctxs_[device_type];
-  ICHECK_EQ(static_cast<Index>(ctx.device_type), device_type)
+  TVM_ICHECK_EQ(static_cast<Index>(ctx.device_type), device_type)
       << "device type " << device_type << " has not been initialized int the context list.";
   return ctx;
 }
@@ -190,7 +190,7 @@ void VirtualMachine::PushFrame(Index arg_count, Index ret_pc, const VMFunction& 
 }
 
 Index VirtualMachine::PopFrame() {
-  ICHECK_GT(frames_.size(), 0);
+  TVM_ICHECK_GT(frames_.size(), 0);
   const VMFrame& fr = frames_.back();
   func_index_ = fr.func_index;
   code_ = fr.code;
@@ -222,9 +222,9 @@ ObjectRef VirtualMachine::Invoke(const VMFunction& func, const std::vector<Objec
 }
 
 ObjectRef VirtualMachine::Invoke(const std::string& name, const std::vector<ObjectRef>& args) {
-  ICHECK(exec_) << "The executable has not been created yet.";
+  TVM_ICHECK(exec_) << "The executable has not been created yet.";
   auto it = exec_->global_map.find(name);
-  ICHECK(it != exec_->global_map.end()) << "Cannot find function " << name << " in the executable";
+  TVM_ICHECK(it != exec_->global_map.end()) << "Cannot find function " << name << " in the executable";
   auto func_index_ = it->second;
   DLOG(INFO) << "Invoke Global " << name << " at index " << func_index_;
   return Invoke(exec_->functions[func_index_], args);
@@ -263,12 +263,12 @@ void VirtualMachine::InvokePacked(Index packed_index, const PackedFunc& func, In
 }
 
 void VirtualMachine::LoadExecutable(const Executable* exec) {
-  ICHECK(exec) << "The executable is not created yet.";
+  TVM_ICHECK(exec) << "The executable is not created yet.";
   exec_ = exec;
 
   runtime::Module lib = exec_->lib;
   // Get the list of packed functions.
-  ICHECK(exec->primitive_map.empty() || lib.operator->())
+  TVM_ICHECK(exec->primitive_map.empty() || lib.operator->())
       << "runtime module should have been built for primitive functions"
       << "\n";
   for (const auto& it : exec_->primitive_map) {
@@ -278,17 +278,17 @@ void VirtualMachine::LoadExecutable(const Executable* exec) {
       packed_funcs_.resize(packed_index + 1);
     }
     tvm::runtime::PackedFunc pf = lib.GetFunction(packed_name, true);
-    ICHECK(pf != nullptr) << "Cannot find function in module: " << packed_name;
+    TVM_ICHECK(pf != nullptr) << "Cannot find function in module: " << packed_name;
     packed_funcs_[packed_index] = pf;
   }
   for (size_t i = 0; i < packed_funcs_.size(); ++i) {
-    ICHECK(packed_funcs_[i] != nullptr) << "Packed function " << i << " is not initialized";
+    TVM_ICHECK(packed_funcs_[i] != nullptr) << "Packed function " << i << " is not initialized";
   }
 }
 
 void VirtualMachine::Init(const std::vector<TVMContext>& ctxs,
                           const std::vector<AllocatorType>& alloc_types) {
-  ICHECK_EQ(ctxs.size(), alloc_types.size());
+  TVM_ICHECK_EQ(ctxs.size(), alloc_types.size());
   // Cache the context
   for (size_t i = 0; i < ctxs.size(); i++) {
     auto dev_type = static_cast<size_t>(ctxs[i].device_type);
@@ -337,14 +337,14 @@ inline int64_t VirtualMachine::LoadScalarInt(Index r) const {
       break;
     }
     default:
-      LOG(FATAL) << "Unknown scalar int type: " << DLDataType2String(array->dtype);
+      TVM_LOG(FATAL) << "Unknown scalar int type: " << DLDataType2String(array->dtype);
   }
   return result;
 }
 
 void VirtualMachine::RunLoop() {
-  ICHECK(this->exec_);
-  ICHECK(this->code_);
+  TVM_ICHECK(this->exec_);
+  TVM_ICHECK(this->code_);
   pc_ = 0;
   Index frame_start = frames_.size();
   while (true) {
@@ -398,7 +398,7 @@ void VirtualMachine::RunLoop() {
       }
       case Opcode::InvokePacked: {
         DLOG(INFO) << "InvokedPacked " << instr.packed_index << " arity=" << instr.arity;
-        ICHECK_LE(instr.packed_index, packed_funcs_.size());
+        TVM_ICHECK_LE(instr.packed_index, packed_funcs_.size());
         const auto& func = packed_funcs_[instr.packed_index];
         const auto& arity = instr.arity;
         std::vector<ObjectRef> args;
@@ -456,10 +456,10 @@ void VirtualMachine::RunLoop() {
         int32_t target_val = LoadScalarInt(instr.if_op.target);
 
         if (test_val == target_val) {
-          ICHECK_NE(instr.if_op.true_offset, 0);
+          TVM_ICHECK_NE(instr.if_op.true_offset, 0);
           pc_ += instr.if_op.true_offset;
         } else {
-          ICHECK_NE(instr.if_op.false_offset, 0);
+          TVM_ICHECK_NE(instr.if_op.false_offset, 0);
           pc_ += instr.if_op.false_offset;
         }
 
@@ -524,10 +524,10 @@ void VirtualMachine::RunLoop() {
 
         auto storage_obj = SimpleObjAllocator().make_object<StorageObj>();
         auto dev_type = instr.alloc_storage.device_type;
-        ICHECK_LT(static_cast<size_t>(dev_type), allocators_.size())
+        TVM_ICHECK_LT(static_cast<size_t>(dev_type), allocators_.size())
             << "Memory allocator for device " << dev_type << " has not been initialized";
         auto* alloc = allocators_[dev_type];
-        ICHECK(alloc) << "Did you forget to init the VirtualMachine with contexts?";
+        TVM_ICHECK(alloc) << "Did you forget to init the VirtualMachine with contexts?";
         storage_obj->buffer = alloc->Alloc(size, alignment, instr.alloc_storage.dtype_hint);
         Storage storage(storage_obj);
         WriteRegister(instr.dst, storage);
@@ -569,8 +569,8 @@ void VirtualMachine::RunLoop() {
         auto shape_obj = ReadRegister(instr.reshape_tensor.newshape);
         NDArray shape_tensor = Downcast<NDArray>(CopyTo(shape_obj, cpu_ctx));
         const DLTensor* dl_tensor = shape_tensor.operator->();
-        ICHECK_EQ(dl_tensor->dtype.code, 0u);
-        ICHECK_EQ(dl_tensor->dtype.bits, 64);
+        TVM_ICHECK_EQ(dl_tensor->dtype.code, 0u);
+        TVM_ICHECK_EQ(dl_tensor->dtype.bits, 64);
         int64_t* dims = reinterpret_cast<int64_t*>(dl_tensor->data);
         int64_t ndim = shape_tensor->shape[0];
         std::vector<int64_t> shape(dims, dims + ndim);
@@ -584,7 +584,7 @@ void VirtualMachine::RunLoop() {
         auto tensor_src = ReadRegister(instr.src);
         NDArray src_data = Downcast<NDArray>(tensor_src);
         DLContext src_ctx = src_data->ctx;
-        ICHECK_EQ(static_cast<Index>(src_ctx.device_type), instr.src_device_type);
+        TVM_ICHECK_EQ(static_cast<Index>(src_ctx.device_type), instr.src_device_type);
 
         DLContext dst_ctx;
         dst_ctx.device_type = static_cast<DLDeviceType>(instr.dst_device_type);
@@ -596,7 +596,7 @@ void VirtualMachine::RunLoop() {
         goto main_loop;
       }
       default:
-        LOG(FATAL) << "Unknown instruction opcode: " << int(instr.op);
+        TVM_LOG(FATAL) << "Unknown instruction opcode: " << int(instr.op);
     }
   }
 }
@@ -610,7 +610,7 @@ runtime::Module CreateVirtualMachine(const Executable* exec) {
 TVM_REGISTER_GLOBAL("runtime._VirtualMachine").set_body([](TVMArgs args, TVMRetValue* rv) {
   runtime::Module mod = args[0];
   const auto* exec = dynamic_cast<Executable*>(mod.operator->());
-  ICHECK(exec) << "The virtual machine executable has not been defined yet.";
+  TVM_ICHECK(exec) << "The virtual machine executable has not been defined yet.";
   *rv = CreateVirtualMachine(exec);
 });
 

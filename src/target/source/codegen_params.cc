@@ -160,7 +160,7 @@ void PrintFloatingPointArray(void* data, size_t num_elements, int indent_chars, 
 
 void NDArrayDataToC(::tvm::runtime::NDArray arr, int indent_chars, std::ostream& os) {
   auto arr_type = arr.DataType();
-  CHECK_EQ(arr_type.lanes(), 1) << "CodegenParams: only support generating 1-lane parameters; saw "
+  TVM_CHECK_EQ(arr_type.lanes(), 1) << "CodegenParams: only support generating 1-lane parameters; saw "
                                 << arr_type.lanes();
 
   auto shape = arr.Shape();
@@ -175,7 +175,7 @@ void NDArrayDataToC(::tvm::runtime::NDArray arr, int indent_chars, std::ostream&
   os.fill('0');
   switch (arr_type.code()) {
     case runtime::DataType::kInt:
-      CHECK(arr_type.bits() == 8 || arr_type.bits() == 16 || arr_type.bits() == 32 ||
+      TVM_CHECK(arr_type.bits() == 8 || arr_type.bits() == 16 || arr_type.bits() == 32 ||
             arr_type.bits() == 64)
           << "CodegenParams: only support generating 8-, 16-, 32-, or 64-bit integer params; saw "
           << arr_type.bits() << "-bit array";
@@ -188,12 +188,12 @@ void NDArrayDataToC(::tvm::runtime::NDArray arr, int indent_chars, std::ostream&
       } else if (arr_type.bits() == 64) {
         PrintIntegralArray<int64_t>(arr->data, num_elements, indent_chars, os);
       } else {
-        CHECK(false) << "should not get here";
+        TVM_CHECK(false) << "should not get here";
       }
       break;
 
     case runtime::DataType::TypeCode::kUInt:
-      CHECK(arr_type.bits() == 8 || arr_type.bits() == 16 || arr_type.bits() == 32 ||
+      TVM_CHECK(arr_type.bits() == 8 || arr_type.bits() == 16 || arr_type.bits() == 32 ||
             arr_type.bits() == 64)
           << "CodegenParams: only support generating 8-, 16-, 32-, or 64-bit integer params; saw "
           << arr_type.bits() << "-bit array";
@@ -207,7 +207,7 @@ void NDArrayDataToC(::tvm::runtime::NDArray arr, int indent_chars, std::ostream&
       } else if (arr_type.bits() == 64) {
         PrintIntegralArray<uint64_t>(arr->data, num_elements, indent_chars, os);
       } else {
-        CHECK(false) << "should not get here";
+        TVM_CHECK(false) << "should not get here";
       }
       break;
 
@@ -222,7 +222,7 @@ void NDArrayDataToC(::tvm::runtime::NDArray arr, int indent_chars, std::ostream&
       } else if (arr_type.bits() == 64) {
         PrintFloatingPointArray<double>(arr->data, num_elements, indent_chars, os);
       } else {
-        CHECK(false) << "CodegenParams: only support 32- or 64-bit floating point; saw "
+        TVM_CHECK(false) << "CodegenParams: only support 32- or 64-bit floating point; saw "
                      << arr_type.bits() << "-bit array";
       }
       break;
@@ -230,7 +230,7 @@ void NDArrayDataToC(::tvm::runtime::NDArray arr, int indent_chars, std::ostream&
 
     case runtime::DataType::TypeCode::kBFloat: {
       // NOTE: print types not widely supported by C as uint16_t.
-      CHECK(arr_type.bits() == 16)
+      TVM_CHECK(arr_type.bits() == 16)
           << "CodegenParams: only support generating 16-bit bfloat params; saw " << arr_type.bits()
           << "-bit array";
       PrintIntegralArray<uint16_t>(arr->data, num_elements, indent_chars, os);
@@ -238,7 +238,7 @@ void NDArrayDataToC(::tvm::runtime::NDArray arr, int indent_chars, std::ostream&
     }
 
     default:
-      CHECK(false) << "Data type not supported";
+      TVM_CHECK(false) << "Data type not supported";
   }
 
   os.flags(old_fmtflags);

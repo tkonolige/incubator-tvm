@@ -34,7 +34,7 @@ bool TopKRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
              const TypeReporter& reporter) {
   // `types` contains: [data, result]
   const TopKAttrs* param = attrs.as<TopKAttrs>();
-  ICHECK_EQ(types.size(), 2);
+  TVM_ICHECK_EQ(types.size(), 2);
   const auto* data = types[0].as<TensorTypeNode>();
   if (data == nullptr) return false;
   int ndim = data->shape.size();
@@ -42,7 +42,7 @@ bool TopKRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
   if (axis < 0) {
     axis += ndim;
   }
-  ICHECK(axis >= 0 && axis < ndim);
+  TVM_ICHECK(axis >= 0 && axis < ndim);
   Array<IndexExpr> out_shape;
   for (int i = 0; i < ndim; ++i) {
     if (i != axis) {
@@ -65,7 +65,7 @@ bool TopKRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
   } else if (param->ret_type == "indices") {
     reporter->Assign(types[1], indices_ty);
   } else {
-    LOG(FATAL) << "Unsupported ret type: " << param->ret_type;
+    TVM_LOG(FATAL) << "Unsupported ret type: " << param->ret_type;
   }
   return true;
 }

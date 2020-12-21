@@ -85,7 +85,7 @@ class NodeIndexer : public AttrVisitor {
   void Visit(const char* key, runtime::NDArray* value) final {
     DLTensor* ptr = const_cast<DLTensor*>((*value).operator->());
     if (tensor_index_.count(ptr)) return;
-    ICHECK_EQ(tensor_index_.size(), tensor_list_.size());
+    TVM_ICHECK_EQ(tensor_index_.size(), tensor_list_.size());
     tensor_index_[ptr] = tensor_list_.size();
     tensor_list_.push_back(ptr);
   }
@@ -97,10 +97,10 @@ class NodeIndexer : public AttrVisitor {
   // make index of all the children of node
   void MakeIndex(Object* node) {
     if (node == nullptr) return;
-    ICHECK(node->IsInstance<Object>());
+    TVM_ICHECK(node->IsInstance<Object>());
 
     if (node_index_.count(node)) return;
-    ICHECK_EQ(node_index_.size(), node_list_.size());
+    TVM_ICHECK_EQ(node_index_.size(), node_list_.size());
     node_index_[node] = node_list_.size();
     node_list_.push_back(node);
 
@@ -195,7 +195,7 @@ struct JSONNode {
     helper.ReadAllFields(reader);
 
     if (repr_str.size() != 0) {
-      ICHECK_EQ(repr_b64.size(), 0U);
+      TVM_ICHECK_EQ(repr_b64.size(), 0U);
       repr_bytes = std::move(repr_str);
     } else if (repr_b64.size() != 0) {
       repr_bytes = Base64Decode(repr_b64);
@@ -225,7 +225,7 @@ class JSONAttrGetter : public AttrVisitor {
   void Visit(const char* key, bool* value) final { node_->attrs[key] = std::to_string(*value); }
   void Visit(const char* key, std::string* value) final { node_->attrs[key] = *value; }
   void Visit(const char* key, void** value) final {
-    LOG(FATAL) << "not allowed to serialize a pointer";
+    TVM_LOG(FATAL) << "not allowed to serialize a pointer";
   }
   void Visit(const char* key, DataType* value) final { node_->attrs[key] = Type2String(*value); }
 
@@ -288,7 +288,7 @@ class FieldDependencyFinder : public AttrVisitor {
   std::string GetValue(const char* key) const {
     auto it = jnode_->attrs.find(key);
     if (it == jnode_->attrs.end()) {
-      LOG(FATAL) << "JSONReader: cannot find field " << key;
+      TVM_LOG(FATAL) << "JSONReader: cannot find field " << key;
     }
     return it->second;
   }
@@ -297,7 +297,7 @@ class FieldDependencyFinder : public AttrVisitor {
     std::istringstream is(GetValue(key));
     is >> *value;
     if (is.fail()) {
-      LOG(FATAL) << "Wrong value format for field " << key;
+      TVM_LOG(FATAL) << "Wrong value format for field " << key;
     }
   }
   void Visit(const char* key, double* value) final {}
@@ -345,7 +345,7 @@ class JSONAttrSetter : public AttrVisitor {
   std::string GetValue(const char* key) const {
     auto it = jnode_->attrs.find(key);
     if (it == jnode_->attrs.end()) {
-      LOG(FATAL) << "JSONReader: cannot find field " << key;
+      TVM_LOG(FATAL) << "JSONReader: cannot find field " << key;
     }
     return it->second;
   }
@@ -359,7 +359,7 @@ class JSONAttrSetter : public AttrVisitor {
     } else {
       is >> *value;
       if (is.fail()) {
-        LOG(FATAL) << "Wrong value format for field " << key;
+        TVM_LOG(FATAL) << "Wrong value format for field " << key;
       }
     }
   }
@@ -369,7 +369,7 @@ class JSONAttrSetter : public AttrVisitor {
     std::istringstream is(GetValue(key));
     is >> *value;
     if (is.fail()) {
-      LOG(FATAL) << "Wrong value format for field " << key;
+      TVM_LOG(FATAL) << "Wrong value format for field " << key;
     }
   }
   void Visit(const char* key, double* value) final { ParseDouble(key, value); }
@@ -379,7 +379,7 @@ class JSONAttrSetter : public AttrVisitor {
   void Visit(const char* key, bool* value) final { ParseValue(key, value); }
   void Visit(const char* key, std::string* value) final { *value = GetValue(key); }
   void Visit(const char* key, void** value) final {
-    LOG(FATAL) << "not allowed to deserialize a pointer";
+    TVM_LOG(FATAL) << "not allowed to deserialize a pointer";
   }
   void Visit(const char* key, DataType* value) final {
     std::string stype = GetValue(key);
@@ -388,13 +388,13 @@ class JSONAttrSetter : public AttrVisitor {
   void Visit(const char* key, runtime::NDArray* value) final {
     size_t index;
     ParseValue(key, &index);
-    ICHECK_LE(index, tensor_list_->size());
+    TVM_ICHECK_LE(index, tensor_list_->size());
     *value = tensor_list_->at(index);
   }
   void Visit(const char* key, ObjectRef* value) final {
     size_t index;
     ParseValue(key, &index);
-    ICHECK_LE(index, node_list_->size());
+    TVM_ICHECK_LE(index, node_list_->size());
     *value = ObjectRef(node_list_->at(index));
   }
   // set node to be current JSONNode
@@ -421,13 +421,13 @@ class JSONAttrSetter : public AttrVisitor {
     if (jnode->type_key == MapNode::_type_key) {
       std::unordered_map<ObjectRef, ObjectRef, ObjectHash, ObjectEqual> container;
       if (jnode->keys.empty()) {
-        ICHECK_EQ(jnode->data.size() % 2, 0U);
+        TVM_ICHECK_EQ(jnode->data.size() % 2, 0U);
         for (size_t i = 0; i < jnode->data.size(); i += 2) {
           container[ObjectRef(node_list_->at(jnode->data[i]))] =
               ObjectRef(node_list_->at(jnode->data[i + 1]));
         }
       } else {
-        ICHECK_EQ(jnode->data.size(), jnode->keys.size());
+        TVM_ICHECK_EQ(jnode->data.size(), jnode->keys.size());
         for (size_t i = 0; i < jnode->data.size(); ++i) {
           container[String(jnode->keys[i])] = ObjectRef(node_list_->at(jnode->data[i]));
         }
@@ -530,7 +530,7 @@ struct JSONGraph {
         }
       }
     }
-    ICHECK_EQ(topo_order.size(), n_nodes) << "Cyclic reference detected in JSON file";
+    TVM_ICHECK_EQ(topo_order.size(), n_nodes) << "Cyclic reference detected in JSON file";
     std::reverse(std::begin(topo_order), std::end(topo_order));
     return topo_order;
   }
@@ -562,7 +562,7 @@ ObjectRef LoadJSON(std::string json_str) {
       support::Base64InStream b64strm(&mstrm);
       b64strm.InitPosition();
       runtime::NDArray temp;
-      ICHECK(temp.Load(&b64strm));
+      TVM_ICHECK(temp.Load(&b64strm));
       tensors.emplace_back(std::move(temp));
     }
   }

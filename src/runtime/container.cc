@@ -45,7 +45,7 @@ TVM_REGISTER_GLOBAL("runtime.GetADTFields").set_body([](TVMArgs args, TVMRetValu
   ObjectRef obj = args[0];
   int idx = args[1];
   const auto& adt = Downcast<ADT>(obj);
-  ICHECK_LT(idx, adt.size());
+  TVM_ICHECK_LT(idx, adt.size());
   *rv = adt[idx];
 });
 

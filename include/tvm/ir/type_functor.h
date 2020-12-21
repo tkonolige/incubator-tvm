@@ -71,7 +71,7 @@ class TypeFunctor<R(const Type& n, Args...)> {
    * \return The result of the call
    */
   virtual R VisitType(const Type& n, Args... args) {
-    ICHECK(n.defined());
+    TVM_ICHECK(n.defined());
     static FType vtable = InitVTable();
     return vtable(n, this, std::forward<Args>(args)...);
   }
@@ -90,7 +90,7 @@ class TypeFunctor<R(const Type& n, Args...)> {
   virtual R VisitType_(const PrimTypeNode* op, Args... args) TYPE_FUNCTOR_DEFAULT;
   virtual R VisitType_(const PointerTypeNode* op, Args... args) TYPE_FUNCTOR_DEFAULT;
   virtual R VisitTypeDefault_(const Object* op, Args...) {
-    LOG(FATAL) << "Do not have a default for " << op->GetTypeKey();
+    TVM_LOG(FATAL) << "Do not have a default for " << op->GetTypeKey();
     throw;  // unreachable, written to stop compiler warning
   }
 

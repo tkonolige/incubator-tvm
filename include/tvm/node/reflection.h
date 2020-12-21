@@ -208,7 +208,7 @@ class ReflectionVTable::Registry {
    * \return rference to self.
    */
   Registry& set_creator(FCreate f) {  // NOLINT(*)
-    ICHECK_LT(type_index_, parent_->fcreate_.size());
+    TVM_ICHECK_LT(type_index_, parent_->fcreate_.size());
     parent_->fcreate_[type_index_] = f;
     return *this;
   }
@@ -218,7 +218,7 @@ class ReflectionVTable::Registry {
    * \return rference to self.
    */
   Registry& set_repr_bytes(FReprBytes f) {  // NOLINT(*)
-    ICHECK_LT(type_index_, parent_->frepr_bytes_.size());
+    TVM_ICHECK_LT(type_index_, parent_->frepr_bytes_.size());
     parent_->frepr_bytes_[type_index_] = f;
     return *this;
   }
@@ -387,7 +387,7 @@ inline ReflectionVTable::Registry ReflectionVTable::Register() {
 inline void ReflectionVTable::VisitAttrs(Object* self, AttrVisitor* visitor) const {
   uint32_t tindex = self->type_index();
   if (tindex >= fvisit_attrs_.size() || fvisit_attrs_[tindex] == nullptr) {
-    LOG(FATAL) << "TypeError: " << self->GetTypeKey()
+    TVM_LOG(FATAL) << "TypeError: " << self->GetTypeKey()
                << " is not registered via TVM_REGISTER_NODE_TYPE";
   }
   fvisit_attrs_[tindex](self, visitor);

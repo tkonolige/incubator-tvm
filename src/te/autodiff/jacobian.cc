@@ -37,7 +37,7 @@ namespace te {
 
 #define NOT_IMPLEMENTED                                                                   \
   {                                                                                       \
-    LOG(FATAL) << "Derivative of this expr is not implemented: " << GetRef<PrimExpr>(op); \
+    TVM_LOG(FATAL) << "Derivative of this expr is not implemented: " << GetRef<PrimExpr>(op); \
     throw;                                                                                \
   }
 
@@ -59,7 +59,7 @@ class JacobianMutator : public ExprMutator {
 
   PrimExpr Mutate(PrimExpr e) {
     if (e.dtype().is_int() || e.dtype().is_uint()) {
-      LOG(WARNING) << "For now we assume that the derivative of any integer expression is always 0."
+      TVM_LOG(WARNING) << "For now we assume that the derivative of any integer expression is always 0."
                    << " e = " << e;
       return make_zero(e.dtype());
     } else {
@@ -82,7 +82,7 @@ class JacobianMutator : public ExprMutator {
     auto tensor = Downcast<te::Tensor>(op->producer);
     if (input_.get() && tensor == input_) {
       // Tensor(indices)
-      ICHECK_EQ(indices_.size(), op->indices.size());
+      TVM_ICHECK_EQ(indices_.size(), op->indices.size());
       PrimExpr condition = const_true();
       for (size_t i = 0; i < input_.ndim(); ++i) {
         condition = And(condition, EQ(indices_[i], op->indices[i]));
@@ -118,7 +118,7 @@ class JacobianMutator : public ExprMutator {
     } else if (piecewise_const.count(op->op)) {
       return FloatImm(expr.dtype(), 0.0);
     } else {
-      LOG(FATAL) << "Derivative of this intrinsic is not implemented: " << op->op;
+      TVM_LOG(FATAL) << "Derivative of this intrinsic is not implemented: " << op->op;
       return PrimExpr();
     }
   }
@@ -181,7 +181,7 @@ class JacobianMutator : public ExprMutator {
     PrimExpr expr_with_new_axes = te::CloneReduction(GetRef<PrimExpr>(op));
     const ReduceNode* new_op = expr_with_new_axes.as<ReduceNode>();
 
-    ICHECK(new_op->init.empty())
+    TVM_ICHECK(new_op->init.empty())
         << "Derivative of Reduction with initialization is not implemented";
 
     // New lhs and rhs variables of the new combiner consist of
@@ -304,7 +304,7 @@ PrimExpr Jacobian(const PrimExpr& expr, const Tensor& input, const Array<PrimExp
 
 Tensor Jacobian(const Tensor& output, const Tensor& input) {
   const ComputeOpNode* op = output->op.as<ComputeOpNode>();
-  ICHECK(op) << "Derivative of this operation is not implemented: " << output->op;
+  TVM_ICHECK(op) << "Derivative of this operation is not implemented: " << output->op;
   bool is_input_tensor = false;
   for (const Tensor& child : op->InputTensors()) {
     if (input == child) {
@@ -312,7 +312,7 @@ Tensor Jacobian(const Tensor& output, const Tensor& input) {
       break;
     }
   }
-  ICHECK(is_input_tensor) << "Jacobian is called on a pair of tensors such that the output "
+  TVM_ICHECK(is_input_tensor) << "Jacobian is called on a pair of tensors such that the output "
                           << "does not directly depend on the input.";
 
   // We have to clone the iteration axes because otherwise the original expression

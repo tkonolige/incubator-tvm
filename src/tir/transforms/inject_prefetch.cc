@@ -44,7 +44,7 @@ class PrefetchInjector : public StmtMutator {
     op = ret.as<AttrStmtNode>();
     if (op && op->attr_key == attr::prefetch_scope) {
       Buffer buffer = Downcast<Buffer>(op->node);
-      ICHECK_NE(loop_nest_.size(), 0U);
+      TVM_ICHECK_NE(loop_nest_.size(), 0U);
       Region domain = DomainTouched(op->body, buffer, true, false);
       Region region;
 
@@ -53,7 +53,7 @@ class PrefetchInjector : public StmtMutator {
 
       for (Range r : domain) {
         if (!r.defined()) {
-          LOG(WARNING) << "Cannot decide prefetch region for " << buffer;
+          TVM_LOG(WARNING) << "Cannot decide prefetch region for " << buffer;
           return op->body;
         }
         Range res(EvalSet(r, vectorized_).CoverRange(none));

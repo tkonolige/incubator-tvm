@@ -295,7 +295,7 @@ inline TargetKindAttrMap<ValueType> TargetKind::GetAttrMap(const String& attr_na
 template <typename ValueType>
 inline TargetKindRegEntry& TargetKindRegEntry::set_attr(const String& attr_name,
                                                         const ValueType& value, int plevel) {
-  ICHECK_GT(plevel, 0) << "plevel in set_attr must be greater than 0";
+  TVM_ICHECK_GT(plevel, 0) << "plevel in set_attr must be greater than 0";
   runtime::TVMRetValue rv;
   rv = value;
   UpdateAttr(attr_name, rv, plevel);
@@ -321,7 +321,7 @@ inline TargetKindRegEntry& TargetKindRegEntry::set_attrs_preprocessor(FLambda f)
 
 template <typename ValueType>
 inline TargetKindRegEntry& TargetKindRegEntry::add_attr_option(const String& key) {
-  ICHECK(!kind_->key2vtype_.count(key))
+  TVM_ICHECK(!kind_->key2vtype_.count(key))
       << "AttributeError: add_attr_option failed because '" << key << "' has been set once";
   kind_->key2vtype_[key] = detail::ValueTypeInfoMaker<ValueType>()();
   return *this;

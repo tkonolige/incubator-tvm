@@ -45,10 +45,10 @@ class DefuseOpsMutator : public ExprMutator {
 
     Expr VisitExpr_(const VarNode* n) {
       const std::string& name = n->name_hint();
-      ICHECK(!name.empty() && (name[0] == 'p'));
+      TVM_ICHECK(!name.empty() && (name[0] == 'p'));
       std::string id_str = name.substr(1);
       int id = std::stoi(id_str);
-      ICHECK(id >= 0 && size_t(id) < args_.size());
+      TVM_ICHECK(id >= 0 && size_t(id) < args_.size());
       return args_[id];
     }
 

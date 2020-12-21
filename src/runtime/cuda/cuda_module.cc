@@ -71,11 +71,11 @@ class CUDAModuleNode : public runtime::ModuleNode {
     std::string fmt = GetFileFormat(file_name, format);
     std::string meta_file = GetMetaFilePath(file_name);
     if (fmt == "cu") {
-      ICHECK_NE(cuda_source_.length(), 0);
+      TVM_ICHECK_NE(cuda_source_.length(), 0);
       SaveMetaDataToFile(meta_file, fmap_);
       SaveBinaryToFile(file_name, cuda_source_);
     } else {
-      ICHECK_EQ(fmt, fmt_) << "Can only save to format=" << fmt_;
+      TVM_ICHECK_EQ(fmt, fmt_) << "Can only save to format=" << fmt_;
       SaveMetaDataToFile(meta_file, fmap_);
       SaveBinaryToFile(file_name, data_);
     }
@@ -109,7 +109,7 @@ class CUDAModuleNode : public runtime::ModuleNode {
     if (result != CUDA_SUCCESS) {
       const char* msg;
       cuGetErrorName(result, &msg);
-      LOG(FATAL) << "CUDAError: cuModuleGetFunction " << func_name << " failed with error: " << msg;
+      TVM_LOG(FATAL) << "CUDAError: cuModuleGetFunction " << func_name << " failed with error: " << msg;
     }
     return func;
   }
@@ -124,11 +124,11 @@ class CUDAModuleNode : public runtime::ModuleNode {
     size_t nbytes;
 
     CUresult result = cuModuleGetGlobal(&global, &nbytes, module_[device_id], global_name.c_str());
-    ICHECK_EQ(nbytes, expect_nbytes);
+    TVM_ICHECK_EQ(nbytes, expect_nbytes);
     if (result != CUDA_SUCCESS) {
       const char* msg;
       cuGetErrorName(result, &msg);
-      LOG(FATAL) << "CUDAError: cuModuleGetGlobal " << global_name << " failed with error: " << msg;
+      TVM_LOG(FATAL) << "CUDAError: cuModuleGetGlobal " << global_name << " failed with error: " << msg;
     }
     return global;
   }
@@ -187,7 +187,7 @@ class CUDAWrappedFunc {
            << "// -----------\n"
            << cuda;
       }
-      LOG(FATAL) << os.str();
+      TVM_LOG(FATAL) << os.str();
     }
   }
 
@@ -232,8 +232,8 @@ class CUDAPrepGlobalBarrier {
 
 PackedFunc CUDAModuleNode::GetFunction(const std::string& name,
                                        const ObjectPtr<Object>& sptr_to_self) {
-  ICHECK_EQ(sptr_to_self.get(), this);
-  ICHECK_NE(name, symbol::tvm_module_main) << "Device function do not have main";
+  TVM_ICHECK_EQ(sptr_to_self.get(), this);
+  TVM_ICHECK_NE(name, symbol::tvm_module_main) << "Device function do not have main";
   if (name == symbol::tvm_prepare_global_barrier) {
     return PackedFunc(CUDAPrepGlobalBarrier(this, sptr_to_self));
   }

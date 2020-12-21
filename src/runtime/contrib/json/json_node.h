@@ -73,13 +73,13 @@ class JSONGraphNodeEntry {
    */
   void Load(dmlc::JSONReader* reader) {
     reader->BeginArray();
-    ICHECK(reader->NextArrayItem()) << "invalid json format";
+    TVM_ICHECK(reader->NextArrayItem()) << "invalid json format";
     reader->Read(&id_);
-    ICHECK(reader->NextArrayItem()) << "invalid json format";
+    TVM_ICHECK(reader->NextArrayItem()) << "invalid json format";
     reader->Read(&index_);
     if (reader->NextArrayItem()) {
       reader->Read(&version_);
-      ICHECK(!reader->NextArrayItem()) << "invalid json format";
+      TVM_ICHECK(!reader->NextArrayItem()) << "invalid json format";
     } else {
       version_ = 0;
     }
@@ -145,27 +145,27 @@ class JSONGraphNode {
       } else if (key == "dtype") {
         std::vector<std::string> tmp;
         reader->BeginArray();
-        ICHECK(reader->NextArrayItem());
+        TVM_ICHECK(reader->NextArrayItem());
         reader->Read(&tmp);
-        ICHECK(!reader->NextArrayItem());
+        TVM_ICHECK(!reader->NextArrayItem());
         for (const auto& it : tmp) {
           dtype_.push_back(tvm::runtime::String2DLDataType(it));
         }
       } else if (key == "shape") {
         reader->BeginArray();
-        ICHECK(reader->NextArrayItem());
+        TVM_ICHECK(reader->NextArrayItem());
         reader->Read(&shape_);
-        ICHECK(!reader->NextArrayItem());
+        TVM_ICHECK(!reader->NextArrayItem());
       } else {
         reader->BeginArray();
-        ICHECK(reader->NextArrayItem());
+        TVM_ICHECK(reader->NextArrayItem());
         std::vector<std::string> tmp;
         reader->Read(&tmp);
         attrs_[key] = tmp;
-        ICHECK(!reader->NextArrayItem());
+        TVM_ICHECK(!reader->NextArrayItem());
       }
     }
-    ICHECK_EQ(shape_.size(), dtype_.size());
+    TVM_ICHECK_EQ(shape_.size(), dtype_.size());
   }
 
   /*!
@@ -185,7 +185,7 @@ class JSONGraphNode {
       } else if (key == "attr" || key == "attrs") {
         this->LoadAttrs(reader);
       } else {
-        LOG(FATAL) << "Unknown key: " << key;
+        TVM_LOG(FATAL) << "Unknown key: " << key;
       }
     }
   }
@@ -256,7 +256,7 @@ class JSONGraphNode {
    */
   template <typename T>
   T GetAttr(const std::string& key) const {
-    ICHECK_GT(attrs_.count(key), 0U) << "Key: " << key << "is not found";
+    TVM_ICHECK_GT(attrs_.count(key), 0U) << "Key: " << key << "is not found";
     return dmlc::get<T>(attrs_.at(key));
   }
 
@@ -338,14 +338,14 @@ struct Handler<std::unordered_map<std::string, dmlc::any>> {
       if (SameType<std::vector<dmlc::any>>(v)) {
         writer->WriteObjectKeyValue(k, dmlc::get<std::vector<dmlc::any>>(v));
       } else {
-        LOG(FATAL) << "Not supported";
+        TVM_LOG(FATAL) << "Not supported";
       }
     }
     writer->EndObject();
   }
   inline static void Read(dmlc::JSONReader* reader,
                           std::unordered_map<std::string, dmlc::any>* data) {
-    LOG(FATAL) << "Not implemented";
+    TVM_LOG(FATAL) << "Not implemented";
   }
 };
 

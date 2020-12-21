@@ -49,7 +49,7 @@ class SPIRVTools {
                         SPV_BINARY_TO_TEXT_OPTION_FRIENDLY_NAMES | SPV_BINARY_TO_TEXT_OPTION_INDENT,
                         &text, &diagnostic);
 
-    ICHECK_EQ(res, SPV_SUCCESS) << " line=" << diagnostic->position.line
+    TVM_ICHECK_EQ(res, SPV_SUCCESS) << " line=" << diagnostic->position.line
                                 << " column=" << diagnostic->position.column
                                 << " index=" << diagnostic->position.index
                                 << " error:" << diagnostic->error;
@@ -78,13 +78,13 @@ runtime::Module BuildSPIRV(IRModule mod, Target target, bool webgpu_restriction)
   CodeGenSPIRV cg;
 
   for (auto kv : mod->functions) {
-    ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodeGenSPIRV: Can only take PrimFunc";
+    TVM_ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodeGenSPIRV: Can only take PrimFunc";
     auto f = Downcast<PrimFunc>(kv.second);
     auto calling_conv = f->GetAttr<Integer>(tvm::attr::kCallingConv);
-    ICHECK(calling_conv == CallingConv::kDeviceKernelLaunch)
+    TVM_ICHECK(calling_conv == CallingConv::kDeviceKernelLaunch)
         << "CodeGenSPIRV: expect calling_conv equals CallingConv::kDeviceKernelLaunch";
     auto global_symbol = f->GetAttr<String>(tvm::attr::kGlobalSymbol);
-    ICHECK(global_symbol.defined())
+    TVM_ICHECK(global_symbol.defined())
         << "CodeGenSPIRV: Expect PrimFunc to have the global_symbol attribute";
 
     std::string f_name = global_symbol.value();
@@ -95,7 +95,7 @@ runtime::Module BuildSPIRV(IRModule mod, Target target, bool webgpu_restriction)
 
     if (webgpu_restriction) {
       for (auto param : f->params) {
-        ICHECK(param.dtype().is_handle()) << "WebGPU does not yet support non-buffer arguments";
+        TVM_ICHECK(param.dtype().is_handle()) << "WebGPU does not yet support non-buffer arguments";
       }
     }
 
@@ -104,7 +104,7 @@ runtime::Module BuildSPIRV(IRModule mod, Target target, bool webgpu_restriction)
       arr.data = reinterpret_cast<const char*>(dmlc::BeginPtr(shader.data));
       arr.size = shader.data.size() * sizeof(uint32_t);
       std::string transformed = (*postproc)(arr);
-      ICHECK_EQ(transformed.length() % 4U, 0U);
+      TVM_ICHECK_EQ(transformed.length() % 4U, 0U);
       shader.data.resize(transformed.size() / 4U);
       std::copy(transformed.begin(), transformed.end(),
                 reinterpret_cast<char*>(dmlc::BeginPtr(shader.data)));

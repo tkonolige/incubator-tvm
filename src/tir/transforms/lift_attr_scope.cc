@@ -88,7 +88,7 @@ class AttrScopeLifter : public StmtMutator {
     if (attr_node.size() == 0) return ret;
 
     op = ret.as<SeqStmtNode>();
-    ICHECK(op != nullptr);
+    TVM_ICHECK(op != nullptr);
     Array<Stmt> reorg;
     // check if all decorations are common.
     for (size_t begin = 0; begin < attr_node.size();) {

@@ -69,12 +69,12 @@ class InjectAttach : public StmtMutator {
         debug_keep_trivial_loop_(debug_keep_trivial_loop) {}
 
   Stmt VisitStmt(const Stmt& input_stmt) final {
-    ICHECK(input_stmt.defined());
+    TVM_ICHECK(input_stmt.defined());
     auto stmt = StmtMutator::VisitStmt(input_stmt);
     const AttrStmtNode* op = stmt.as<AttrStmtNode>();
     if (op != nullptr && op->attr_key == tir::attr::loop_scope) {
       if (attach_spec_->attach_type == kScope && op->node == attach_spec_->attach_ivar) {
-        ICHECK(!found_attach) << "Find IterVar" << attach_spec_->attach_ivar
+        TVM_ICHECK(!found_attach) << "Find IterVar" << attach_spec_->attach_ivar
                               << " in multiple places in the IR";
         found_attach = true;
         stmt = AttrStmt(op->node, op->attr_key, op->value,
@@ -111,7 +111,7 @@ class InjectScanStep : public StmtMutator {
         debug_keep_trivial_loop_(debug_keep_trivial_loop) {}
 
   Stmt VisitStmt(const Stmt& input_stmt) final {
-    ICHECK(input_stmt.defined());
+    TVM_ICHECK(input_stmt.defined());
     auto stmt = StmtMutator::VisitStmt(input_stmt);
     // update
     const AttrStmtNode* op = stmt.as<AttrStmtNode>();
@@ -160,14 +160,14 @@ class SchedulePostProc : public StmtExprMutator {
       return this->VisitStmt(op->body);
     } else if (op->attr_key == tir::attr::scan_update_scope) {
       const ScanOpNode* scan = op->node.as<ScanOpNode>();
-      ICHECK(scan);
+      TVM_ICHECK(scan);
       var_value_[scan->scan_axis->var.get()] = op->value;
       return this->VisitStmt(op->body);
     } else if (op->attr_key == tir::attr::thread_extent) {
       // delete duplicated thread extent attr
       auto it = thread_extent_scope_.find(op->node.get());
       if (it != thread_extent_scope_.end()) {
-        ICHECK(is_zero(analyzer_.Simplify(it->second - op->value)));
+        TVM_ICHECK(is_zero(analyzer_.Simplify(it->second - op->value)));
         return this->VisitStmt(op->body);
       } else {
         thread_extent_scope_[op->node.get()] = op->value;
@@ -243,7 +243,7 @@ class SchedulePostProc : public StmtExprMutator {
   PrimExpr VisitExpr_(const ProducerLoadNode* op) final {
     PrimExpr expr = StmtExprMutator::VisitExpr_(op);
     op = expr.as<ProducerLoadNode>();
-    ICHECK(op != nullptr);
+    TVM_ICHECK(op != nullptr);
 
     auto key = Downcast<Tensor>(op->producer);
     auto it = replace_buffer_.find(key);
@@ -271,7 +271,7 @@ class SchedulePostProc : public StmtExprMutator {
         if (kv.second->bind_thread.defined()) {
           const Var& from = kv.first->var;
           const Var& to = kv.second->bind_thread->var;
-          ICHECK(!var_value_.count(from.get()));
+          TVM_ICHECK(!var_value_.count(from.get()));
           var_value_[from.get()] = to;
         }
       }
@@ -325,7 +325,7 @@ Stmt ScheduleOps(Schedule sch, Map<IterVar, Range> dom_map_, bool debug_keep_tri
     if (!scan) continue;
     for (Tensor t : scan->init) {
       if (scan_init.count(t->op)) {
-        ICHECK(scan_init.at(t->op).same_as(s->op))
+        TVM_ICHECK(scan_init.at(t->op).same_as(s->op))
             << "Scan init tensor can only belong to one scan";
       } else {
         scan_init[t->op] = s->op;
@@ -334,41 +334,41 @@ Stmt ScheduleOps(Schedule sch, Map<IterVar, Range> dom_map_, bool debug_keep_tri
   }
   // verify correctness of group.
   for (Stage g : sch->groups) {
-    ICHECK(!g->op.defined());
-    ICHECK_EQ(g->leaf_iter_vars.size(), 0U);
+    TVM_ICHECK(!g->op.defined());
+    TVM_ICHECK_EQ(g->leaf_iter_vars.size(), 0U);
   }
   // reverse the post DFS order.
   for (size_t i = sch->stages.size(); i != 0; --i) {
     Stage s = sch->stages[i - 1];
-    ICHECK_NE(s->attach_type, kInline) << "call schedule.normalize before scheduleops";
-    ICHECK(s->op.defined());
+    TVM_ICHECK_NE(s->attach_type, kInline) << "call schedule.normalize before scheduleops";
+    TVM_ICHECK(s->op.defined());
     // no need to specify place holder op.
     if (s->op.as<PlaceholderOpNode>()) continue;
     // Remove grouping sugar, get the real attach spec.
     Stage attach_spec = s.GetAttachSpec();
 
     if (scan_init.count(s->op)) {
-      ICHECK(body.defined());
+      TVM_ICHECK(body.defined());
       InjectScanStep mu(s, scan_init.at(s->op), dom_map, true, debug_keep_trivial_loop);
       body = mu(std::move(body));
-      ICHECK(mu.found_attach) << "did not find attachment point for scan.init";
+      TVM_ICHECK(mu.found_attach) << "did not find attachment point for scan.init";
     } else if (attach_spec->attach_type == kScanUpdate) {
       // Handle scan update
-      ICHECK(body.defined());
+      TVM_ICHECK(body.defined());
       InjectScanStep mu(s, attach_spec->attach_stage->op, dom_map, false, debug_keep_trivial_loop);
       body = mu(std::move(body));
-      ICHECK(mu.found_attach) << "did not find attachment point for scan.update";
+      TVM_ICHECK(mu.found_attach) << "did not find attachment point for scan.update";
     } else if (attach_spec->attach_type == kInlinedAlready) {
       // do nothing
     } else if (attach_spec->attach_type == kGroupRoot) {
-      ICHECK(!s->group.defined());
+      TVM_ICHECK(!s->group.defined());
       body = MakePipeline(s, dom_map, body, debug_keep_trivial_loop);
     } else {
-      ICHECK_EQ(attach_spec->attach_type, kScope);
-      ICHECK(body.defined());
+      TVM_ICHECK_EQ(attach_spec->attach_type, kScope);
+      TVM_ICHECK(body.defined());
       InjectAttach mutator(s, attach_spec, dom_map, debug_keep_trivial_loop);
       body = mutator(std::move(body));
-      ICHECK(mutator.found_attach)
+      TVM_ICHECK(mutator.found_attach)
           << "did not find attachment point for " << s << " in " << attach_spec->attach_stage->op
           << " x " << attach_spec->attach_ivar << ", body:\n"
           << body;

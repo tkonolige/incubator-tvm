@@ -41,7 +41,7 @@ std::string miopenGetErrorString(int error_code);
 #define MIOPEN_CALL(func)                                                             \
   {                                                                                   \
     miopenStatus_t e = (func);                                                        \
-    ICHECK_EQ(e, miopenStatusSuccess) << "miopen error: " << miopenGetErrorString(e); \
+    TVM_ICHECK_EQ(e, miopenStatusSuccess) << "miopen error: " << miopenGetErrorString(e); \
   }
 
 struct ConvEntry {

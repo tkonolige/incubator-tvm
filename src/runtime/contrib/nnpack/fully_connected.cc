@@ -42,17 +42,17 @@ TVM_REGISTER_GLOBAL("tvm.contrib.nnpack.fully_connected_inference")
       DLTensor* C = args[2];
       NNPackConfig(args[3]);
 
-      ICHECK_EQ(A->ndim, 1);
-      ICHECK_EQ(B->ndim, 2);
-      ICHECK_EQ(C->ndim, 1);
-      ICHECK_EQ(B->shape[0], C->shape[0]);
-      ICHECK_EQ(B->shape[1], A->shape[0]);
-      ICHECK(C->strides == nullptr);
-      ICHECK(B->strides == nullptr);
-      ICHECK(A->strides == nullptr);
-      ICHECK(TypeMatch(A->dtype, kDLFloat, 32));
-      ICHECK(TypeMatch(B->dtype, kDLFloat, 32));
-      ICHECK(TypeMatch(C->dtype, kDLFloat, 32));
+      TVM_ICHECK_EQ(A->ndim, 1);
+      TVM_ICHECK_EQ(B->ndim, 2);
+      TVM_ICHECK_EQ(C->ndim, 1);
+      TVM_ICHECK_EQ(B->shape[0], C->shape[0]);
+      TVM_ICHECK_EQ(B->shape[1], A->shape[0]);
+      TVM_ICHECK(C->strides == nullptr);
+      TVM_ICHECK(B->strides == nullptr);
+      TVM_ICHECK(A->strides == nullptr);
+      TVM_ICHECK(TypeMatch(A->dtype, kDLFloat, 32));
+      TVM_ICHECK(TypeMatch(B->dtype, kDLFloat, 32));
+      TVM_ICHECK(TypeMatch(C->dtype, kDLFloat, 32));
 
       nnp_fully_connected_inference(B->shape[1], B->shape[0], static_cast<float*>(A->data),
                                     static_cast<float*>(B->data), static_cast<float*>(C->data),

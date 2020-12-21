@@ -74,9 +74,9 @@ Span::Span(SourceName source_name, int line, int end_line, int column, int end_c
 }
 
 Span Span::Merge(const Span& other) const {
-  ICHECK(this->defined() && other.defined()) << "Span::Merge: both spans must be defined";
+  TVM_ICHECK(this->defined() && other.defined()) << "Span::Merge: both spans must be defined";
 
-  ICHECK((*this)->source_name == other->source_name);
+  TVM_ICHECK((*this)->source_name == other->source_name);
   return Span((*this)->source_name, std::min((*this)->line, other->line),
               std::max((*this)->end_line, other->end_line),
               std::min((*this)->column, other->column),

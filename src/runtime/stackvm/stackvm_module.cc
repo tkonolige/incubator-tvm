@@ -71,12 +71,12 @@ class StackVMModuleNode : public runtime::ModuleNode {
     strm->Write(num_imports);
 
     for (runtime::Module im : imports_) {
-      ICHECK_EQ(im->imports().size(), 0U) << "Only support simply one-level hierarchy";
+      TVM_ICHECK_EQ(im->imports().size(), 0U) << "Only support simply one-level hierarchy";
       std::string tkey = im->type_key();
       strm->Write(tkey);
-      LOG(INFO) << "save " << tkey;
+      TVM_LOG(INFO) << "save " << tkey;
       im->SaveToBinary(strm);
-      LOG(INFO) << "FInish save " << tkey;
+      TVM_LOG(INFO) << "FInish save " << tkey;
     }
     SaveBinaryToFile(file_name, data);
   }
@@ -100,7 +100,7 @@ class StackVMModuleNode : public runtime::ModuleNode {
     strm->Read(&num_imports);
     for (uint64_t i = 0; i < num_imports; ++i) {
       std::string tkey;
-      ICHECK(strm->Read(&tkey));
+      TVM_ICHECK(strm->Read(&tkey));
       std::string loadkey = "runtime.module.loadbinary_";
       std::string fkey = loadkey + tkey;
       const PackedFunc* f = Registry::Get(fkey);
@@ -114,7 +114,7 @@ class StackVMModuleNode : public runtime::ModuleNode {
             loaders += name.substr(loadkey.size());
           }
         }
-        ICHECK(f != nullptr)
+        TVM_ICHECK(f != nullptr)
             << "Binary was created using " << tkey
             << " but a loader of that name is not registered. Available loaders are " << loaders
             << ". Perhaps you need to recompile with this runtime enabled.";

@@ -167,7 +167,7 @@ inline const char* CLGetErrorString(cl_int error) {
  * \param func Expression to call.
  */
 #define OPENCL_CHECK_ERROR(e) \
-  { ICHECK(e == CL_SUCCESS) << "OpenCL Error, code=" << e << ": " << cl::CLGetErrorString(e); }
+  { TVM_ICHECK(e == CL_SUCCESS) << "OpenCL Error, code=" << e << ": " << cl::CLGetErrorString(e); }
 
 #define OPENCL_CALL(func)  \
   {                        \
@@ -221,9 +221,9 @@ class OpenCLWorkspace : public DeviceAPI {
   virtual bool IsOpenCLDevice(TVMContext ctx) { return ctx.device_type == kDLOpenCL; }
   // get the queue of the context
   cl_command_queue GetQueue(TVMContext ctx) {
-    ICHECK(IsOpenCLDevice(ctx));
+    TVM_ICHECK(IsOpenCLDevice(ctx));
     this->Init();
-    ICHECK(ctx.device_id >= 0 && static_cast<size_t>(ctx.device_id) < queues.size())
+    TVM_ICHECK(ctx.device_id >= 0 && static_cast<size_t>(ctx.device_id) < queues.size())
         << "Invalid OpenCL device_id=" << ctx.device_id;
     return queues[ctx.device_id];
   }

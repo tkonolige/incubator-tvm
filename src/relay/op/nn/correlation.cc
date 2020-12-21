@@ -64,14 +64,14 @@ Expr MakeCorrelation(Expr data1, Expr data2, int kernel_size, int max_displaceme
 
 bool CorrelationRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
                     const TypeReporter& reporter) {
-  ICHECK_EQ(types.size(), 3);
+  TVM_ICHECK_EQ(types.size(), 3);
   const auto* data1 = types[0].as<TensorTypeNode>();
   const auto* data2 = types[1].as<TensorTypeNode>();
   if (data1 == nullptr || data2 == nullptr) return false;
 
   const CorrelationAttrs* param = attrs.as<CorrelationAttrs>();
-  ICHECK(param != nullptr);
-  ICHECK_EQ(param->layout, "NCHW") << "layout not supported.";
+  TVM_ICHECK(param != nullptr);
+  TVM_ICHECK_EQ(param->layout, "NCHW") << "layout not supported.";
   IndexExpr pad_h, pad_w;
   GetPaddingHeightWidth(param->padding, &pad_h, &pad_w);
   IndexExpr padded_height = data1->shape[2] + pad_h;

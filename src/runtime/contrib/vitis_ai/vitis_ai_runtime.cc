@@ -156,7 +156,7 @@ PackedFunc VitisAIRuntime::GetFunction(const std::string& name,
   } else if ("__init_" + this->symbol_name_ == name) {
     // The function to initialize constant tensors.
     return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-      CHECK_EQ(args.size(), 1U);
+      TVM_CHECK_EQ(args.size(), 1U);
       this->initialized_ = true;
       *rv = 0;
     });

@@ -33,31 +33,31 @@ bool TopKRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
              const TypeReporter& reporter) {
   // `types` contains: [data, k, result]
   const TopKAttrs* param = attrs.as<TopKAttrs>();
-  ICHECK_EQ(types.size(), 3);
+  TVM_ICHECK_EQ(types.size(), 3);
   const auto* data = types[0].as<TensorTypeNode>();
   const auto* k = types[1].as<TensorTypeNode>();
   if (data == nullptr) {
-    ICHECK(types[0].as<IncompleteTypeNode>())
+    TVM_ICHECK(types[0].as<IncompleteTypeNode>())
         << "tile: expect input type to be TensorType but get " << types[0];
     return false;
   }
   if (k == nullptr) {
-    ICHECK(types[1].as<IncompleteTypeNode>())
+    TVM_ICHECK(types[1].as<IncompleteTypeNode>())
         << "tile: expect input type to be TensorType but get " << types[1];
     return false;
   }
-  ICHECK(k->shape.size() <= 1) << "Parameter k must be a Scalar or a Tensor of shape (1, )";
+  TVM_ICHECK(k->shape.size() <= 1) << "Parameter k must be a Scalar or a Tensor of shape (1, )";
   if (k->shape.size() == 1) {
     const IntImmNode* k_shape = k->shape[0].as<IntImmNode>();
-    ICHECK(k_shape) << "Parameter k must have static shape";
-    ICHECK_EQ(k_shape->value, 1) << "Parameter k must be a Scalar or a Tensor of shape (1, )";
+    TVM_ICHECK(k_shape) << "Parameter k must have static shape";
+    TVM_ICHECK_EQ(k_shape->value, 1) << "Parameter k must be a Scalar or a Tensor of shape (1, )";
   }
   int ndim = data->shape.size();
   int axis = param->axis;
   if (axis < 0) {
     axis += ndim;
   }
-  ICHECK(axis >= 0 && axis < ndim);
+  TVM_ICHECK(axis >= 0 && axis < ndim);
   Array<IndexExpr> out_shape;
   for (int i = 0; i < ndim; ++i) {
     if (i != axis) {
@@ -75,7 +75,7 @@ bool TopKRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
   } else if (param->ret_type == "indices") {
     reporter->Assign(types[2], indices_ty);
   } else {
-    LOG(FATAL) << "Unsupported ret type: " << param->ret_type;
+    TVM_LOG(FATAL) << "Unsupported ret type: " << param->ret_type;
   }
   return true;
 }

@@ -1091,7 +1091,7 @@ inline PrimExpr MakeConstScalar(DataType t, ValueType value, Span span = Span())
   if (static_cast<uint8_t>(t.code()) >= static_cast<uint8_t>(DataType::kCustomBegin)) {
     return FloatImm(t, static_cast<double>(value), span);
   }
-  LOG(FATAL) << "cannot make const for type " << t;
+  TVM_LOG(FATAL) << "cannot make const for type " << t;
   return PrimExpr();
 }
 

@@ -46,12 +46,12 @@ std::pair<int32_t, int32_t> GetFixedPointMultiplierShift(double double_multiplie
   // multiplying the double value with 2^31 and then casting to int.
   significand_d = std::round(significand_d * (1ll << 31));
   auto significand_int64 = static_cast<int64_t>(significand_d);
-  ICHECK_LE(significand_int64, (1ll << 31));
+  TVM_ICHECK_LE(significand_int64, (1ll << 31));
   if (significand_int64 == (1ll << 31)) {
     significand_int64 /= 2;
     ++exponent;
   }
-  ICHECK_LE(significand_int64, std::numeric_limits<int32_t>::max());
+  TVM_ICHECK_LE(significand_int64, std::numeric_limits<int32_t>::max());
   significand = static_cast<int32_t>(significand_int64);
   return std::make_pair(significand, exponent);
 }
@@ -185,7 +185,7 @@ Expr FixedPointMultiplyPerChannel(Expr tensor, std::vector<double> multipliers,
     auto zero_t = Zeros(input_shape, hp_dtype);
     round_scalar = Where(GreaterEqual(tensor, zero_t), pos_rounder, neg_rounder);
   } else {
-    LOG(FATAL) << "Rounding mode " << rounding << " not supported.";
+    TVM_LOG(FATAL) << "Rounding mode " << rounding << " not supported.";
   }
   // Add the rounding scalar.
   tensor = Add(tensor, round_scalar);

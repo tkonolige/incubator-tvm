@@ -129,7 +129,7 @@ tvm_crt_error_t Unframer::FindPacketStart() {
 
 tvm_crt_error_t Unframer::ConsumeInput(uint8_t* buffer, size_t buffer_size_bytes,
                                        size_t* bytes_filled, bool update_crc) {
-  CHECK(*bytes_filled < buffer_size_bytes);
+  TVM_CHECK(*bytes_filled < buffer_size_bytes);
   tvm_crt_error_t to_return = kTvmErrorNoError;
   size_t i;
   for (i = 0; i < input_size_bytes_; ++i) {
@@ -181,7 +181,7 @@ tvm_crt_error_t Unframer::ConsumeInput(uint8_t* buffer, size_t buffer_size_bytes
 }
 
 tvm_crt_error_t Unframer::AddToBuffer(size_t buffer_full_bytes, bool update_crc) {
-  CHECK(!IsBufferFull(buffer_full_bytes));
+  TVM_CHECK(!IsBufferFull(buffer_full_bytes));
   return ConsumeInput(buffer_, buffer_full_bytes, &num_buffer_bytes_valid_, update_crc);
 }
 
@@ -205,7 +205,7 @@ tvm_crt_error_t Unframer::FindPacketLength() {
 }
 
 tvm_crt_error_t Unframer::FindPacketCrc() {
-  //  CHECK(num_buffer_bytes_valid_ == 0);
+  //  TVM_CHECK(num_buffer_bytes_valid_ == 0);
   while (num_payload_bytes_remaining_ > 0) {
     size_t num_bytes_to_buffer = num_payload_bytes_remaining_;
     if (num_bytes_to_buffer > sizeof(buffer_)) {

@@ -138,9 +138,9 @@ class TransformMemorizer : public ObjectRef {
     }
 
     // 2) Insert layout transform on the transformed src.
-    ICHECK(new_src_layout.defined() && dst_layout.defined())
+    TVM_ICHECK(new_src_layout.defined() && dst_layout.defined())
         << "Cannot insert layout transform because there are undefined layouts";
-    ICHECK(tir::BijectiveLayout(new_src_layout, dst_layout).defined())
+    TVM_ICHECK(tir::BijectiveLayout(new_src_layout, dst_layout).defined())
         << "Cannot insert layout transform because there are inconvertible layouts: "
         << new_src_layout << " v.s. " << dst_layout;
     return MakeLayoutTransform(input_expr, new_src_layout.name(), dst_layout.name());
@@ -299,7 +299,7 @@ Expr LayoutRewriter(const Call& ref_call, const Array<Expr>& new_args, const Obj
   if (!success) {
     return Expr(nullptr);
   }
-  ICHECK_EQ(old_in.size(), new_in.size());
+  TVM_ICHECK_EQ(old_in.size(), new_in.size());
 
   // if new_in == 'undef':  new_in = old_in
   for (size_t i = 0; i < new_in.size(); ++i) {
@@ -322,9 +322,9 @@ Expr LayoutRewriter(const Call& ref_call, const Array<Expr>& new_args, const Obj
     return Expr(nullptr);
   }
 
-  ICHECK_EQ(new_out.size(), old_out.size())
+  TVM_ICHECK_EQ(new_out.size(), old_out.size())
       << "The number of output nodes should keep the same during alter_op_layout";
-  ICHECK_EQ(new_in.size(), new_in2.size())
+  TVM_ICHECK_EQ(new_in.size(), new_in2.size())
       << "The number of input nodes should keep the same during alter_op_layout";
 
   // if (new_in != new_in2): insert transform (new_in -> new_in2)
@@ -344,7 +344,7 @@ Expr LayoutRewriter(const Call& ref_call, const Array<Expr>& new_args, const Obj
       pt++;
     }
   }
-  ICHECK_EQ(pt, inputs.size());
+  TVM_ICHECK_EQ(pt, inputs.size());
 
   // state[node] = (old_out, new_out)
   // (handle tuple output)
@@ -362,7 +362,7 @@ Expr LayoutRewriter(const Call& ref_call, const Array<Expr>& new_args, const Obj
     return Tuple(fields);
   } else {
     auto rnode = make_object<LayoutAlternatedExprNode<TransformMemorizerT>>();
-    ICHECK_EQ(new_out.size(), 1);
+    TVM_ICHECK_EQ(new_out.size(), 1);
     rnode->value = Call(new_call->op, transformed_args, new_call->attrs);
     rnode->old_layout = old_out[0];
     rnode->new_layout = new_out[0];

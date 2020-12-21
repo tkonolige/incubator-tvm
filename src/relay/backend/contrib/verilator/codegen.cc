@@ -58,7 +58,7 @@ class VerilatorJSONSerializer : public backend::contrib::JSONSerializer {
     if (const auto* op_node = cn->op.as<OpNode>()) {
       name = op_node->name;
     } else {
-      LOG(FATAL) << "Verilator JSON runtime does not support calls to " << cn->op->GetTypeKey();
+      TVM_LOG(FATAL) << "Verilator JSON runtime does not support calls to " << cn->op->GetTypeKey();
     }
 
     std::vector<JSONGraphNodeEntry> inputs;
@@ -79,7 +79,7 @@ class VerilatorJSONSerializer : public backend::contrib::JSONSerializer {
  * compile it into a runtime module.
  */
 runtime::Module VerilatorCompiler(const ObjectRef& ref) {
-  CHECK(ref->IsInstance<FunctionNode>());
+  TVM_CHECK(ref->IsInstance<FunctionNode>());
   auto func = Downcast<Function>(ref);
   auto func_name = GetExtSymbol(func);
   VerilatorJSONSerializer serializer(func_name, func);
@@ -88,7 +88,7 @@ runtime::Module VerilatorCompiler(const ObjectRef& ref) {
   auto params = serializer.GetParams();
 
   const auto* pf = runtime::Registry::Get("runtime.VerilatorJSONRuntimeCreate");
-  CHECK(pf != nullptr) << "Cannot find JSON runtime module to create";
+  TVM_CHECK(pf != nullptr) << "Cannot find JSON runtime module to create";
   auto mod = (*pf)(func_name, graph_json, params);
   return mod;
 }

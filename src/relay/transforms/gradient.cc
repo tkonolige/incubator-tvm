@@ -74,7 +74,7 @@ Expr FirstOrderGradient(const Expr& e, const Optional<IRModule>& mod);
 Type WithGradientType(const Type& t) {
   // TODO(@M.K.): stricter checking
   auto ty = t.as<FuncTypeNode>();
-  ICHECK(ty) << "input should be a function";
+  TVM_ICHECK(ty) << "input should be a function";
   return FuncType(ty->arg_types, TupleType({ty->ret_type, TupleType(ty->arg_types)}), {}, {});
 }
 
@@ -102,7 +102,7 @@ struct ADValueNode {
   template <typename T>
   T& get() {
     auto ret = dynamic_cast<T*>(this);
-    ICHECK(ret) << "cannot downcast";
+    TVM_ICHECK(ret) << "cannot downcast";
     return *ret;
   }
 };
@@ -118,7 +118,7 @@ Expr MultiFactory(const Type& t, F factory) {
     }
     return Tuple(res);
   } else {
-    LOG(FATAL) << "unsupported type to create tensors of: " << tt;
+    TVM_LOG(FATAL) << "unsupported type to create tensors of: " << tt;
     throw;
   }
 }
@@ -130,7 +130,7 @@ Expr MultiFactoryLike(const Expr& e, const Type& t, F factory, F2 factory_like) 
   } else if (auto* tt = t.as<TupleTypeNode>()) {
     return MultiFactory(t, factory);
   } else {
-    LOG(FATAL) << "unsupported type to tensors of: " << tt;
+    TVM_LOG(FATAL) << "unsupported type to tensors of: " << tt;
     throw;
   }
 }
@@ -192,14 +192,14 @@ struct FirstOrderReverseAD : ExprFunctor<ADValue(const Expr&)> {
       }
       return ll->Push(Tuple(updates));
     } else {
-      LOG(FATAL) << "unsupported arg type of operator: " << t;
+      TVM_LOG(FATAL) << "unsupported arg type of operator: " << t;
       throw;
     }
   }
 
   ADValue VisitExpr_(const OpNode* op) final {
     Op op_ref = GetRef<Op>(op);
-    ICHECK(rev_map.count(op_ref)) << op->name << " does not have reverse mode defined";
+    TVM_ICHECK(rev_map.count(op_ref)) << op->name << " does not have reverse mode defined";
     return std::make_shared<ADFunction>(
         [this, op_ref](const Type& orig_type, const std::vector<ADValue>& args, const Attrs& attrs,
                        const tvm::Array<Type>& type_args) {
@@ -212,7 +212,7 @@ struct FirstOrderReverseAD : ExprFunctor<ADValue(const Expr&)> {
           auto ret = std::make_shared<ADTensor>(ll, orig);
           backprop_actions.push_back([this, args, orig, ret, op_ref](LetList* ll) {
             tvm::Array<Expr> rev = rev_map[op_ref](orig, ret->reverse);
-            ICHECK(args.size() == rev.size());
+            TVM_ICHECK(args.size() == rev.size());
             for (size_t i = 0; i < args.size(); ++i) {
               auto ad_arg = args[i]->get<ADTensor>();
               auto ad_arg_type = ad_arg.forward->checked_type();
@@ -289,7 +289,7 @@ struct FirstOrderReverseAD : ExprFunctor<ADValue(const Expr&)> {
     return std::make_shared<ADFunction>(
         [this, f](const Type& orig_type, const std::vector<ADValue>& args, const Attrs& attrs,
                   const tvm::Array<Type>& type_args) {
-          ICHECK_EQ(f->params.size(), args.size());
+          TVM_ICHECK_EQ(f->params.size(), args.size());
           for (size_t i = 0; i < f->params.size(); ++i) {
             env[f->params[i]] = args[i];
           }
@@ -323,8 +323,8 @@ Expr FirstOrderGradient(const Expr& re, const Optional<IRModule>& mod) {
   // order case.
   auto e = DeGlobal(mod, re);
   auto f = e.as<FunctionNode>();
-  ICHECK(f) << "FOWithGradient expects its argument to be a function: " << f;
-  ICHECK(f->type_params.size() == 0) << "no polymorphism supported for now";
+  TVM_ICHECK(f) << "FOWithGradient expects its argument to be a function: " << f;
+  TVM_ICHECK(f->type_params.size() == 0) << "no polymorphism supported for now";
 
   // We will then build a sequence of lets which implement reverse mode.
   Expr body = LetList::With([&](LetList* ll) {
@@ -382,7 +382,7 @@ Type ReverseType(const Type& t) { return ReverseADType()(t); }
 Expr LiftTensor(const std::function<Expr(const Expr& t)>& f,
                 const std::function<Type(const Type&)>& tf, const Type& forward_type, const Expr& e,
                 LetList* ll) {
-  ICHECK(IsAtomic(e)) << e;
+  TVM_ICHECK(IsAtomic(e)) << e;
   if (forward_type.as<TensorTypeNode>()) {
     auto ret = ll->Push(f(e));
     ret->checked_type_ = tf(forward_type);
@@ -399,7 +399,7 @@ Expr LiftTensor(const std::function<Expr(const Expr& t)>& f,
     ret->checked_type_ = TupleType(types);
     return std::move(ret);
   } else {
-    LOG(FATAL) << "unsupported input/output type: " << tt;
+    TVM_LOG(FATAL) << "unsupported input/output type: " << tt;
     throw;
   }
 }
@@ -408,8 +408,8 @@ Expr LiftTensor(const std::function<Expr(const Expr& t)>& f,
  * by stitching the references in the AD values.
  */
 void TransferGrads(const Type& forward_type, const Expr& from, const Expr& to, LetList* ll) {
-  ICHECK(IsAtomic(from)) << from;
-  ICHECK(IsAtomic(to)) << to;
+  TVM_ICHECK(IsAtomic(from)) << from;
+  TVM_ICHECK(IsAtomic(to)) << to;
   if (forward_type.as<TensorTypeNode>()) {
     auto from_ref = TupleGetItem(from, 1);
     auto to_ref = TupleGetItem(to, 1);
@@ -420,7 +420,7 @@ void TransferGrads(const Type& forward_type, const Expr& from, const Expr& to, L
                     ll);
     }
   } else {
-    LOG(FATAL) << "Unsupported input/output type: " << forward_type;
+    TVM_LOG(FATAL) << "Unsupported input/output type: " << forward_type;
     throw;
   }
 }
@@ -455,7 +455,7 @@ void UpdateGrad(const Type& t, const Expr& arg, const Expr& grad, LetList* ll) {
       UpdateGrad(tt->fields[i], ll->Push(GetField(arg, i)), ll->Push(GetField(grad, i)), ll);
     }
   } else {
-    LOG(FATAL) << "unsupported arg type of operator: " << t;
+    TVM_LOG(FATAL) << "unsupported arg type of operator: " << t;
     throw;
   }
 }
@@ -481,7 +481,7 @@ struct ReverseAD : ExprMutator {
       : mod(mod), bp(bp), ad_vars(ad_vars), ad_gvars(ad_gvars) {}
 
   Expr VisitExpr_(const OpNode* op) final {
-    LOG(FATAL) << "op should only be inside call";
+    TVM_LOG(FATAL) << "op should only be inside call";
     throw;
   }
 
@@ -505,9 +505,9 @@ struct ReverseAD : ExprMutator {
 
   Expr VisitCheckpoint(const CallNode* call) {
     const OpNode* op_node = call->op.as<OpNode>();
-    ICHECK(op_node) << "expected op in call";
+    TVM_ICHECK(op_node) << "expected op in call";
     Op op_ref = GetRef<Op>(op_node);
-    ICHECK(op_ref->name == "annotation.checkpoint") << "expected checkpoint annotation";
+    TVM_ICHECK(op_ref->name == "annotation.checkpoint") << "expected checkpoint annotation";
     auto x = call->args[0];
     return LetList::With([&](LetList* ll) {
       auto x_var = ll->Push(Remap(x));
@@ -536,7 +536,7 @@ struct ReverseAD : ExprMutator {
         return VisitCheckpoint(call);
       }
 
-      ICHECK(rev_map.count(op_ref)) << op_node->name << " does not have reverse mode defined";
+      TVM_ICHECK(rev_map.count(op_ref)) << op_node->name << " does not have reverse mode defined";
       return LetList::With([&](LetList* ll) {
         std::vector<Var> args;
         for (const auto& arg : call->args) {
@@ -554,7 +554,7 @@ struct ReverseAD : ExprMutator {
         auto bpv = ll->Push(RefRead(bp));
         Expr nbp_body = LetList::With([&](LetList* ll) {
           tvm::Array<Expr> rev = rev_map[op_ref](orig, GetGrad(call->checked_type(), ret, ll));
-          ICHECK(args.size() == rev.size());
+          TVM_ICHECK(args.size() == rev.size());
           for (size_t i = 0; i < args.size(); ++i) {
             UpdateGrad(call->args[i]->checked_type(), args[i], rev[i], ll);
           }
@@ -603,7 +603,7 @@ struct ReverseAD : ExprMutator {
   Expr VisitExpr_(const GlobalVarNode* op) final {
     // todo: concatenating string to add attribute seems like a brittle hack.
     // maybe get module indexed by a rose tree of string?
-    ICHECK(mod.defined());
+    TVM_ICHECK(mod.defined());
     auto orig_gv = GetRef<GlobalVar>(op);
     if (ad_gvars->count(orig_gv) == 0) {
       GlobalVar gv(op->name_hint + "_grad");
@@ -654,9 +654,9 @@ bool MissingGrad(const Expr& e) {
   mg.VisitExpr(e);
 
   if (mg.op_names.size() > 0) {
-    LOG(WARNING) << "found operators with missing gradients:";
+    TVM_LOG(WARNING) << "found operators with missing gradients:";
     for (const auto& op : mg.op_names) {
-      LOG(WARNING) << "    " << op;
+      TVM_LOG(WARNING) << "    " << op;
     }
     return true;
   }
@@ -671,12 +671,12 @@ Expr Gradient(const Expr& re, const Optional<IRModule>& mod) {
   }
   auto e = DeGlobal(mod, re);
   auto f = e.as<FunctionNode>();
-  ICHECK(f) << "input need to be a function";
-  ICHECK(f->type_params.size() == 0) << "no polymorphism supported for now";
+  TVM_ICHECK(f) << "input need to be a function";
+  TVM_ICHECK(f->type_params.size() == 0) << "no polymorphism supported for now";
   for (const auto& p : f->params) {
-    ICHECK(p->checked_type().as<TensorTypeNode>()) << "input parameters need to be tensor";
+    TVM_ICHECK(p->checked_type().as<TensorTypeNode>()) << "input parameters need to be tensor";
   }
-  ICHECK(!MissingGrad(e)) << "input has operators with missing gradients";
+  TVM_ICHECK(!MissingGrad(e)) << "input has operators with missing gradients";
   Expr body = LetList::With([&](LetList* ll) {
     Var bp = ll->Push(BPEmpty(), bpt);
     Expr rev = ReverseAD(mod, bp, std::make_shared<ReverseAD::ADVarMap>(),
@@ -694,10 +694,10 @@ Expr Gradient(const Expr& re, const Optional<IRModule>& mod) {
       if (t.as<TensorTypeNode>()) {
         ll->Push(RefWrite(GetField(e, 1), OnesLike(GetField(e, 0))));
       } else if (auto tt = t.as<TupleTypeNode>()) {
-        ICHECK_GT(tt->fields.size(), 0);
+        TVM_ICHECK_GT(tt->fields.size(), 0);
         init_grad(ll->Push(GetField(e, 0)), tt->fields[0]);
       } else {
-        LOG(FATAL) << "unhandled type " << t;
+        TVM_LOG(FATAL) << "unhandled type " << t;
         throw;
       }
     };
@@ -718,7 +718,7 @@ Expr Gradient(const Expr& re, const Optional<IRModule>& mod) {
         }
         return Tuple(fields);
       } else {
-        LOG(FATAL) << "unhandled type " << t;
+        TVM_LOG(FATAL) << "unhandled type " << t;
         throw;
       }
     };

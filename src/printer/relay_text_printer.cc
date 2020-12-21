@@ -170,7 +170,7 @@ Doc RelayTextPrinter::Print(Kind k) {
     case kTypeData:
       return Doc::Text("TypeData");
     default:
-      LOG(ERROR) << "Unknown Kind";
+      TVM_LOG(ERROR) << "Unknown Kind";
       throw;
   }
 }
@@ -322,7 +322,7 @@ Doc RelayTextPrinter::VisitExpr_(const ConstantNode* op) {
   if (op->is_scalar()) {
     std::ostringstream os;
     DataType dtype = DataType(op->data->dtype);
-    ICHECK_EQ(op->data->ctx.device_type, kDLCPU);
+    TVM_ICHECK_EQ(op->data->ctx.device_type, kDLCPU);
     if (dtype == DataType::Int(32)) {
       return ScalarLiteral(dtype, static_cast<const int32_t*>(op->data->data)[0]);
     } else if (dtype == DataType::Int(64)) {
@@ -798,12 +798,12 @@ class RelayTextPrinter::AttrPrinter : public AttrVisitor {
   void Visit(const char* key, int* value) final { PrintKV(key, *value); }
   void Visit(const char* key, bool* value) final { PrintKV(key, Doc::PyBoolLiteral(*value)); }
   void Visit(const char* key, std::string* value) final { PrintKV(key, Doc::StrLiteral(*value)); }
-  void Visit(const char* key, void** value) final { LOG(FATAL) << "do not allow void as argument"; }
+  void Visit(const char* key, void** value) final { TVM_LOG(FATAL) << "do not allow void as argument"; }
   void Visit(const char* key, DataType* value) final {
     PrintKV(key, Doc::StrLiteral(runtime::DLDataType2String(*value)));
   }
   void Visit(const char* key, runtime::NDArray* value) final {
-    LOG(FATAL) << "do not allow NDarray as argument";
+    TVM_LOG(FATAL) << "do not allow NDarray as argument";
   }
   void Visit(const char* key, runtime::ObjectRef* obj) final {
     PrintKV(key, parent_->PrintAttr(*obj));
@@ -835,7 +835,7 @@ std::vector<Doc> RelayTextPrinter::PrintFuncAttrs(const Attrs& attrs) {
   std::vector<Doc> docs;
   if (!attrs.defined()) return docs;
   const auto* dict_attrs = attrs.as<DictAttrsNode>();
-  ICHECK(dict_attrs);
+  TVM_ICHECK(dict_attrs);
   for (const auto& k : dict_attrs->dict) {
     Doc doc;
     doc << k.first << "=" << Print(k.second);
@@ -847,7 +847,7 @@ std::vector<Doc> RelayTextPrinter::PrintFuncAttrs(const Attrs& attrs) {
 Doc RelayTextPrinter::PrintSpan(const Span& span) {
   Doc doc;
   const auto* span_node = span.as<SpanNode>();
-  ICHECK(span_node);
+  TVM_ICHECK(span_node);
   doc << span_node->source_name->name;
   return doc;
 }

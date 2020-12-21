@@ -35,7 +35,7 @@ namespace vm {
 
 static void BufferDeleter(Object* obj) {
   auto* ptr = static_cast<NDArray::Container*>(obj);
-  ICHECK(ptr->manager_ctx != nullptr);
+  TVM_ICHECK(ptr->manager_ctx != nullptr);
   Buffer* buffer = reinterpret_cast<Buffer*>(ptr->manager_ctx);
   MemoryManager::GetAllocator(buffer->ctx)->Free(*(buffer));
   delete buffer;
@@ -59,15 +59,15 @@ void StorageObj::Deleter(Object* obj) {
 }
 
 inline void VerifyDataType(DLDataType dtype) {
-  ICHECK_GE(dtype.lanes, 1);
+  TVM_ICHECK_GE(dtype.lanes, 1);
   if (dtype.code == kDLFloat) {
-    ICHECK_EQ(dtype.bits % 8, 0);
+    TVM_ICHECK_EQ(dtype.bits % 8, 0);
   } else {
     // allow uint1 as a special flag for bool.
     if (dtype.bits == 1 && dtype.code == kDLUInt) return;
-    ICHECK_EQ(dtype.bits % 8, 0);
+    TVM_ICHECK_EQ(dtype.bits % 8, 0);
   }
-  ICHECK_EQ(dtype.bits & (dtype.bits - 1), 0);
+  TVM_ICHECK_EQ(dtype.bits & (dtype.bits - 1), 0);
 }
 
 inline size_t GetDataAlignment(const DLTensor& arr) {
@@ -102,7 +102,7 @@ NDArray StorageObj::AllocNDArray(size_t offset, std::vector<int64_t> shape, DLDa
   NDArray ret(GetObjectPtr<Object>(container));
   // RAII in effect, now run the check.
 
-  ICHECK(offset + needed_size <= this->buffer.size)
+  TVM_ICHECK(offset + needed_size <= this->buffer.size)
       << "storage allocation failure, attempted to allocate " << needed_size << " at offset "
       << offset << " in region that is " << this->buffer.size << "bytes";
 
@@ -135,7 +135,7 @@ Allocator* MemoryManager::GetOrCreateAllocator(TVMContext ctx, AllocatorType typ
         break;
       }
       default:
-        LOG(FATAL) << "Unknown allocator type: " << type;
+        TVM_LOG(FATAL) << "Unknown allocator type: " << type;
     }
     auto ret = alloc.get();
     m->allocators_.emplace(ctx, std::move(alloc));
@@ -143,7 +143,7 @@ Allocator* MemoryManager::GetOrCreateAllocator(TVMContext ctx, AllocatorType typ
   }
   auto alloc = m->allocators_.at(ctx).get();
   if (alloc->type() != type) {
-    LOG(WARNING) << "The type of existing allocator for " << DeviceName(ctx.device_type) << "("
+    TVM_LOG(WARNING) << "The type of existing allocator for " << DeviceName(ctx.device_type) << "("
                  << ctx.device_id << ") is different from the request type (" << alloc->type()
                  << " vs " << type << ")";
   }
@@ -155,7 +155,7 @@ Allocator* MemoryManager::GetAllocator(TVMContext ctx) {
   std::lock_guard<std::mutex> lock(m->mu_);
   auto it = m->allocators_.find(ctx);
   if (it == m->allocators_.end()) {
-    LOG(FATAL) << "Allocator for " << DeviceName(ctx.device_type) << "(" << ctx.device_id
+    TVM_LOG(FATAL) << "Allocator for " << DeviceName(ctx.device_type) << "(" << ctx.device_id
                << ") has not been created yet.";
   }
   return it->second.get();

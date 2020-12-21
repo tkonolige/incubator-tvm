@@ -43,7 +43,7 @@ namespace codegen {
   {                                                                                          \
     nvrtcResult result = x;                                                                  \
     if (result != NVRTC_SUCCESS) {                                                           \
-      LOG(FATAL) << "NvrtcError: " #x " failed with error: " << nvrtcGetErrorString(result); \
+      TVM_LOG(FATAL) << "NvrtcError: " #x " failed with error: " << nvrtcGetErrorString(result); \
     }                                                                                        \
   }
 
@@ -68,7 +68,7 @@ std::string FindCUDAIncludePath() {
     return cuda_include_path;
   }
 #endif
-  LOG(FATAL) << "Cannot find cuda include path."
+  TVM_LOG(FATAL) << "Cannot find cuda include path."
              << "CUDA_PATH is not set or CUDA is not installed in the default installation path."
              << "In other than linux, it is necessary to set CUDA_PATH.";
   return cuda_include_path;
@@ -86,7 +86,7 @@ std::string NVRTCCompile(const std::string& code, bool include_path = false) {
   if (e1 == cudaSuccess && e2 == cudaSuccess) {
     cc = std::to_string(major) + std::to_string(minor);
   } else {
-    LOG(WARNING) << "cannot detect compute capability from your device, "
+    TVM_LOG(WARNING) << "cannot detect compute capability from your device, "
                  << "fall back to compute_30.";
   }
 
@@ -109,7 +109,7 @@ std::string NVRTCCompile(const std::string& code, bool include_path = false) {
   std::string log;
   log.resize(log_size);
   NVRTC_CALL(nvrtcGetProgramLog(prog, &log[0]));
-  ICHECK_EQ(compile_res, NVRTC_SUCCESS) << log;
+  TVM_ICHECK_EQ(compile_res, NVRTC_SUCCESS) << log;
   size_t ptx_size;
   NVRTC_CALL(nvrtcGetPTXSize(prog, &ptx_size));
 
@@ -128,10 +128,10 @@ runtime::Module BuildCUDA(IRModule mod, Target target) {
   cg.Init(output_ssa);
 
   for (auto kv : mod->functions) {
-    ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodeGenCUDA: Can only take PrimFunc";
+    TVM_ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodeGenCUDA: Can only take PrimFunc";
     auto f = Downcast<PrimFunc>(kv.second);
     auto calling_conv = f->GetAttr<Integer>(tvm::attr::kCallingConv);
-    ICHECK(calling_conv == CallingConv::kDeviceKernelLaunch)
+    TVM_ICHECK(calling_conv == CallingConv::kDeviceKernelLaunch)
         << "CodeGenCUDA: expect calling_conv equals CallingConv::kDeviceKernelLaunch";
     cg.AddFunction(f);
   }

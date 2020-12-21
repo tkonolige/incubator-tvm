@@ -88,7 +88,7 @@ class ExprFunctor<R(const Expr& n, Args...)> {
    * \return The result of the call
    */
   virtual R VisitExpr(const Expr& n, Args... args) {
-    ICHECK(n.defined());
+    TVM_ICHECK(n.defined());
     static FType vtable = InitVTable();
     return vtable(n, this, std::forward<Args>(args)...);
   }
@@ -109,7 +109,7 @@ class ExprFunctor<R(const Expr& n, Args...)> {
   virtual R VisitExpr_(const ConstructorNode* op, Args... args) EXPR_FUNCTOR_DEFAULT;
   virtual R VisitExpr_(const MatchNode* op, Args... args) EXPR_FUNCTOR_DEFAULT;
   virtual R VisitExprDefault_(const Object* op, Args...) {
-    LOG(FATAL) << "Do not have a default for " << op->GetTypeKey();
+    TVM_LOG(FATAL) << "Do not have a default for " << op->GetTypeKey();
     throw;
   }
 
@@ -346,7 +346,7 @@ class ExprRewriter {
    * \return The result of the call
    */
   virtual Expr Rewrite(const Expr& pre, const Expr& post) {
-    ICHECK(pre.defined());
+    TVM_ICHECK(pre.defined());
     static FType vtable = InitVTable();
     return vtable(pre, this, post);
   }

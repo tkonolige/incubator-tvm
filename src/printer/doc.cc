@@ -52,7 +52,7 @@ class DocText : public DocAtom {
  public:
   explicit DocText(std::string str) {
     if (str.find_first_of("\t\n") != str.npos) {
-      LOG(WARNING) << "text node: '" << str << "' should not has tab or newline.";
+      TVM_LOG(WARNING) << "text node: '" << str << "' should not has tab or newline.";
     }
     data_ = runtime::make_object<DocTextNode>(str);
   }
@@ -85,7 +85,7 @@ class DocLine : public DocAtom {
 
 // DSL function implementations
 Doc& Doc::operator<<(const Doc& right) {
-  ICHECK(this != &right);
+  TVM_ICHECK(this != &right);
   this->stream_.insert(this->stream_.end(), right.stream_.begin(), right.stream_.end());
   return *this;
 }
@@ -105,7 +105,7 @@ std::string Doc::str() {
     } else if (auto* line = atom.as<DocLineNode>()) {
       os << "\n" << std::string(line->indent, ' ');
     } else {
-      LOG(FATAL) << "do not expect type " << atom->GetTypeKey();
+      TVM_LOG(FATAL) << "do not expect type " << atom->GetTypeKey();
     }
   }
   return os.str();

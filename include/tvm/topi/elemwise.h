@@ -327,7 +327,7 @@ inline Tensor reinterpret(const Tensor& x, DataType type, std::string name = "te
  */
 inline Tensor elemwise_sum(const Array<Tensor>& xs, std::string name = "T_elemwise_sum",
                            std::string tag = kElementWise) {
-  ICHECK_GT(xs.size(), 0) << "elemwise sum must have at least one input tensor.";
+  TVM_ICHECK_GT(xs.size(), 0) << "elemwise sum must have at least one input tensor.";
   return compute(
       xs[0]->shape,
       [&](const Array<Var>& i) {
@@ -355,7 +355,7 @@ inline Tensor full(const Array<PrimExpr>& shape, DataType dtype, const PrimExpr 
                    std::string name = "T_full", std::string tag = kElementWise) {
   PrimExpr ev = cast(dtype, fill_value);
   if (!ev.defined()) {
-    LOG(ERROR) << "Can't cast fill_value to " << dtype;
+    TVM_LOG(ERROR) << "Can't cast fill_value to " << dtype;
   }
   return compute(
       shape, [&](const Array<Var>& i) { return ev; }, name, tag);

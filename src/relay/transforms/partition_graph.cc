@@ -130,7 +130,7 @@ class Partitioner : public MixedModeMutator {
       return post;
     } else if (call->op == CompilerBeginOp()) {
       // The annotation node is inserted on edge so it must have only one argument.
-      ICHECK_EQ(call->args.size(), 1U);
+      TVM_ICHECK_EQ(call->args.size(), 1U);
 
       // Traverse the rest graph.
       Expr parent = call->args[0];
@@ -147,7 +147,7 @@ class Partitioner : public MixedModeMutator {
 
       AnnotatedRegion sg = GetRegion(GetRef<Call>(call));
       int index = GetArgIdx(sg, GetRef<Call>(call));
-      ICHECK_NE(index, -1);
+      TVM_ICHECK_NE(index, -1);
 
       if (region_func_meta_[sg].region_func_in.count(parent)) {
         return region_func_meta_[sg].region_func_in[parent];
@@ -169,10 +169,10 @@ class Partitioner : public MixedModeMutator {
         return std::move(var);
       }
     } else {
-      ICHECK_EQ(call->op, CompilerEndOp());
+      TVM_ICHECK_EQ(call->op, CompilerEndOp());
       // The annotation node is inserted on edge so it must have only one
       // argument.
-      ICHECK_EQ(call->args.size(), 1U);
+      TVM_ICHECK_EQ(call->args.size(), 1U);
 
       AnnotatedRegion region = GetRegion(GetRef<Call>(call));
 
@@ -182,7 +182,7 @@ class Partitioner : public MixedModeMutator {
 
       // Traverse subgraph inputs.
       auto input = Downcast<Call>(post)->args[0];
-      ICHECK(region.defined()) << "Region not defined for " << GetRef<Call>(call);
+      TVM_ICHECK(region.defined()) << "Region not defined for " << GetRef<Call>(call);
       // functions are created for each annotated regions,
       // when their first output is encountered.
       // If multiple outputs are there, a tuple node is inserted at the end.
@@ -194,7 +194,7 @@ class Partitioner : public MixedModeMutator {
 
       // Retrieve this particular output of function.
       Expr region_out_expr = Downcast<Call>(GetRef<Call>(call))->args[0];
-      ICHECK(region_func_meta_[region].region_func_out.count(region_out_expr));
+      TVM_ICHECK(region_func_meta_[region].region_func_out.count(region_out_expr));
       return region_func_meta_[region].region_func_out[region_out_expr];
     }
   }
@@ -325,7 +325,7 @@ class Partitioner : public MixedModeMutator {
     global_region_func = WithAttr(std::move(global_region_func), attr::kInline, tvm::Integer(1));
 
     std::string fname = name;
-    ICHECK(!module_->ContainGlobalVar(fname)) << "Global function " << fname << " already exists";
+    TVM_ICHECK(!module_->ContainGlobalVar(fname)) << "Global function " << fname << " already exists";
     // Create a global function and add it to the IRModule for the region.
     // This way we lift the functions that should be handled by external
     // codegen to the module scope and rely on the pass manager to prevent
@@ -444,7 +444,7 @@ IRModule FlattenTupleOutputs(IRModule module) {
       if (call->op == CompilerEndOp()) {
         std::string target = call->attrs.as<CompilerAttrs>()->compiler;
         // Arguments of annotation ops should be 1
-        ICHECK_EQ(call->args.size(), 1U);
+        TVM_ICHECK_EQ(call->args.size(), 1U);
         auto annotated_op = Downcast<Call>(post)->args[0];
         if (const auto* tn = annotated_op.as<TupleNode>()) {
           Array<Expr> new_fields;

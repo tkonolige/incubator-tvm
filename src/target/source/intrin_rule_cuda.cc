@@ -70,7 +70,7 @@ struct CUDAFastMathTan : public CUDAMath {
         case 32:
           return name + 'f';
         case 16:
-          LOG(FATAL) << "cuda tan unsupported for float16";
+          TVM_LOG(FATAL) << "cuda tan unsupported for float16";
         default:
           return "";
       }
@@ -102,7 +102,7 @@ struct CUDAWarpIntrinsic {
     } else if (orig_op.same_as(builtin::tvm_warp_shuffle_up())) {
       return Op::Get("tir.cuda.__shfl_up_sync");
     } else {
-      ICHECK(orig_op.same_as(builtin::tvm_warp_shuffle_down()));
+      TVM_ICHECK(orig_op.same_as(builtin::tvm_warp_shuffle_down()));
       return Op::Get("tir.cuda.__shfl_down_sync");
     }
   }
@@ -117,8 +117,8 @@ template <typename T>
 static void DispatchCUDAShuffle(const TVMArgs& args, TVMRetValue* rv) {
   PrimExpr e = args[0];
   const CallNode* call = e.as<CallNode>();
-  ICHECK(call != nullptr);
-  ICHECK_EQ(call->args.size(), 5);  // mask, value, warp_id, width, warp_size
+  TVM_ICHECK(call != nullptr);
+  TVM_ICHECK_EQ(call->args.size(), 5);  // mask, value, warp_id, width, warp_size
   Array<PrimExpr> cuda_args{{call->args[0], call->args[1], call->args[2], call->args[3]}};
 
   *rv = Call(call->dtype, T()(call->dtype, Downcast<Op>(call->op)), cuda_args);

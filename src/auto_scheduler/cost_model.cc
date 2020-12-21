@@ -34,7 +34,7 @@ TVM_REGISTER_OBJECT_TYPE(PythonBasedModelNode);
 RandomModel::RandomModel() {
   ObjectPtr<RandomModelNode> node = make_object<RandomModelNode>();
   const auto* f = runtime::Registry::Get("auto_scheduler.cost_model.random_fill_float");
-  ICHECK(f != nullptr);
+  TVM_ICHECK(f != nullptr);
   node->random_number_func = reinterpret_cast<const TypedPackedFunc<void(size_t, void*)>*>(f);
   data_ = std::move(node);
 }
@@ -109,7 +109,7 @@ void PythonBasedModelNode::PredictStages(const SearchTask& task, const Array<Sta
   // Score of each stage in each states.
   size_t idx = n_states;
   for (size_t i = 0; i < n_states; ++i) {
-    ICHECK_LE(idx, flatten_scores.size());
+    TVM_ICHECK_LE(idx, flatten_scores.size());
 
     // Number of scored stages of this state.
     int s_length = static_cast<int>(flatten_scores[idx++]);
@@ -134,7 +134,7 @@ void PythonBasedModelNode::PredictStages(const SearchTask& task, const Array<Sta
           scores.push_back(flatten_scores[idx + offset]);
           offset++;
         }
-        ICHECK_EQ(offset, s_length);
+        TVM_ICHECK_EQ(offset, s_length);
         stage_scores->push_back(std::move(scores));
       }
       idx += s_length;

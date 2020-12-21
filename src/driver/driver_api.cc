@@ -215,7 +215,7 @@ std::pair<IRModule, IRModule> SplitDevHostFuncs(IRModule mod_mixed, const Target
       tir::transform::CombineContextCall(),
   };
   auto opt_host = transform::Sequential(host_pass_list);
-  ICHECK(mod_mixed.defined()) << "This module must be defined";
+  TVM_ICHECK(mod_mixed.defined()) << "This module must be defined";
   auto mhost = opt_host(mod_mixed);
 
   // device pipeline
@@ -238,12 +238,12 @@ std::pair<IRModule, IRModule> SplitDevHostFuncs(IRModule mod_mixed, const Target
   auto keys = target->GetKeys();
   bool target_is_gpu = std::find(keys.begin(), keys.end(), "gpu") != keys.end();
   if (target_is_gpu && mdevice->functions.size() == 0) {
-    LOG(WARNING) << "Specified target " << target->str()
+    TVM_LOG(WARNING) << "Specified target " << target->str()
                  << " but cannot find device code. Did you forget to bind?";
   }
 
   if (target->kind->device_type == kDLCPU && target_host == target) {
-    ICHECK(mdevice->functions.empty()) << "No device code should be generated when target "
+    TVM_ICHECK(mdevice->functions.empty()) << "No device code should be generated when target "
                                        << "and host_target are both llvm target."
                                        << "\n";
   }
@@ -272,7 +272,7 @@ runtime::Module build(const Map<Target, IRModule>& inputs, const Target& target_
 
   IRModule mhost_all = IRModule(Map<GlobalVar, BaseFunc>());
 
-  ICHECK(mhost_all.defined()) << "The host module must be defined";
+  TVM_ICHECK(mhost_all.defined()) << "The host module must be defined";
 
   for (const auto& it : inputs) {
     if (it.second.defined()) {
@@ -280,9 +280,9 @@ runtime::Module build(const Map<Target, IRModule>& inputs, const Target& target_
       auto& mhost = pair.first;
       auto& mdevice = pair.second;
 
-      ICHECK(mhost.defined()) << "The split host module must be defined";
+      TVM_ICHECK(mhost.defined()) << "The split host module must be defined";
 
-      ICHECK(mhost_all.defined()) << "The host module must be defined";
+      TVM_ICHECK(mhost_all.defined()) << "The host module must be defined";
 
       mhost_all->Update(mhost);
 

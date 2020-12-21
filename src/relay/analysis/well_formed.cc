@@ -46,7 +46,7 @@ class WellFormedChecker : private MixedModeVisitor, PatternVisitor {
     if (diag_ctx) {
       diag_ctx.value().Emit(diag);
     } else {
-      LOG(INFO) << "The IR is not well formed with: " << diag->message;
+      TVM_LOG(INFO) << "The IR is not well formed with: " << diag->message;
     }
   }
 
@@ -59,9 +59,9 @@ class WellFormedChecker : private MixedModeVisitor, PatternVisitor {
     WellFormedChecker* wfc;
     explicit Scope(WellFormedChecker* wfc) : wfc(wfc) { wfc->scope.push_back({{}}); }
     ~Scope() {
-      ICHECK_GE(wfc->scope.size(), 0);
+      TVM_ICHECK_GE(wfc->scope.size(), 0);
       for (const Var& v : wfc->scope.back()) {
-        ICHECK_GE(wfc->current_bound.count(v), 0);
+        TVM_ICHECK_GE(wfc->current_bound.count(v), 0);
         wfc->current_bound.erase(v);
       }
       wfc->scope.pop_back();
@@ -73,7 +73,7 @@ class WellFormedChecker : private MixedModeVisitor, PatternVisitor {
       Illformed(Diagnostic::Error(v->span) << "the variable " << v->name_hint()
                                            << "is bound more then once, this is not valid IR");
     }
-    ICHECK_GE(scope.size(), 0);
+    TVM_ICHECK_GE(scope.size(), 0);
     scope.back().insert(v);
     current_bound.insert(v);
     total_bound.insert(v);
@@ -120,14 +120,14 @@ class WellFormedChecker : private MixedModeVisitor, PatternVisitor {
   }
 
   void VisitExpr_(const CallNode* call) final {
-    ICHECK(call->op.defined());
+    TVM_ICHECK(call->op.defined());
 
     for (auto arg : call->args) {
-      ICHECK(arg.defined());
+      TVM_ICHECK(arg.defined());
     }
 
-    // ICHECK(call->attrs.defined());
-    ICHECK(call->type_args.defined());
+    // TVM_ICHECK(call->attrs.defined());
+    TVM_ICHECK(call->type_args.defined());
     MixedModeVisitor::VisitExpr_(call);
   }
 

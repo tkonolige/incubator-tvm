@@ -106,7 +106,7 @@ class OpAttrExtractor : public AttrVisitor {
           String s = GetRef<String>(str);
           attr.push_back(s);
         } else {
-          LOG(FATAL) << "Not supported type: " << (*an)[i]->GetTypeKey();
+          TVM_LOG(FATAL) << "Not supported type: " << (*an)[i]->GetTypeKey();
         }
       }
       SetNodeAttr(key, attr);
@@ -120,16 +120,16 @@ class OpAttrExtractor : public AttrVisitor {
       String s = GetRef<String>(str);
       SetNodeAttr(key, std::vector<std::string>{s});
     } else {
-      LOG(FATAL) << "Not yet supported type: " << (*value)->GetTypeKey() << ": " << *value;
+      TVM_LOG(FATAL) << "Not yet supported type: " << (*value)->GetTypeKey() << ": " << *value;
     }
   }
 
   void Visit(const char* key, runtime::NDArray* value) final {
-    LOG(FATAL) << "NDArray is not allowed in op attribute";
+    TVM_LOG(FATAL) << "NDArray is not allowed in op attribute";
   }
 
   void Visit(const char* key, void** value) final {
-    LOG(FATAL) << "void pointer is not allowed in op attribute";
+    TVM_LOG(FATAL) << "void pointer is not allowed in op attribute";
   }
 
   void Extract(Object* node) {
@@ -197,7 +197,7 @@ class JSONSerializer : public MemoizedExprTranslator<std::vector<JSONGraphNodeEn
     if (const auto* tuple_type = checked_type.as<TupleTypeNode>()) {
       for (size_t i = 0; i < tuple_type->fields.size(); ++i) {
         const auto* tensor_type = tuple_type->fields[i].as<TensorTypeNode>();
-        ICHECK(tensor_type) << "Expect TensorType, but received: ."
+        TVM_ICHECK(tensor_type) << "Expect TensorType, but received: ."
                             << tuple_type->fields[i]->GetTypeKey();
         ret.push_back(JSONGraphNodeEntry(node_id, i));
         shape.emplace_back(GetIntShape(tensor_type->shape));
@@ -206,7 +206,7 @@ class JSONSerializer : public MemoizedExprTranslator<std::vector<JSONGraphNodeEn
       node->SetNumOutput(tuple_type->fields.size());
     } else {
       const auto* tensor_type = checked_type.as<TensorTypeNode>();
-      ICHECK(tensor_type) << "Expect TensorType, but received: " << checked_type->GetTypeKey();
+      TVM_ICHECK(tensor_type) << "Expect TensorType, but received: " << checked_type->GetTypeKey();
       shape.emplace_back(GetIntShape(tensor_type->shape));
       dtype.emplace_back(DType2String(tensor_type->dtype));
       ret.push_back(JSONGraphNodeEntry(node_id, 0));
@@ -228,7 +228,7 @@ class JSONSerializer : public MemoizedExprTranslator<std::vector<JSONGraphNodeEn
       extractor.Extract(const_cast<Object*>(call_attr));
     } else if (const auto* fn = cn->op.as<FunctionNode>()) {
       auto pattern = fn->GetAttr<String>(attr::kPartitionedFromPattern);
-      ICHECK(pattern.defined());
+      TVM_ICHECK(pattern.defined());
       std::vector<std::string> values;
       values.push_back(pattern.value());
       std::vector<dmlc::any> attr;
@@ -238,12 +238,12 @@ class JSONSerializer : public MemoizedExprTranslator<std::vector<JSONGraphNodeEn
   }
 
   std::vector<JSONGraphNodeEntry> VisitExprDefault_(const Object* op) {
-    LOG(FATAL) << "JSON runtime currently doesn't support " << op->GetTypeKey();
+    TVM_LOG(FATAL) << "JSON runtime currently doesn't support " << op->GetTypeKey();
     return {};
   }
 
   std::vector<JSONGraphNodeEntry> VisitExpr_(const VarNode* vn) {
-    ICHECK(memo_.count(GetRef<Expr>(vn)));
+    TVM_ICHECK(memo_.count(GetRef<Expr>(vn)));
     return memo_[GetRef<Expr>(vn)];
   }
 
@@ -270,10 +270,10 @@ class JSONSerializer : public MemoizedExprTranslator<std::vector<JSONGraphNodeEn
       name = op_node->name;
     } else if (const auto* fn = cn->op.as<FunctionNode>()) {
       auto comp = fn->GetAttr<String>(attr::kComposite);
-      ICHECK(comp.defined()) << "JSON runtime only supports composite functions.";
+      TVM_ICHECK(comp.defined()) << "JSON runtime only supports composite functions.";
       name = comp.value();
     } else {
-      LOG(FATAL) << "JSON runtime does not support calls to " << cn->op->GetTypeKey();
+      TVM_LOG(FATAL) << "JSON runtime does not support calls to " << cn->op->GetTypeKey();
     }
 
     std::vector<JSONGraphNodeEntry> inputs;
@@ -289,7 +289,7 @@ class JSONSerializer : public MemoizedExprTranslator<std::vector<JSONGraphNodeEn
   }
 
   std::vector<JSONGraphNodeEntry> VisitExpr_(const LetNode* ln) {
-    ICHECK_EQ(memo_.count(ln->var), 0);
+    TVM_ICHECK_EQ(memo_.count(ln->var), 0);
     memo_[ln->var] = VisitExpr(ln->value);
     return VisitExpr(ln->body);
   }
@@ -300,7 +300,7 @@ class JSONSerializer : public MemoizedExprTranslator<std::vector<JSONGraphNodeEn
   }
 
   std::vector<JSONGraphNodeEntry> VisitExpr_(const FunctionNode* fn) {
-    ICHECK(fn->GetAttr<String>(attr::kComposite).defined())
+    TVM_ICHECK(fn->GetAttr<String>(attr::kComposite).defined())
         << "JSON runtime only supports composite functions";
     // FunctionNode should be handled by the caller.
     return {};

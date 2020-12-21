@@ -122,7 +122,7 @@ class ROCMDeviceAPI final : public DeviceAPI {
   void* AllocDataSpace(TVMContext ctx, size_t nbytes, size_t alignment,
                        DLDataType type_hint) final {
     ROCM_CALL(hipSetDevice(ctx.device_id));
-    ICHECK_EQ(256 % alignment, 0U) << "ROCM space is aligned at 256 bytes";
+    TVM_ICHECK_EQ(256 % alignment, 0U) << "ROCM space is aligned at 256 bytes";
     void* ret;
     ROCM_CALL(hipMalloc(&ret, nbytes));
     return ret;
@@ -153,7 +153,7 @@ class ROCMDeviceAPI final : public DeviceAPI {
       ROCM_CALL(hipSetDevice(ctx_to.device_id));
       GPUCopy(from, to, size, hipMemcpyHostToDevice, hip_stream);
     } else {
-      LOG(FATAL) << "expect copy from/to GPU or between GPU";
+      TVM_LOG(FATAL) << "expect copy from/to GPU or between GPU";
     }
   }
 

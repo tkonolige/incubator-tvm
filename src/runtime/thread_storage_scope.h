@@ -72,7 +72,7 @@ inline StorageRank DefaultStorageRank(int thread_scope_rank) {
     case 1:
       return StorageRank::kLocal;
     default: {
-      LOG(FATAL) << "unknown rank";
+      TVM_LOG(FATAL) << "unknown rank";
       return StorageRank::kGlobal;
     }
   }
@@ -107,7 +107,7 @@ struct StorageScope {
       case StorageRank::kWMMAAccumulator:
         return "wmma.accumulator" + tag;
       default:
-        LOG(FATAL) << "unknown storage scope";
+        TVM_LOG(FATAL) << "unknown storage scope";
         return "";
     }
   }
@@ -140,7 +140,7 @@ struct StorageScope {
       r.rank = StorageRank::kWMMAAccumulator;
       r.tag = s.substr(16, std::string::npos);
     } else {
-      LOG(FATAL) << "unknown storage scope " << s;
+      TVM_LOG(FATAL) << "unknown storage scope " << s;
     }
     return r;
   }
@@ -170,7 +170,7 @@ struct ThreadScope {
       r.rank = 1;
       r.dim_index = static_cast<int>(s[10] - 'x');
     } else {
-      LOG(FATAL) << "Unknown threadscope " << s;
+      TVM_LOG(FATAL) << "Unknown threadscope " << s;
     }
     return r;
   }

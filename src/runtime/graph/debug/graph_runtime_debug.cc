@@ -92,12 +92,12 @@ class GraphRuntimeDebug : public GraphRuntime {
             1000;
       } while (duration_ms < min_repeat_ms);
 
-      LOG(INFO) << "Iteration: " << i;
+      TVM_LOG(INFO) << "Iteration: " << i;
       int op = 0;
       for (size_t index = 0; index < time_per_op.size(); index++) {
         if (op_execs_[index]) {
           time_per_op[index] /= number;
-          LOG(INFO) << "Op #" << op++ << " " << GetNodeName(index) << ": " << time_per_op[index]
+          TVM_LOG(INFO) << "Op #" << op++ << " " << GetNodeName(index) << ": " << time_per_op[index]
                     << " us/iter";
         }
       }
@@ -133,7 +133,7 @@ class GraphRuntimeDebug : public GraphRuntime {
         return static_cast<int>(nid);
       }
     }
-    LOG(FATAL) << "cannot find " << name << " among nodex";
+    TVM_LOG(FATAL) << "cannot find " << name << " among nodex";
     return -1;
   }
 
@@ -148,7 +148,7 @@ class GraphRuntimeDebug : public GraphRuntime {
    * \param data_out the node data.
    */
   void DebugGetNodeOutput(int index, DLTensor* data_out) {
-    ICHECK_LT(static_cast<size_t>(index), op_execs_.size());
+    TVM_ICHECK_LT(static_cast<size_t>(index), op_execs_.size());
     uint32_t eid = index;
 
     for (size_t i = 0; i < op_execs_.size(); ++i) {
@@ -185,9 +185,9 @@ PackedFunc GraphRuntimeDebug::GetFunction(const std::string& name,
       int number = args[0];
       int repeat = args[1];
       int min_repeat_ms = args[2];
-      ICHECK_GT(number, 0);
-      ICHECK_GT(repeat, 0);
-      ICHECK_GE(min_repeat_ms, 0);
+      TVM_ICHECK_GT(number, 0);
+      TVM_ICHECK_GT(repeat, 0);
+      TVM_ICHECK_GE(min_repeat_ms, 0);
       *rv = this->RunIndividual(number, repeat, min_repeat_ms);
     });
   } else {
@@ -210,7 +210,7 @@ Module GraphRuntimeDebugCreate(const std::string& sym_json, const tvm::runtime::
 }
 
 TVM_REGISTER_GLOBAL("tvm.graph_runtime_debug.create").set_body([](TVMArgs args, TVMRetValue* rv) {
-  ICHECK_GE(args.num_args, 4) << "The expected number of arguments for graph_runtime.create is "
+  TVM_ICHECK_GE(args.num_args, 4) << "The expected number of arguments for graph_runtime.create is "
                                  "at least 4, but it has "
                               << args.num_args;
   PackedFunc lookup_linked_param_func;

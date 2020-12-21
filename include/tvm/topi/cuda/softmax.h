@@ -68,7 +68,7 @@ inline Schedule schedule_softmax(const Target& target, const Array<Tensor>& outs
     max_elem = softmax->op->InputTensors()[1];
     expsum = softmax->op->InputTensors()[2];
   } else {
-    LOG(ERROR) << "Tag is expected to be softmax_output or log_softmax_output. Got " << tag;
+    TVM_LOG(ERROR) << "Tag is expected to be softmax_output or log_softmax_output. Got " << tag;
   }
 
   int num_thread = 64;

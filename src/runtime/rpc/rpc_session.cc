@@ -108,7 +108,7 @@ class RPCSessTable {
   }
   // Get session from table
   std::shared_ptr<RPCSession> Get(int index) {
-    ICHECK(index >= 0 && index < kMaxRPCSession);
+    TVM_ICHECK(index >= 0 && index < kMaxRPCSession);
     return tbl_[index].lock();
   }
   // Insert session into table.
@@ -120,7 +120,7 @@ class RPCSessTable {
         return i;
       }
     }
-    LOG(FATAL) << "maximum number of RPC session reached";
+    TVM_LOG(FATAL) << "maximum number of RPC session reached";
     return 0;
   }
 
@@ -137,7 +137,7 @@ std::shared_ptr<RPCSession> RPCSession::Get(int table_index) {
 }
 
 void RPCSession::InsertToSessionTable(std::shared_ptr<RPCSession> sess) {
-  ICHECK_EQ(sess->table_index_, 0);
+  TVM_ICHECK_EQ(sess->table_index_, 0);
   sess->table_index_ = RPCSessTable::Global()->Insert(sess);
 }
 

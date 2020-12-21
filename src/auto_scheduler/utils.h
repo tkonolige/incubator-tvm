@@ -75,7 +75,7 @@ inline void GetIndices(const Array<T>& array, const Array<T>& to_locate, Array<I
     if (it != array.end()) {
       indices->push_back(it - array.begin());
     } else {
-      LOG(FATAL) << "Cannot find the item";
+      TVM_LOG(FATAL) << "Cannot find the item";
     }
   }
 }
@@ -88,7 +88,7 @@ inline int GetIndex(const Array<T>& array, const T& to_locate) {
       return i;
     }
   }
-  LOG(FATAL) << "Cannot find the item";
+  TVM_LOG(FATAL) << "Cannot find the item";
   return -1;
 }
 
@@ -151,8 +151,8 @@ inline bool IntArrayEqual(const Array<PrimExpr>& arr1, const Array<PrimExpr>& ar
   for (size_t i = 0; i < arr1.size(); ++i) {
     auto int1 = arr1[i].as<IntImmNode>();
     auto int2 = arr2[i].as<IntImmNode>();
-    ICHECK(int1 != nullptr);
-    ICHECK(int2 != nullptr);
+    TVM_ICHECK(int1 != nullptr);
+    TVM_ICHECK(int2 != nullptr);
     if (int1->value != int2->value) {
       return false;
     }
@@ -170,7 +170,7 @@ inline double FloatArrayMean(const Array<PrimExpr>& float_array) {
 
   for (const auto& x : float_array) {
     auto floatimm = x.as<tir::FloatImmNode>();
-    ICHECK(floatimm != nullptr);
+    TVM_ICHECK(floatimm != nullptr);
     sum += floatimm->value;
   }
   return sum / float_array.size();
@@ -192,7 +192,7 @@ inline bool StrEndsWith(const String& a, const String& b) {
 /*! \brief Get an int value from an Expr */
 inline int64_t GetIntImm(const PrimExpr& expr) {
   auto pint = expr.as<IntImmNode>();
-  ICHECK(pint != nullptr) << "Expect an IntImm but get " << expr;
+  TVM_ICHECK(pint != nullptr) << "Expect an IntImm but get " << expr;
   return pint->value;
 }
 
@@ -285,7 +285,7 @@ inline void ParseKernelLayout(const String& layout, Array<PrimExpr>* shape,
         axis = "";
       }
     } else {
-      LOG(FATAL) << "Invalid layout " << layout;
+      TVM_LOG(FATAL) << "Invalid layout " << layout;
     }
   }
   if (!axis.empty()) {

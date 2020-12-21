@@ -97,7 +97,7 @@ inline Schedule schedule_pool(const Target& target, const Array<Tensor>& outs) {
       auto pool = op.output(0);
       _schedule(padded_input, pool);
     } else {
-      LOG(ERROR) << "Unsupported operator " << op->tag;
+      TVM_LOG(ERROR) << "Unsupported operator " << op->tag;
     }
   };
 
@@ -173,7 +173,7 @@ inline Schedule schedule_global_pool(const Target& target, const Array<Tensor>& 
       auto pool = op.output(0);
       _schedule(pool);
     } else {
-      LOG(ERROR) << "Unsupported operator " << op->tag;
+      TVM_LOG(ERROR) << "Unsupported operator " << op->tag;
     }
   };
 

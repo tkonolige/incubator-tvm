@@ -107,7 +107,7 @@ class CUDADeviceAPI final : public DeviceAPI {
   }
   void* AllocDataSpace(TVMContext ctx, size_t nbytes, size_t alignment,
                        DLDataType type_hint) final {
-    ICHECK_EQ(256 % alignment, 0U) << "CUDA space is aligned at 256 bytes";
+    TVM_ICHECK_EQ(256 % alignment, 0U) << "CUDA space is aligned at 256 bytes";
     void* ret;
     if (ctx.device_type == kDLCPUPinned) {
       CUDA_CALL(cudaMallocHost(&ret, nbytes));
@@ -162,7 +162,7 @@ class CUDADeviceAPI final : public DeviceAPI {
       CUDA_CALL(cudaSetDevice(ctx_to.device_id));
       GPUCopy(from, to, size, cudaMemcpyHostToDevice, cu_stream);
     } else {
-      LOG(FATAL) << "expect copy from/to GPU or between GPU";
+      TVM_LOG(FATAL) << "expect copy from/to GPU or between GPU";
     }
   }
 

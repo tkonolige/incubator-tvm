@@ -26,7 +26,7 @@ Module HexagonModuleCreate(std::string data, std::string fmt,
                            std::unordered_map<std::string, FunctionInfo> fmap, std::string asm_str,
                            std::string obj_str, std::string ir_str, std::string bc_str,
                            const std::set<std::string>& packed_c_abi) {
-  LOG(WARNING) << "Hexagon runtime is not enabled, return a source module...";
+  TVM_LOG(WARNING) << "Hexagon runtime is not enabled, return a source module...";
   return codegen::DeviceSourceModuleCreate(data, fmt, fmap, "hex");
 }
 

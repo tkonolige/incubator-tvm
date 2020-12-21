@@ -176,8 +176,8 @@ void ArgLayout::Push(uint32_t* v, unsigned t_size, unsigned t_align) {
 
   if (!InReg) {
     // Allocate on stack.
-    ICHECK_EQ((t_align & (t_align - 1)), 0) << "Alignment should be a power of 2";
-    ICHECK_GE(t_align, 4) << "Alignment should be at least 4";
+    TVM_ICHECK_EQ((t_align & (t_align - 1)), 0) << "Alignment should be a power of 2";
+    TVM_ICHECK_GE(t_align, 4) << "Alignment should be at least 4";
     // Round t_size up to a multiple of 4.
     unsigned s_size = Stack.size();
     unsigned s_align = t_align / 4;  // Alignment of T in words on the stack.
@@ -223,21 +223,21 @@ class HexagonModuleNode final : public runtime::ModuleNode {
       std::string meta_file = GetMetaFilePath(file_name);
       SaveMetaDataToFile(meta_file, fmap_);
       std::string c = "cp " + data_ + " " + file_name;
-      ICHECK(std::system(c.c_str()) == 0) << "Cannot create " + file_name;
+      TVM_ICHECK(std::system(c.c_str()) == 0) << "Cannot create " + file_name;
     } else if (fmt == "s" || fmt == "asm") {
-      ICHECK(!asm_.empty()) << "Assembler source not available";
+      TVM_ICHECK(!asm_.empty()) << "Assembler source not available";
       SaveBinaryToFile(file_name, asm_);
     } else if (fmt == "o" || fmt == "obj") {
-      ICHECK(!obj_.empty()) << "Object data not available";
+      TVM_ICHECK(!obj_.empty()) << "Object data not available";
       SaveBinaryToFile(file_name, obj_);
     } else if (fmt == "ll") {
-      ICHECK(!ir_.empty()) << "LLVM IR source not available";
+      TVM_ICHECK(!ir_.empty()) << "LLVM IR source not available";
       SaveBinaryToFile(file_name, ir_);
     } else if (fmt == "bc") {
-      ICHECK(!bc_.empty()) << "LLVM IR bitcode not available";
+      TVM_ICHECK(!bc_.empty()) << "LLVM IR bitcode not available";
       SaveBinaryToFile(file_name, bc_);
     } else {
-      LOG(FATAL) << "HexagonModuleNode::SaveToFile: unhandled format `" << fmt << "'";
+      TVM_LOG(FATAL) << "HexagonModuleNode::SaveToFile: unhandled format `" << fmt << "'";
     }
   }
   void SaveToBinary(dmlc::Stream* stream) final {
@@ -480,7 +480,7 @@ hexagon::ArgLayout HexagonModuleNode::BuildArgLayout(const TVMArgs& As) const {
         // types, so there is no way to tell if the value being passed needs
         // one or two registers. Assume that all integers are 32-bit, and
         // simply abort if the actual value does not fit.
-        ICHECK_EQ(static_cast<int64_t>(A), static_cast<int32_t>(A));
+        TVM_ICHECK_EQ(static_cast<int64_t>(A), static_cast<int32_t>(A));
         Args.Push(static_cast<int>(A));
         break;
       // 64-bit values
@@ -498,10 +498,10 @@ hexagon::ArgLayout HexagonModuleNode::BuildArgLayout(const TVMArgs& As) const {
 
       case kTVMNDArrayHandle:
       case kTVMDLTensorHandle:
-        LOG(FATAL) << __func__ << ": cannot handle DLTensor*, code:" << TC;
+        TVM_LOG(FATAL) << __func__ << ": cannot handle DLTensor*, code:" << TC;
 
       default:
-        LOG(FATAL) << __func__ << ": unhandled type code" << TC;
+        TVM_LOG(FATAL) << __func__ << ": unhandled type code" << TC;
         break;
     }
   }

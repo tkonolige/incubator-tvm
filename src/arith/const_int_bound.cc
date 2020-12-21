@@ -109,7 +109,7 @@ class ConstIntBoundAnalyzer::Impl
     if (!allow_override) {
       auto it = var_map_.find(var);
       if (it != var_map_.end()) {
-        ICHECK(it->second == info)
+        TVM_ICHECK(it->second == info)
             << "Trying to update var \'" << var << "\'"
             << " with a different const bound: "
             << "original=" << ConstIntBound(it->second.min_value, it->second.max_value)
@@ -155,7 +155,7 @@ class ConstIntBoundAnalyzer::Impl
       auto val = bound_->find(expr);
       if (val != bound_->end()) {
         auto everything = Everything(expr->dtype);
-        ICHECK(
+        TVM_ICHECK(
             (val->second->min_value == res.min_value && val->second->max_value == res.max_value) ||
             (val->second->min_value == everything.min_value &&
              val->second->max_value == everything.max_value))
@@ -211,7 +211,7 @@ class ConstIntBoundAnalyzer::Impl
   Entry VisitExpr_(const DivNode* op) final {
     Entry a = VisitExpr(op->a);
     Entry b = VisitExpr(op->b);
-    ICHECK(!b.is_const(0)) << "divide by zero";
+    TVM_ICHECK(!b.is_const(0)) << "divide by zero";
     return HandleDivision(a, b, op->dtype, InfAwareDiv);
   }
 
@@ -230,7 +230,7 @@ class ConstIntBoundAnalyzer::Impl
                          std::min(std::max(a.max_value, (int64_t)0), b_max_cap));
       }
     } else {
-      ICHECK(!b.is_const(0)) << "mod by zero";
+      TVM_ICHECK(!b.is_const(0)) << "mod by zero";
       // mod by negative value is rare,
       // and we just use the simpliest rule.
       return Everything(op->dtype);
@@ -240,7 +240,7 @@ class ConstIntBoundAnalyzer::Impl
   Entry VisitExpr_(const FloorDivNode* op) final {
     Entry a = VisitExpr(op->a);
     Entry b = VisitExpr(op->b);
-    ICHECK(!b.is_const(0)) << "floordiv by zero";
+    TVM_ICHECK(!b.is_const(0)) << "floordiv by zero";
     return HandleDivision(a, b, op->dtype, InfAwareFloorDiv);
   }
 
@@ -275,7 +275,7 @@ class ConstIntBoundAnalyzer::Impl
         return MakeBound(0, b_max_cap);
       }
     } else {
-      ICHECK(!b.is_const(0)) << "floormod by zero";
+      TVM_ICHECK(!b.is_const(0)) << "floormod by zero";
       int64_t b_min_cap = InfAwareAdd(b.min_value, 1);
       int64_t b_max_cap = InfAwareAdd(b.max_value, -1);
       return Intersect(MakeBound(std::min(static_cast<int64_t>(0), b_min_cap),
@@ -371,7 +371,7 @@ class ConstIntBoundAnalyzer::Impl
     additional_info_.insert(additional_info_.end(), info.begin(), info.end());
     size_t new_size = old_size + info.size();
     auto frecover = [old_size, new_size, this]() {
-      ICHECK_EQ(additional_info_.size(), new_size);
+      TVM_ICHECK_EQ(additional_info_.size(), new_size);
       additional_info_.resize(old_size);
     };
     return frecover;
@@ -451,11 +451,11 @@ class ConstIntBoundAnalyzer::Impl
    */
   static int64_t InfAwareAdd(int64_t x, int64_t y) {
     if (x == kPosInf) {
-      ICHECK(y != kNegInf);
+      TVM_ICHECK(y != kNegInf);
       return kPosInf;
     }
     if (x == kNegInf) {
-      ICHECK(y != kPosInf);
+      TVM_ICHECK(y != kPosInf);
       return kNegInf;
     }
     if (y == kPosInf || y == kNegInf) return y;
@@ -483,7 +483,7 @@ class ConstIntBoundAnalyzer::Impl
    * \return the result.
    */
   static int64_t InfAwareDiv(int64_t x, int64_t y) {
-    ICHECK_NE(y, 0);
+    TVM_ICHECK_NE(y, 0);
     if (x == kPosInf || x == kNegInf) {
       if (y > 0) return x;
       return -x;
@@ -497,7 +497,7 @@ class ConstIntBoundAnalyzer::Impl
    * \return the result.
    */
   static int64_t InfAwareFloorDiv(int64_t x, int64_t y) {
-    ICHECK_NE(y, 0);
+    TVM_ICHECK_NE(y, 0);
     if (x == kPosInf || x == kNegInf) {
       if (y > 0) return x;
       return -x;

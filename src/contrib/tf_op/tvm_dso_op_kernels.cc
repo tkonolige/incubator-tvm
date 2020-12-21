@@ -73,7 +73,7 @@ class TensorAsBuf {
       cudaMemcpy(origin_buf, buf + offset, size, cudaMemcpyDeviceToDevice);
 #endif
     } else {
-      LOG(FATAL) << "Only support CPU and CUDA now. Device " << device_type
+      TVM_LOG(FATAL) << "Only support CPU and CUDA now. Device " << device_type
                  << " is not implemented currently";
     }
   }
@@ -89,7 +89,7 @@ class TensorAsBuf {
       cudaMemcpy(buf + offset, origin_buf, size, cudaMemcpyDeviceToDevice);
 #endif
     } else {
-      LOG(FATAL) << "Only support CPU and CUDA now. Device " << device_type
+      TVM_LOG(FATAL) << "Only support CPU and CUDA now. Device " << device_type
                  << " is not implemented currently";
     }
   }
@@ -241,7 +241,7 @@ class TVMDSOOp : public OpKernel {
     // Load TVM function from dynamic library
     tvm::runtime::Module mod_dylib = tvm::runtime::Module::LoadFromFile(lib_path);
     tvm_func = mod_dylib.GetFunction(func_name);
-    ICHECK(tvm_func != nullptr);
+    TVM_ICHECK(tvm_func != nullptr);
   }
 
   void Compute(tensorflow::OpKernelContext* context) override {

@@ -40,14 +40,14 @@ namespace runtime {
     if (result != CUDA_SUCCESS && result != CUDA_ERROR_DEINITIALIZED) { \
       const char* msg;                                                  \
       cuGetErrorName(result, &msg);                                     \
-      LOG(FATAL) << "CUDAError: " #x " failed with error: " << msg;     \
+      TVM_LOG(FATAL) << "CUDAError: " #x " failed with error: " << msg;     \
     }                                                                   \
   }
 
 #define CUDA_CALL(func)                                       \
   {                                                           \
     cudaError_t e = (func);                                   \
-    ICHECK(e == cudaSuccess || e == cudaErrorCudartUnloading) \
+    TVM_ICHECK(e == cudaSuccess || e == cudaErrorCudartUnloading) \
         << "CUDA: " << cudaGetErrorString(e);                 \
   }
 

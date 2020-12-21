@@ -64,12 +64,12 @@ class Pipe : public dmlc::Stream {
     if (size == 0) return 0;
 #ifdef _WIN32
     DWORD nread;
-    ICHECK(ReadFile(handle_, static_cast<TCHAR*>(ptr), &nread, nullptr))
+    TVM_ICHECK(ReadFile(handle_, static_cast<TCHAR*>(ptr), &nread, nullptr))
         << "Read Error: " << GetLastError();
 #else
     ssize_t nread;
     nread = read(handle_, ptr, size);
-    ICHECK_GE(nread, 0) << "Write Error: " << strerror(errno);
+    TVM_ICHECK_GE(nread, 0) << "Write Error: " << strerror(errno);
 #endif
     return static_cast<size_t>(nread);
   }
@@ -83,13 +83,13 @@ class Pipe : public dmlc::Stream {
     if (size == 0) return;
 #ifdef _WIN32
     DWORD nwrite;
-    ICHECK(WriteFile(handle_, static_cast<const TCHAR*>(ptr), &nwrite, nullptr) &&
+    TVM_ICHECK(WriteFile(handle_, static_cast<const TCHAR*>(ptr), &nwrite, nullptr) &&
            static_cast<size_t>(nwrite) == size)
         << "Write Error: " << GetLastError();
 #else
     ssize_t nwrite;
     nwrite = write(handle_, ptr, size);
-    ICHECK_EQ(static_cast<size_t>(nwrite), size) << "Write Error: " << strerror(errno);
+    TVM_ICHECK_EQ(static_cast<size_t>(nwrite), size) << "Write Error: " << strerror(errno);
 #endif
   }
   /*!

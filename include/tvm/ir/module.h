@@ -300,7 +300,7 @@ class IRModule : public ObjectRef {
   /*! \return mutable pointers to the node. */
   IRModuleNode* operator->() const {
     auto* ptr = get_mutable();
-    ICHECK(ptr != nullptr);
+    TVM_ICHECK(ptr != nullptr);
     return static_cast<IRModuleNode*>(ptr);
   }
 

@@ -49,7 +49,7 @@
     typedef uint8_t DType;                              \
     { __VA_ARGS__ }                                     \
   } else {                                              \
-    LOG(FATAL) << "unknown data type";                  \
+    TVM_LOG(FATAL) << "unknown data type";                  \
   }
 
 namespace tvm {
@@ -73,8 +73,8 @@ TVM_REGISTER_GLOBAL("tvm.contrib.random.randint").set_body([](TVMArgs args, TVMR
   int64_t low = args[0];
   int64_t high = args[1];
   DLTensor* out = args[2];
-  ICHECK_GT(high, low) << "high must be bigger than low";
-  ICHECK(out->strides == nullptr);
+  TVM_ICHECK_GT(high, low) << "high must be bigger than low";
+  TVM_ICHECK(out->strides == nullptr);
 
   DLDataType dtype = out->dtype;
   int64_t size = 1;
@@ -96,7 +96,7 @@ TVM_REGISTER_GLOBAL("tvm.contrib.random.randint").set_body([](TVMArgs args, TVMR
         return low + rint % (high - low);
       });
     } else {
-      LOG(FATAL) << "Do not support random.randint on this device yet";
+      TVM_LOG(FATAL) << "Do not support random.randint on this device yet";
     }
   })
 });

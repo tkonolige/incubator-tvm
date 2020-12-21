@@ -47,7 +47,7 @@ TVM_REGISTER_GLOBAL("ir.NodeSetSpan").set_body_typed([](ObjectRef node_ref, Span
   } else if (auto* rn = node_ref.as<TypeNode>()) {
     rn->span = sp;
   } else {
-    LOG(FATAL) << "Expect Type or RelayNode ";
+    TVM_LOG(FATAL) << "Expect Type or RelayNode ";
   }
 });
 

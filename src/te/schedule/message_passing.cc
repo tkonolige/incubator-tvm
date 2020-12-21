@@ -40,7 +40,7 @@ void Update(std::unordered_map<IterVar, Range>* p_state, const IterVar& iv, Rang
   } else {
     bool match =
         is_zero(it->second->min) && analyzer->CanProve(r->extent - it->second->extent == 0);
-    ICHECK(match) << iv << " domain already inferred,"
+    TVM_ICHECK(match) << iv << " domain already inferred,"
                   << " cannot prove their extents are the same " << it->second->extent << " vs "
                   << r->extent;
   }
@@ -80,7 +80,7 @@ void PassUpThreadBinding(const Stage& stage, std::unordered_map<IterVar, bool>* 
       state[s->parent] = state[s->rebased];
     } else if (rel.as<SingletonNode>()) {
     } else {
-      LOG(FATAL) << "unknown relation type";
+      TVM_LOG(FATAL) << "unknown relation type";
     }
   }
 }
@@ -109,10 +109,10 @@ void PassDownDomain(const Stage& stage, std::unordered_map<IterVar, Range>* p_st
   for (IterVarRelation rel : stage->relations) {
     if (const SplitNode* r = rel.as<SplitNode>()) {
       if (!state.count(r->parent)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
-      ICHECK(!state.count(r->inner));
+      TVM_ICHECK(!state.count(r->inner));
       const Range& range_parent = state.at(r->parent);
       // Tighten iv's extent to min(parent_extent, factor_or_nparts), only if all of the
       // following conditions are met:
@@ -143,7 +143,7 @@ void PassDownDomain(const Stage& stage, std::unordered_map<IterVar, Range>* p_st
       }
     } else if (const FuseNode* r = rel.as<FuseNode>()) {
       if (!state.count(r->outer) || !state.count(r->inner)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       const Range& range_outer = state.at(r->outer);
@@ -151,20 +151,20 @@ void PassDownDomain(const Stage& stage, std::unordered_map<IterVar, Range>* p_st
       state[r->fused] = Range::FromMinExtent(0, range_outer->extent * range_inner->extent);
     } else if (const RebaseNode* r = rel.as<RebaseNode>()) {
       if (!state.count(r->parent)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       Update(p_state, r->rebased, Range::FromMinExtent(0, state.at(r->parent)->extent), actx);
     } else if (const SingletonNode* s = rel.as<SingletonNode>()) {
       Update(p_state, s->iter, Range::FromMinExtent(0, 1), actx);
     } else {
-      LOG(FATAL) << "unknown relation type";
+      TVM_LOG(FATAL) << "unknown relation type";
     }
   }
   // update the extents of binded threads.
   for (auto kv : stage->iter_var_attrs) {
     if (kv.second->bind_thread.defined()) {
-      ICHECK(state.count(kv.first));
+      TVM_ICHECK(state.count(kv.first));
       Update(p_state, kv.second->bind_thread, state.at(kv.first), actx);
     }
   }
@@ -177,7 +177,7 @@ void PassUpIndex(const Stage& stage, const Map<IterVar, Range>& dom_map,
     IterVarRelation rel = stage->relations[i - 1];
     if (const SplitNode* s = rel.as<SplitNode>()) {
       if (!state.count(s->outer) || !state.count(s->inner)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       PrimExpr outer = state.at(s->outer);
@@ -191,7 +191,7 @@ void PassUpIndex(const Stage& stage, const Map<IterVar, Range>& dom_map,
       }
     } else if (const FuseNode* s = rel.as<FuseNode>()) {
       if (!state.count(s->fused)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       PrimExpr value = state.at(s->fused);
@@ -213,7 +213,7 @@ void PassUpIndex(const Stage& stage, const Map<IterVar, Range>& dom_map,
       state[s->inner] = cast(s->inner->var.dtype(), state[s->inner]);
     } else if (const RebaseNode* s = rel.as<RebaseNode>()) {
       if (!state.count(s->rebased)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       PrimExpr value = state.at(s->rebased);
@@ -226,7 +226,7 @@ void PassUpIndex(const Stage& stage, const Map<IterVar, Range>& dom_map,
       }
     } else if (rel.as<SingletonNode>()) {
     } else {
-      LOG(FATAL) << "unknown relation type";
+      TVM_LOG(FATAL) << "unknown relation type";
     }
   }
 }
@@ -237,18 +237,18 @@ void PassDownIndex(const Stage& stage, const Map<IterVar, Range>& dom_map,
   for (IterVarRelation rel : stage->relations) {
     if (const SplitNode* s = rel.as<SplitNode>()) {
       if (!state.count(s->parent)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       Range r = dom_map.at(s->inner);
-      ICHECK(is_zero(r->min));
+      TVM_ICHECK(is_zero(r->min));
       PrimExpr parent = state.at(s->parent);
       PrimExpr factor = r->extent;
       state[s->outer] = indexdiv(parent, factor);
       state[s->inner] = indexmod(parent, factor);
     } else if (const FuseNode* s = rel.as<FuseNode>()) {
       if (!state.count(s->inner) && !state.count(s->outer)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       PrimExpr factor = dom_map.at(s->inner)->extent;
@@ -256,22 +256,22 @@ void PassDownIndex(const Stage& stage, const Map<IterVar, Range>& dom_map,
       PrimExpr inner_min = dom_map.at(s->inner)->min;
       PrimExpr inner = state.at(s->inner);
       PrimExpr outer = state.at(s->outer);
-      ICHECK(is_zero(outer_min));
-      ICHECK(is_zero(inner_min));
+      TVM_ICHECK(is_zero(outer_min));
+      TVM_ICHECK(is_zero(inner_min));
       state[s->fused] = outer * factor + inner;
     } else if (const RebaseNode* s = rel.as<RebaseNode>()) {
       if (!state.count(s->rebased)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       PrimExpr value = state.at(s->parent);
       PrimExpr parent_min = dom_map.at(s->parent)->min;
-      ICHECK(is_zero(parent_min));
+      TVM_ICHECK(is_zero(parent_min));
       state[s->rebased] = value;
     } else if (const SingletonNode* s = rel.as<SingletonNode>()) {
       state[s->iter] = make_zero(s->iter->var.dtype());
     } else {
-      LOG(FATAL) << "unknown relation type";
+      TVM_LOG(FATAL) << "unknown relation type";
     }
   }
 }
@@ -286,18 +286,18 @@ void PassUpDomain(const SplitNode* s, const std::unordered_map<IterVar, Range>& 
   }
   PrimExpr factor = dom_map.at(s->inner)->extent;
   PrimExpr parent_min = dom_map.at(s->parent)->min;
-  ICHECK(outer.defined());
-  ICHECK(inner.defined());
-  ICHECK(factor.defined());
+  TVM_ICHECK(outer.defined());
+  TVM_ICHECK(inner.defined());
+  TVM_ICHECK(factor.defined());
   *parent = arith::EvalSet(s->outer->var * factor + s->inner->var + parent_min,
                            {{s->outer, outer}, {s->inner, inner}});
 }
 
 void PassUpDomain(const FuseNode* s, const std::unordered_map<IterVar, Range>& dom_map,
                   const IntSet& fused, IntSet* outer, IntSet* inner) {
-  ICHECK(dom_map.count(s->outer));
-  ICHECK(dom_map.count(s->inner));
-  ICHECK(dom_map.count(s->fused));
+  TVM_ICHECK(dom_map.count(s->outer));
+  TVM_ICHECK(dom_map.count(s->inner));
+  TVM_ICHECK(dom_map.count(s->fused));
   arith::Analyzer ana;
 
   if (fused.MatchRange(dom_map.at(s->fused))) {
@@ -331,7 +331,7 @@ void PassUpDomain(const FuseNode* s, const std::unordered_map<IterVar, Range>& d
     } else {  // fused may span multiple rows, use full row widths
       if (!is_zero(ana.Simplify(indexmod(fused_extent, inner_extent))) ||
           !is_zero(ana.Simplify(indexmod(fused.min(), inner_extent)))) {
-        LOG(WARNING)
+        TVM_LOG(WARNING)
             << "fused and original axes are not aligned, this may cause redundant computations";
       }
       *inner = IntSet::FromRange(dom_map.at(s->inner));
@@ -342,7 +342,7 @@ void PassUpDomain(const FuseNode* s, const std::unordered_map<IterVar, Range>& d
 
 void PassUpDomain(const RebaseNode* s, const std::unordered_map<IterVar, Range>& dom_map,
                   const IntSet& rebased, IntSet* parent) {
-  ICHECK(dom_map.count(s->parent));
+  TVM_ICHECK(dom_map.count(s->parent));
   if (rebased.MatchRange(dom_map.at(s->rebased))) {
     *parent = IntSet::FromRange(dom_map.at(s->parent));
     return;
@@ -371,7 +371,7 @@ void PassUpDomain(const Stage& stage, const std::unordered_map<IterVar, Range>& 
       state[r->parent] = parent;
     } else if (rel.as<SingletonNode>()) {
     } else {
-      LOG(FATAL) << "unknown relation type";
+      TVM_LOG(FATAL) << "unknown relation type";
     }
   }
 }
@@ -384,7 +384,7 @@ void PassUpBitMaskOr(const Stage& stage, std::unordered_map<IterVar, int>* p_sta
     IterVarRelation rel = stage->relations[i - 1];
     if (const SplitNode* s = rel.as<SplitNode>()) {
       if (!state.count(s->inner) && !state.count(s->outer)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       int res = 0;
@@ -394,7 +394,7 @@ void PassUpBitMaskOr(const Stage& stage, std::unordered_map<IterVar, int>* p_sta
       state[s->parent] = res;
     } else if (const FuseNode* s = rel.as<FuseNode>()) {
       if (!state.count(s->fused)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       if (!state.count(s->outer)) {
@@ -409,7 +409,7 @@ void PassUpBitMaskOr(const Stage& stage, std::unordered_map<IterVar, int>* p_sta
       }
     } else if (const RebaseNode* s = rel.as<RebaseNode>()) {
       if (!state.count(s->rebased)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       if (!state.count(s->parent)) {
@@ -419,7 +419,7 @@ void PassUpBitMaskOr(const Stage& stage, std::unordered_map<IterVar, int>* p_sta
       }
     } else if (rel.as<SingletonNode>()) {
     } else {
-      LOG(FATAL) << "unknown relation type";
+      TVM_LOG(FATAL) << "unknown relation type";
     }
   }
 }
@@ -430,7 +430,7 @@ void PassDownBitMaskOr(const Stage& stage, std::unordered_map<IterVar, int>* p_s
   for (IterVarRelation rel : stage->relations) {
     if (const SplitNode* s = rel.as<SplitNode>()) {
       if (!state.count(s->parent)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       if (!state.count(s->outer)) {
@@ -445,7 +445,7 @@ void PassDownBitMaskOr(const Stage& stage, std::unordered_map<IterVar, int>* p_s
       }
     } else if (const FuseNode* s = rel.as<FuseNode>()) {
       if (!state.count(s->outer) && !state.count(s->inner)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       int res = 0;
@@ -455,7 +455,7 @@ void PassDownBitMaskOr(const Stage& stage, std::unordered_map<IterVar, int>* p_s
       state[s->fused] = res;
     } else if (const RebaseNode* s = rel.as<RebaseNode>()) {
       if (!state.count(s->parent)) {
-        ICHECK(allow_missing);
+        TVM_ICHECK(allow_missing);
         continue;
       }
       if (!state.count(s->rebased)) {
@@ -466,7 +466,7 @@ void PassDownBitMaskOr(const Stage& stage, std::unordered_map<IterVar, int>* p_s
     } else if (const SingletonNode* s = rel.as<SingletonNode>()) {
       state[s->iter] = 0;
     } else {
-      LOG(FATAL) << "unknown relation type";
+      TVM_LOG(FATAL) << "unknown relation type";
     }
   }
 }
@@ -510,7 +510,7 @@ void PassUpBoundCheck(const Stage& s, const Map<IterVar, Range>& dom_map,
     } else if (rel.as<SingletonNode>()) {
       // nop
     } else {
-      LOG(FATAL) << "unknown relation type";
+      TVM_LOG(FATAL) << "unknown relation type";
     }
   }
 }
@@ -561,7 +561,7 @@ std::vector<PrimExpr> MakeBoundCheck(const Stage& stage, const Map<IterVar, Rang
   for (const IterVar& iv : stage->op->root_iter_vars()) {
     if (skip_iter.count(iv) || iv->iter_type == kOpaque) continue;
     Range dom = dom_map.at(iv);
-    ICHECK(iv->dom.defined());
+    TVM_ICHECK(iv->dom.defined());
     if (!skip_ivar_domain && !IsRangeSame(iv->dom, dom)) {
       PrimExpr value = value_map.at(iv) - iv->dom->min;
       IntSet s = analyzer.int_set(value, iset_dmap);

@@ -71,7 +71,7 @@ struct ConstantUpdater : public ExprVisitor {
 inline void UpdateConstants(Function func,
                             std::unordered_map<std::string, runtime::NDArray>* params) {
   auto codegen = func->GetAttr<String>(attr::kCompiler);
-  ICHECK(codegen.defined()) << "No external codegen is set";
+  TVM_ICHECK(codegen.defined()) << "No external codegen is set";
   std::string codegen_name = codegen.value();
   const auto name_node = func->GetAttr<String>(tvm::attr::kGlobalSymbol);
   std::string symbol = std::string(name_node.value());
@@ -87,7 +87,7 @@ inline void UpdateConstants(Function func,
     for (const auto& it : constants) {
       std::string const_name(it.first);
       // Constant names should begin this the compiler name (to avoid conflicts)
-      ICHECK(const_name.find(codegen_name) == 0)
+      TVM_ICHECK(const_name.find(codegen_name) == 0)
           << "External constant names must start with compiler name";
       (*params)[const_name] = it.second;
     }
@@ -112,7 +112,7 @@ class MemoizedExprTranslator : public ::tvm::relay::ExprFunctor<OutputType(const
    * \return The result of the call
    */
   virtual OutputType VisitExpr(const Expr& n) {
-    ICHECK(n.defined());
+    TVM_ICHECK(n.defined());
     auto it = memo_.find(n);
     if (it != memo_.end()) {
       return it->second;
@@ -146,7 +146,7 @@ inline const PackedFunc* GetPackedFunc(const std::string& func_name) {
 template <typename R, typename... Args>
 inline const runtime::TypedPackedFunc<R(Args...)> GetTypedPackedFunc(const std::string& func_name) {
   auto* pf = GetPackedFunc(func_name);
-  ICHECK(pf != nullptr) << "can not find packed function";
+  TVM_ICHECK(pf != nullptr) << "can not find packed function";
   return runtime::TypedPackedFunc<R(Args...)>(*pf);
 }
 
@@ -184,7 +184,7 @@ inline std::string DType2String(const tvm::DataType dtype) {
        << (*GetPackedFunc("runtime._datatype_get_type_name"))(dtype.code()).operator std::string()
        << "]";
   } else {
-    LOG(FATAL) << "Unknown type with code " << static_cast<unsigned>(dtype.code());
+    TVM_LOG(FATAL) << "Unknown type with code " << static_cast<unsigned>(dtype.code());
   }
   os << dtype.bits();
   return os.str();
@@ -216,13 +216,13 @@ inline relay::Function BindParamsByName(
     }
     auto arg = name_dict.at(kv.first);
     if (repeat_var.count(arg)) {
-      LOG(FATAL) << "Multiple args in the function have name " << kv.first;
+      TVM_LOG(FATAL) << "Multiple args in the function have name " << kv.first;
     }
     bind_dict[arg] = Constant(kv.second);
   }
   Expr bound_expr = relay::Bind(func, bind_dict);
   Function ret = Downcast<Function>(bound_expr);
-  ICHECK(ret.defined()) << "The returning type is expected to be a Relay Function."
+  TVM_ICHECK(ret.defined()) << "The returning type is expected to be a Relay Function."
                         << "\n";
   return ret;
 }
@@ -234,11 +234,11 @@ inline relay::Function BindParamsByName(
  */
 inline std::vector<int> GetShape(const Type& type) {
   const auto* ttype = type.as<TensorTypeNode>();
-  ICHECK(ttype) << "Expect TensorTypeNode";
+  TVM_ICHECK(ttype) << "Expect TensorTypeNode";
   std::vector<int> shape;
   for (size_t i = 0; i < ttype->shape.size(); ++i) {
     auto* val = ttype->shape[i].as<IntImmNode>();
-    ICHECK(val);
+    TVM_ICHECK(val);
     shape.push_back(val->value);
   }
   return shape;
@@ -253,7 +253,7 @@ inline std::vector<int> GetShape(const Type& type) {
  */
 inline bool IsOp(const CallNode* call, const std::string& op_name) {
   const auto* op_node = call->op.as<OpNode>();
-  ICHECK(op_node) << "Expects a single op.";
+  TVM_ICHECK(op_node) << "Expects a single op.";
   Op op = GetRef<Op>(op_node);
   return op == Op::Get(op_name);
 }
@@ -269,14 +269,14 @@ inline bool IsOp(const CallNode* call, const std::string& op_name) {
 
 inline const CallNode* GetRootCall(const CallNode* current_call, int depth,
                                    const std::vector<std::string>& expected_op_names) {
-  ICHECK(current_call && depth >= 0 && static_cast<size_t>(depth) < expected_op_names.size() &&
+  TVM_ICHECK(current_call && depth >= 0 && static_cast<size_t>(depth) < expected_op_names.size() &&
          IsOp(current_call, expected_op_names[depth]));
 
   if (depth == 0) {
     return current_call;
   }
 
-  ICHECK_GT(current_call->args.size(), 0);
+  TVM_ICHECK_GT(current_call->args.size(), 0);
 
   const auto* next_call = current_call->args[0].as<CallNode>();
   return GetRootCall(next_call, depth - 1, expected_op_names);
@@ -290,7 +290,7 @@ inline const CallNode* GetRootCall(const CallNode* current_call, int depth,
  */
 inline std::string GetExtSymbol(const Function& func) {
   const auto name_node = func->GetAttr<String>(tvm::attr::kGlobalSymbol);
-  ICHECK(name_node.defined()) << "Fail to retrieve external symbol.";
+  TVM_ICHECK(name_node.defined()) << "Fail to retrieve external symbol.";
   return std::string(name_node.value());
 }
 

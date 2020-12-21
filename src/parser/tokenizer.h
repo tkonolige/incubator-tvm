@@ -100,7 +100,7 @@ struct Tokenizer {
   bool More() { return this->pos < this->source.size(); }
 
   char Peek() {
-    ICHECK(pos < this->source.size());
+    TVM_ICHECK(pos < this->source.size());
     return this->source.at(this->pos);
   }
 
@@ -170,7 +170,7 @@ struct Tokenizer {
   }
 
   Token ParseNumber(bool is_pos, bool is_float, std::string number) {
-    ICHECK(number.size() > 0) << "an empty string is an invalid number";
+    TVM_ICHECK(number.size() > 0) << "an empty string is an invalid number";
 
     try {
       if (is_float) {
@@ -231,22 +231,22 @@ struct Tokenizer {
     int line = this->line;
     int column = this->col;
 
-    ICHECK_EQ(Peek(), '[');
+    TVM_ICHECK_EQ(Peek(), '[');
     Next();
     std::stringstream type_key;
     while (More() && Peek() != ']') {
       type_key << Next();
     }
-    ICHECK_EQ(Peek(), ']');
+    TVM_ICHECK_EQ(Peek(), ']');
     Next();
 
-    ICHECK_EQ(Peek(), '[');
+    TVM_ICHECK_EQ(Peek(), '[');
     Next();
     std::stringstream str_index;
     while (More() && Peek() != ']') {
       str_index << Next();
     }
-    ICHECK_EQ(Peek(), ']');
+    TVM_ICHECK_EQ(Peek(), ']');
     Next();
     // todo: add error handling around bad indices
     auto index = ParseNumber(true, false, str_index.str()).ToNumber();
@@ -266,7 +266,7 @@ struct Tokenizer {
         raw_attribute << Next();
       }
 
-      ICHECK_EQ(Next(), ']');
+      TVM_ICHECK_EQ(Next(), ']');
 
       auto attribute = raw_attribute.str();
       // Clean up the white-space on both sides.
@@ -537,7 +537,7 @@ struct Tokenizer {
     DLOG(INFO) << "tvm::parser::Tokenize";
     while (this->More()) {
       auto token = TokenizeOnce();
-      ICHECK(token.defined());
+      TVM_ICHECK(token.defined());
       this->tokens.push_back(token);
     }
     this->tokens.push_back(NewToken(TokenType::kEndOfFile));
@@ -565,7 +565,7 @@ std::vector<Token> Condense(const std::vector<Token>& tokens, Token* table) {
           found_metadata = true;
           *table = current;
         } else {
-          LOG(FATAL) << "duplicate metadata section";
+          TVM_LOG(FATAL) << "duplicate metadata section";
         }
         continue;
       }
@@ -576,15 +576,15 @@ std::vector<Token> Condense(const std::vector<Token>& tokens, Token* table) {
           i += 1;
           // TODO(@jroesch): merge spans
           auto tok = Token(current->span, TokenType::kLocal, next->data);
-          ICHECK(tok.defined());
+          TVM_ICHECK(tok.defined());
           out.push_back(tok);
         } else if (next->token_type == TokenType::kInteger) {
           i += 1;
           auto tok = Token(current->span, TokenType::kGraph, next->data);
-          ICHECK(tok.defined());
+          TVM_ICHECK(tok.defined());
           out.push_back(tok);
         } else {
-          ICHECK(current.defined());
+          TVM_ICHECK(current.defined());
           out.push_back(current);
         }
         continue;
@@ -596,10 +596,10 @@ std::vector<Token> Condense(const std::vector<Token>& tokens, Token* table) {
           i += 1;
           // TODO(@jroesch): merge spans
           auto tok = Token(current->span, TokenType::kGlobal, next->data);
-          ICHECK(tok.defined());
+          TVM_ICHECK(tok.defined());
           out.push_back(tok);
         } else {
-          ICHECK(current.defined());
+          TVM_ICHECK(current.defined());
           out.push_back(current);
         }
         continue;
@@ -638,7 +638,7 @@ std::pair<std::vector<Token>, Token> Tokenize(const DiagnosticContext& ctx, cons
   Token meta_table(Span(), TokenType::kUnknown, ObjectRef());
   auto tokens = Condense(tokenizer.tokens, &meta_table);
   for (auto token : tokens) {
-    ICHECK(token.defined());
+    TVM_ICHECK(token.defined());
   }
   return {tokens, meta_table};
 }

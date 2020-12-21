@@ -35,7 +35,7 @@ namespace codegen {
 
 std::vector<uint32_t> CodeGenSPIRV::BuildFunction(const PrimFunc& f, const std::string& name) {
   this->InitFuncState();
-  ICHECK(f->HasNonzeroAttr(tir::attr::kNoAlias)) << "SPIRV only takes restricted memory model";
+  TVM_ICHECK(f->HasNonzeroAttr(tir::attr::kNoAlias)) << "SPIRV only takes restricted memory model";
   std::vector<Var> pod_args;
   uint32_t num_buffer = 0;
 
@@ -44,14 +44,14 @@ std::vector<uint32_t> CodeGenSPIRV::BuildFunction(const PrimFunc& f, const std::
     if (t.is_handle()) {
       if (auto* ptr = arg->type_annotation.as<PointerTypeNode>()) {
         auto* prim = ptr->element_type.as<PrimTypeNode>();
-        ICHECK(prim);
+        TVM_ICHECK(prim);
         DataType value_type = prim->dtype;
         spirv::Value arg_value =
             builder_->BufferArgument(builder_->GetSType(value_type), 0, num_buffer);
         storage_info_[arg.get()].UpdateContentType(value_type);
         var_map_[arg.get()] = arg_value;
       } else {
-        LOG(FATAL) << "require all handles to be typed";
+        TVM_LOG(FATAL) << "require all handles to be typed";
       }
       ++num_buffer;
     } else {
@@ -98,9 +98,9 @@ spirv::Value CodeGenSPIRV::GetThreadIndex(const IterVar& iv, const PrimExpr& ext
   if (ts.rank == 1) {
     v = builder_->GetLocalID(ts.dim_index);
     auto* sizeptr = extent.as<tir::IntImmNode>();
-    ICHECK(sizeptr) << "SPIRV only allows constant thread group size "
+    TVM_ICHECK(sizeptr) << "SPIRV only allows constant thread group size "
                     << " get " << extent;
-    ICHECK_LT(ts.dim_index, 3);
+    TVM_ICHECK_LT(ts.dim_index, 3);
     workgroup_size_[ts.dim_index] = static_cast<uint32_t>(sizeptr->value);
   } else {
     v = builder_->GetWorkgroupID(ts.dim_index);
@@ -123,14 +123,14 @@ spirv::Value CodeGenSPIRV::CreateStorageSync(const CallNode* op) {
                          static_cast<int64_t>(spv::MemorySemanticsSequentiallyConsistentMask |
                                               spv::MemorySemanticsWorkgroupMemoryMask)));
   } else {
-    LOG(FATAL) << "Do not support sync " << sync;
+    TVM_LOG(FATAL) << "Do not support sync " << sync;
   }
   return value;
 }
 
 spirv::Value CodeGenSPIRV::VisitExpr_(const VarNode* op) {
   auto it = var_map_.find(op);
-  ICHECK(it != var_map_.end()) << "cannot find variable " << op->name_hint;
+  TVM_ICHECK(it != var_map_.end()) << "cannot find variable " << op->name_hint;
   return it->second;
 }
 
@@ -143,7 +143,7 @@ spirv::Value CodeGenSPIRV::VisitExpr_(const FloatImmNode* op) {
 }
 
 spirv::Value CodeGenSPIRV::VisitExpr_(const StringImmNode* op) {
-  LOG(FATAL) << "StringImm is not supported in Device code";
+  TVM_LOG(FATAL) << "StringImm is not supported in Device code";
   return spirv::Value();
 }
 
@@ -232,7 +232,7 @@ spirv::Value CodeGenSPIRV::VisitExpr_(const SelectNode* op) {
 spirv::Value CodeGenSPIRV::VisitExpr_(const LetNode* op) {
   auto it = let_binding_.find(op->var);
   if (it != let_binding_.end()) {
-    ICHECK(deep_equal_(it->second->value, op->value))
+    TVM_ICHECK(deep_equal_(it->second->value, op->value))
         << "Let cannot bind the same var to two different values";
   } else {
     let_binding_[op->var] = op;
@@ -244,7 +244,7 @@ spirv::Value CodeGenSPIRV::VisitExpr_(const LetNode* op) {
 
 spirv::Value CodeGenSPIRV::VisitExpr_(const CallNode* op) {
   if (op->op.same_as(builtin::call_spirv_pure_glsl450())) {
-    ICHECK_GE(op->args.size(), 2U);
+    TVM_ICHECK_GE(op->args.size(), 2U);
     uint32_t inst_id = static_cast<uint32_t>(op->args[0].as<IntImmNode>()->value);
     std::vector<spirv::Value> values;
     for (size_t i = 1; i < op->args.size(); ++i) {
@@ -252,31 +252,31 @@ spirv::Value CodeGenSPIRV::VisitExpr_(const CallNode* op) {
     }
     return builder_->CallGLSL450(builder_->GetSType(op->dtype), inst_id, values);
   } else if (op->op.same_as(builtin::bitwise_and())) {
-    ICHECK_EQ(op->args.size(), 2U);
+    TVM_ICHECK_EQ(op->args.size(), 2U);
     spirv::Value a = MakeValue(op->args[0]);
     spirv::Value b = MakeValue(op->args[1]);
     return builder_->MakeValue(spv::OpBitwiseAnd, a.stype, a, b);
   } else if (op->op.same_as(builtin::bitwise_xor())) {
-    ICHECK_EQ(op->args.size(), 2U);
+    TVM_ICHECK_EQ(op->args.size(), 2U);
     spirv::Value a = MakeValue(op->args[0]);
     spirv::Value b = MakeValue(op->args[1]);
     return builder_->MakeValue(spv::OpBitwiseXor, a.stype, a, b);
   } else if (op->op.same_as(builtin::bitwise_or())) {
-    ICHECK_EQ(op->args.size(), 2U);
+    TVM_ICHECK_EQ(op->args.size(), 2U);
     spirv::Value a = MakeValue(op->args[0]);
     spirv::Value b = MakeValue(op->args[1]);
     return builder_->MakeValue(spv::OpBitwiseOr, a.stype, a, b);
   } else if (op->op.same_as(builtin::bitwise_not())) {
-    ICHECK_EQ(op->args.size(), 1U);
+    TVM_ICHECK_EQ(op->args.size(), 1U);
     spirv::Value a = MakeValue(op->args[0]);
     return builder_->MakeValue(spv::OpNot, a.stype, a);
   } else if (op->op.same_as(builtin::shift_left())) {
-    ICHECK_EQ(op->args.size(), 2U);
+    TVM_ICHECK_EQ(op->args.size(), 2U);
     spirv::Value a = MakeValue(op->args[0]);
     spirv::Value b = MakeValue(op->args[1]);
     return builder_->MakeValue(spv::OpShiftLeftLogical, a.stype, a, b);
   } else if (op->op.same_as(builtin::shift_right())) {
-    ICHECK_EQ(op->args.size(), 2U);
+    TVM_ICHECK_EQ(op->args.size(), 2U);
     spirv::Value a = MakeValue(op->args[0]);
     spirv::Value b = MakeValue(op->args[1]);
     if (op->args[0].dtype().is_int()) {
@@ -288,7 +288,7 @@ spirv::Value CodeGenSPIRV::VisitExpr_(const CallNode* op) {
     return builder_->MakeValue(spv::OpBitcast, builder_->GetSType(op->dtype),
                                MakeValue(op->args[0]));
   } else if (op->op.same_as(builtin::large_uint_imm())) {
-    ICHECK_EQ(op->args.size(), 2U);
+    TVM_ICHECK_EQ(op->args.size(), 2U);
     uint64_t low = static_cast<uint64_t>(Downcast<IntImm>(op->args[0])->value);
     uint64_t high = static_cast<uint64_t>(Downcast<IntImm>(op->args[1])->value);
     uint64_t val = (high << 32U) | low;
@@ -296,7 +296,7 @@ spirv::Value CodeGenSPIRV::VisitExpr_(const CallNode* op) {
   } else if (op->op.same_as(builtin::tvm_storage_sync())) {
     return this->CreateStorageSync(op);
   } else if (op->op.same_as(builtin::if_then_else())) {
-    ICHECK_EQ(op->args.size(), 3U);
+    TVM_ICHECK_EQ(op->args.size(), 3U);
     spirv::Value cond = MakeValue(op->args[0]);
     spirv::Label then_label = builder_->NewLabel();
     spirv::Label else_label = builder_->NewLabel();
@@ -323,7 +323,7 @@ spirv::Value CodeGenSPIRV::VisitExpr_(const CallNode* op) {
     return builder_->MakeValue(spv::OpBitCount, builder_->GetSType(op->dtype),
                                MakeValue(op->args[0]));
   } else {
-    LOG(FATAL) << "Unresolved call  " << op->op;
+    TVM_LOG(FATAL) << "Unresolved call  " << op->op;
     return spirv::Value();
   }
 }
@@ -352,9 +352,9 @@ spirv::Value CodeGenSPIRV::VisitExpr_(const BroadcastNode* op) {
 }
 
 spirv::Value CodeGenSPIRV::VisitExpr_(const LoadNode* op) {
-  ICHECK(is_one(op->predicate));
+  TVM_ICHECK(is_one(op->predicate));
   auto it = storage_info_.find(op->buffer_var.get());
-  ICHECK(it != storage_info_.end());
+  TVM_ICHECK(it != storage_info_.end());
   StorageInfo& info = it->second;
   if (!info.content_fixed) {
     info.UpdateContentType(op->dtype);
@@ -369,7 +369,7 @@ spirv::Value CodeGenSPIRV::VisitExpr_(const LoadNode* op) {
     mask |= spv::MemoryAccessVolatileMask;
   }
   if (op->dtype.lanes() == 1) {
-    ICHECK_EQ(info.content_type, op->dtype)
+    TVM_ICHECK_EQ(info.content_type, op->dtype)
         << "Vulkan only allow one type access to the same buffer";
     spirv::Value index = MakeValue(op->index);
     spirv::Value ptr = builder_->StructArrayAccess(ptr_type, buffer, index);
@@ -387,9 +387,9 @@ spirv::Value CodeGenSPIRV::VisitExpr_(const LoadNode* op) {
     } else {
       if (const RampNode* ramp = op->index.as<RampNode>()) {
         if (is_one(ramp->stride)) {
-          ICHECK_EQ(ramp->lanes, op->dtype.lanes());
+          TVM_ICHECK_EQ(ramp->lanes, op->dtype.lanes());
           arith::ModularSet me = analyzer_->modular_set(ramp->base);
-          ICHECK((me->coeff % ramp->lanes) == 0 && (me->base % ramp->lanes) == 0)
+          TVM_ICHECK((me->coeff % ramp->lanes) == 0 && (me->base % ramp->lanes) == 0)
               << "Only aligned vector access is allowed in SPIRV";
           PrimExpr vec_index =
               analyzer_->Simplify(ramp->base / make_const(ramp->base.dtype(), ramp->lanes));
@@ -398,9 +398,9 @@ spirv::Value CodeGenSPIRV::VisitExpr_(const LoadNode* op) {
         }
       }
     }
-    LOG(FATAL) << "Only aligned continuous vector access is allowed in SPIRV";
+    TVM_LOG(FATAL) << "Only aligned continuous vector access is allowed in SPIRV";
   }
-  LOG(FATAL) << "Only aligned continuous vector access is allowed in SPIRV";
+  TVM_LOG(FATAL) << "Only aligned continuous vector access is allowed in SPIRV";
   return spirv::Value();
 }
 
@@ -420,9 +420,9 @@ void CodeGenSPIRV::Scalarize(const PrimExpr& e, std::function<void(int i, spirv:
 }
 
 void CodeGenSPIRV::VisitStmt_(const StoreNode* op) {
-  ICHECK(is_one(op->predicate));
+  TVM_ICHECK(is_one(op->predicate));
   auto it = storage_info_.find(op->buffer_var.get());
-  ICHECK(it != storage_info_.end());
+  TVM_ICHECK(it != storage_info_.end());
   StorageInfo& info = it->second;
 
   if (!info.content_fixed) {
@@ -440,7 +440,7 @@ void CodeGenSPIRV::VisitStmt_(const StoreNode* op) {
   }
 
   if (op->value.dtype().lanes() == 1) {
-    ICHECK_EQ(info.content_type, op->value.dtype())
+    TVM_ICHECK_EQ(info.content_type, op->value.dtype())
         << "Vulkan only allow one type access to the same buffer";
     spirv::Value index = MakeValue(op->index);
     spirv::Value ptr = builder_->StructArrayAccess(ptr_type, buffer, index);
@@ -457,9 +457,9 @@ void CodeGenSPIRV::VisitStmt_(const StoreNode* op) {
     } else {
       if (const RampNode* ramp = op->index.as<RampNode>()) {
         if (is_one(ramp->stride)) {
-          ICHECK_EQ(ramp->lanes, op->value.dtype().lanes());
+          TVM_ICHECK_EQ(ramp->lanes, op->value.dtype().lanes());
           arith::ModularSet me = analyzer_->modular_set(ramp->base);
-          ICHECK((me->coeff % ramp->lanes) == 0 && (me->base % ramp->lanes) == 0)
+          TVM_ICHECK((me->coeff % ramp->lanes) == 0 && (me->base % ramp->lanes) == 0)
               << "Only aligned vector access is allowed in SPIRV";
           PrimExpr vec_index =
               analyzer_->Simplify(ramp->base / make_const(ramp->base.dtype(), ramp->lanes));
@@ -468,13 +468,13 @@ void CodeGenSPIRV::VisitStmt_(const StoreNode* op) {
           return;
         }
       }
-      LOG(FATAL) << "Only aligned continuous vector access is allowed in SPIRV";
+      TVM_LOG(FATAL) << "Only aligned continuous vector access is allowed in SPIRV";
     }
   }
 }
 
 void CodeGenSPIRV::VisitStmt_(const ForNode* op) {
-  ICHECK(is_zero(op->min));
+  TVM_ICHECK(is_zero(op->min));
   analyzer_->Bind(op->loop_var, Range::FromMinExtent(op->min, op->extent));
   spirv::Value init_value = MakeValue(op->min);
   spirv::Value extent_value = MakeValue(op->extent);
@@ -544,10 +544,10 @@ void CodeGenSPIRV::VisitStmt_(const IfThenElseNode* op) {
 }
 
 void CodeGenSPIRV::VisitStmt_(const AllocateNode* op) {
-  ICHECK(!is_zero(op->condition));
-  ICHECK(!op->dtype.is_handle());
+  TVM_ICHECK(!is_zero(op->condition));
+  TVM_ICHECK(!op->dtype.is_handle());
   int32_t constant_size = op->constant_allocation_size();
-  ICHECK_GT(constant_size, 0) << "Can only handle constant size stack allocation in GPU";
+  TVM_ICHECK_GT(constant_size, 0) << "Can only handle constant size stack allocation in GPU";
   spirv::Value buf;
   StorageInfo& info = storage_info_[op->buffer_var.get()];
   spirv::SType etype = builder_->GetSType(op->dtype);
@@ -556,15 +556,15 @@ void CodeGenSPIRV::VisitStmt_(const AllocateNode* op) {
         builder_->Allocate(etype, static_cast<uint32_t>(constant_size), spv::StorageClassFunction);
   } else {
     // shared memory
-    ICHECK(info.scope.rank == runtime::StorageRank::kShared)
+    TVM_ICHECK(info.scope.rank == runtime::StorageRank::kShared)
         << "Can only allocate shared or local memory inside kernel";
     // Shared memory
     buf =
         builder_->Allocate(etype, static_cast<uint32_t>(constant_size), spv::StorageClassWorkgroup);
   }
-  ICHECK(!info.content_fixed);
+  TVM_ICHECK(!info.content_fixed);
   info.UpdateContentType(op->dtype);
-  ICHECK(!var_map_.count(op->buffer_var.get()));
+  TVM_ICHECK(!var_map_.count(op->buffer_var.get()));
   var_map_[op->buffer_var.get()] = buf;
   this->VisitStmt(op->body);
 }
@@ -580,11 +580,11 @@ void CodeGenSPIRV::VisitStmt_(const AttrStmtNode* op) {
     }
   } else if (op->attr_key == tir::attr::storage_scope) {
     const VarNode* v = op->node.as<VarNode>();
-    ICHECK(v);
+    TVM_ICHECK(v);
     storage_info_[v].scope = runtime::StorageScope::Create(op->value.as<StringImmNode>()->value);
   } else if (op->attr_key == tir::attr::volatile_scope) {
     const VarNode* v = op->node.as<VarNode>();
-    ICHECK(v);
+    TVM_ICHECK(v);
     storage_info_[v].is_volatile = true;
   }
   this->VisitStmt(op->body);
@@ -596,8 +596,8 @@ void CodeGenSPIRV::VisitStmt_(const AssertStmtNode* op) {
 }
 
 void CodeGenSPIRV::VisitStmt_(const LetStmtNode* op) {
-  ICHECK(!var_map_.count(op->var.get()));
-  ICHECK(!op->var.dtype().is_handle());
+  TVM_ICHECK(!var_map_.count(op->var.get()));
+  TVM_ICHECK(!op->var.dtype().is_handle());
   var_map_[op->var.get()] = MakeValue(op->value);
   analyzer_->Bind(op->var, op->value);
   this->VisitStmt(op->body);

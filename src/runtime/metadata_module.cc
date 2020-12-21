@@ -69,7 +69,7 @@ class MetadataModuleNode : public ModuleNode {
     // Run the module.
     // Normally we would only have a limited number of submodules. The runtime
     // symobl lookup overhead should be minimal.
-    ICHECK(!this->imports().empty());
+    TVM_ICHECK(!this->imports().empty());
     for (Module it : this->imports()) {
       PackedFunc pf = it.GetFunction(name);
       if (pf != nullptr) return pf;
@@ -86,10 +86,10 @@ class MetadataModuleNode : public ModuleNode {
    */
   Array<NDArray> GetRequiredMetadata(const std::string& symbol) {
     Array<NDArray> ret;
-    ICHECK_GT(sym_vars_.count(symbol), 0U) << "No symbol is recorded for " << symbol;
+    TVM_ICHECK_GT(sym_vars_.count(symbol), 0U) << "No symbol is recorded for " << symbol;
     std::vector<std::string> vars = sym_vars_[symbol];
     for (const auto& it : vars) {
-      ICHECK_GT(metadata_.count(it), 0U) << "Found not recorded constant variable: " << it;
+      TVM_ICHECK_GT(metadata_.count(it), 0U) << "Found not recorded constant variable: " << it;
       ret.push_back(metadata_[it]);
     }
     return ret;
@@ -119,7 +119,7 @@ class MetadataModuleNode : public ModuleNode {
         // Initialize the module with metadata.
         int ret = init(md);
         // Report the error if initialization is failed.
-        ICHECK_EQ(ret, 0) << TVMGetLastError();
+        TVM_ICHECK_EQ(ret, 0) << TVMGetLastError();
         break;
       }
     }
@@ -164,10 +164,10 @@ class MetadataModuleNode : public ModuleNode {
 
     // Load the variables.
     std::vector<std::string> variables;
-    ICHECK(stream->Read(&variables)) << "Loading variables failed";
+    TVM_ICHECK(stream->Read(&variables)) << "Loading variables failed";
     uint64_t sz;
-    ICHECK(stream->Read(&sz, sizeof(sz))) << "Loading metadata size failed";
-    ICHECK_EQ(static_cast<size_t>(sz), variables.size())
+    TVM_ICHECK(stream->Read(&sz, sizeof(sz))) << "Loading metadata size failed";
+    TVM_ICHECK_EQ(static_cast<size_t>(sz), variables.size())
         << "The number of variables and ndarray counts must match";
     // Load the list of ndarray.
     std::vector<NDArray> arrays;
@@ -179,19 +179,19 @@ class MetadataModuleNode : public ModuleNode {
 
     std::unordered_map<std::string, NDArray> metadata;
     for (uint64_t i = 0; i < sz; i++) {
-      ICHECK_EQ(metadata.count(variables[i]), 0U);
+      TVM_ICHECK_EQ(metadata.count(variables[i]), 0U);
       metadata[variables[i]] = arrays[i];
     }
 
     // Load the symbol to list of required constant variables mapping
     std::vector<std::string> symbols;
-    ICHECK(stream->Read(&symbols)) << "Loading symbols failed";
-    ICHECK(stream->Read(&sz, sizeof(sz))) << "Loading number of symbols failed";
-    ICHECK_EQ(static_cast<size_t>(sz), symbols.size());
+    TVM_ICHECK(stream->Read(&symbols)) << "Loading symbols failed";
+    TVM_ICHECK(stream->Read(&sz, sizeof(sz))) << "Loading number of symbols failed";
+    TVM_ICHECK_EQ(static_cast<size_t>(sz), symbols.size());
     std::vector<std::vector<std::string>> const_vars;
     for (uint64_t i = 0; i < sz; i++) {
       std::vector<std::string> vars;
-      ICHECK(stream->Read(&vars)) << "Loading const variables failed";
+      TVM_ICHECK(stream->Read(&vars)) << "Loading const variables failed";
       const_vars.push_back(vars);
     }
 

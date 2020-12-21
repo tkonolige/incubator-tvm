@@ -67,7 +67,7 @@ class CostModelNode : public Object {
   virtual void PredictStages(const SearchTask& task, const Array<State>& states,
                              std::vector<float>* state_scores,
                              std::vector<std::vector<float>>* stage_scores) {
-    LOG(FATAL) << "Not implemented";
+    TVM_LOG(FATAL) << "Not implemented";
   }
 
   /*!

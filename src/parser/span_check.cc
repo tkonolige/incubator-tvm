@@ -94,7 +94,7 @@ void SpanChecker::VisitPattern(const Pattern& c) {}
 Pass SpanCheck() {
   return CreateFunctionPass(
       [](const Function& func, const IRModule& mod, const PassContext& ctx) {
-        ICHECK(ctx->diag_ctx) << "Diagnostic context must be set.";
+        TVM_ICHECK(ctx->diag_ctx) << "Diagnostic context must be set.";
         SpanChecker checker(ctx->diag_ctx.value());
         checker.VisitExpr(func);
         ctx->diag_ctx.value().Render();

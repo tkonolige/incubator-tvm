@@ -69,7 +69,7 @@ class AnnotateTargetRewriter : public ExprRewriter {
       if (call && call->op == CompilerBeginOp()) {
         // Argument is already compiler begin node meaning that this is not the first time
         // running this pass, so we simply remove it and will add a new one later.
-        ICHECK_EQ(call->args.size(), 1U);
+        TVM_ICHECK_EQ(call->args.size(), 1U);
         const CallNode* end = call->args[0].as<CallNode>();
         if (end->op == CompilerEndOp()) {
           arg_target = end->attrs.as<CompilerAttrs>()->compiler;
@@ -145,13 +145,13 @@ class AnnotateTargetRewriter : public ExprRewriter {
     if (op_node && pre->op == CompilerBeginOp()) {
       // Bypass compiler begin due to lack of target information. It will be processed
       // when the following op handling arguments.
-      ICHECK_EQ(pre->args.size(), 1U);
+      TVM_ICHECK_EQ(pre->args.size(), 1U);
       return post.as<CallNode>()->args[0];
     } else if (op_node && pre->op == CompilerEndOp()) {
       // Override compiler end with the new target.
-      ICHECK_EQ(pre->args.size(), 1U);
+      TVM_ICHECK_EQ(pre->args.size(), 1U);
       auto input_expr = post.as<CallNode>()->args[0];
-      ICHECK(op_expr_to_target_.find(input_expr) != op_expr_to_target_.end());
+      TVM_ICHECK(op_expr_to_target_.find(input_expr) != op_expr_to_target_.end());
       return InsertAnnotation(input_expr, op_expr_to_target_[input_expr], make_end_op);
     }
     // Check prior to peeking first argument
@@ -172,7 +172,7 @@ class AnnotateTargetRewriter : public ExprRewriter {
       // TVM operators: Check target specific op checking function and add to supported_targets
       // if it is supported.
       Op op = Downcast<Op>(pre->op);
-      ICHECK(op.defined());
+      TVM_ICHECK(op.defined());
       for (const auto& target : this->targets_) {
         if (!Op::HasAttrMap("target." + std::string(target))) {
           continue;
@@ -187,7 +187,7 @@ class AnnotateTargetRewriter : public ExprRewriter {
       // Composite function: Add the target of a composite function to supported_targets
       // if it is in the target list.
       Function func = Downcast<Function>(pre->op);
-      ICHECK(func.defined());
+      TVM_ICHECK(func.defined());
 
       if (auto comp_name = func->GetAttr<String>(attr::kComposite)) {
         std::string comp_name_str = comp_name.value();

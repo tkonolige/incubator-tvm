@@ -126,7 +126,7 @@ SketchGenerationRule::ConditionKind RuleMultiLevelTilingWithFusion::MeetConditio
 std::vector<std::pair<State, int>> RuleMultiLevelTilingWithFusion::Apply(
     const SketchPolicyNode& policy, const State& state, int stage_id) const {
   int target_stage_id;
-  ICHECK(
+  TVM_ICHECK(
       HasSingleElementwiseMatchedConsumer(policy.search_task, state, stage_id, &target_stage_id));
   const std::string& multi_level_tiling_structure =
       IsGPUTask(policy.search_task)
@@ -308,7 +308,7 @@ std::vector<std::pair<State, int>> RuleSimplifyComputeWithConstTensor::Apply(
       unrolled_inner_iters.push_back(tmp_s.unroll(stage_id, iter));
     } else {
       // tile other space indices
-      ICHECK(iter->iter_kind == IteratorKind::kSpatial);
+      TVM_ICHECK(iter->iter_kind == IteratorKind::kSpatial);
       tiled_outer_iters.push_back(
           tmp_s.split(stage_id, iter, Array<Optional<Integer>>(tile_level - 1, NullOpt)));
     }
@@ -331,7 +331,7 @@ std::vector<std::pair<State, int>> RuleSimplifyComputeWithConstTensor::Apply(
 
 SketchGenerationRule::ConditionKind RuleCrossThreadReduction::MeetCondition(
     const SketchPolicyNode& policy, const State& state, int stage_id) const {
-  ICHECK(IsGPUTask(policy.search_task));
+  TVM_ICHECK(IsGPUTask(policy.search_task));
 
   // If it is an intermediate state created by RuleAddCacheWrite,
   // we just skip it.
@@ -398,14 +398,14 @@ std::vector<std::pair<State, int>> RuleCrossThreadReduction::Apply(const SketchP
       // If the target stage does not have split step,
       // it must be a simple stage without reduce iters.
       // We then should do a split for it.
-      ICHECK(!HasReduceIter(target_stage));
+      TVM_ICHECK(!HasReduceIter(target_stage));
       const auto& split_res = tmp_s.split(target_stage_id, target_stage->iters.back(),
                                           {Integer(task->hardware_params->warp_size)});
       tmp_s.bind(target_stage_id, split_res[1], IteratorAnnotation::kThreadX);
       split_step_ids.push_back(tmp_s->transform_steps.size() - 2);
     }
 
-    ICHECK_EQ(split_step_ids.size(), 1);
+    TVM_ICHECK_EQ(split_step_ids.size(), 1);
 
     const Iterator& target_iter = tmp_s->stages[target_stage_id]->iters[num_common_outer - 1];
     const auto& split_res = tmp_s.follow_split(stage_id, fused_reduce_iter, split_step_ids[0], 1);
@@ -445,13 +445,13 @@ std::vector<std::pair<State, int>> RuleSpecialComputeLocationGPU::Apply(
     const SketchPolicyNode& policy, const State& state, int stage_id) const {
   State tmp_s = state;
   const std::set<int>& consumers = GetConsumers(policy.search_task, state, stage_id);
-  ICHECK_EQ(consumers.size(), 1);
+  TVM_ICHECK_EQ(consumers.size(), 1);
 
   // Get the last outer space iterator that is not unrolled.
   const Stage& target_stage = state->stages[*consumers.begin()];
   for (size_t i = 0; i < target_stage->iters.size(); ++i) {
     if (target_stage->iters[i]->annotation == IteratorAnnotation::kUnroll) {
-      ICHECK_GT(i, 0);
+      TVM_ICHECK_GT(i, 0);
 
       tmp_s.compute_at(stage_id, *consumers.begin(), target_stage->iters[i - 1]);
       break;
@@ -484,11 +484,11 @@ PopulationGenerationRule::ResultKind InitFillTileSize::Apply(SketchPolicyNode* p
         continue;
       }
 
-      ICHECK(ps->extent);
+      TVM_ICHECK(ps->extent);
       int extent = GetIntImm(ps->extent.value());
       const auto& candidate_lens = split_memo.GetFactorizationSchemes(extent, ps->lengths.size(),
                                                                       max_innermost_split_factor);
-      ICHECK(!candidate_lens.empty());
+      TVM_ICHECK(!candidate_lens.empty());
       const auto& candidate_lengths = candidate_lens[(*rand_gen)() % candidate_lens.size()];
 
       pstate->transform_steps.Set(
@@ -738,10 +738,10 @@ PopulationGenerationRule::ResultKind InitThreadBind::Apply(SketchPolicyNode* pol
       } else if (stage->compute_at != ComputeAtKind::kIter) {
         // This stage is not multi-level tiled,
         // so it must be produced by RuleCrossThreadReduction.
-        ICHECK(HasCrossThreadReduction(*state, stage_id));
+        TVM_ICHECK(HasCrossThreadReduction(*state, stage_id));
       } else {
         const auto res = (*state)->attach_map->stage_to_attach_iter.find(stage_id);
-        ICHECK(res != (*state)->attach_map->stage_to_attach_iter.end());
+        TVM_ICHECK(res != (*state)->attach_map->stage_to_attach_iter.end());
         multi_level_tiling_root_set.insert(res->second.first);
       }
     }
@@ -800,9 +800,9 @@ PopulationGenerationRule::ResultKind InitThreadBind::Apply(SketchPolicyNode* pol
       std::vector<Iterator> to_fuse;
       int total_space_extent = 1;
       for (const auto& i : pop->root_iter_vars()) {
-        ICHECK(i->dom.defined());
+        TVM_ICHECK(i->dom.defined());
         const auto& pint = i->dom->extent.as<IntImmNode>();
-        ICHECK(pint);
+        TVM_ICHECK(pint);
         total_space_extent *= pint->value;
       }
 
@@ -865,7 +865,7 @@ PopulationGenerationRule::ResultKind InitThreadBind::Apply(SketchPolicyNode* pol
       // Do cooperative fetching for the cache read stage.
       // Get spatial_split_step_ids from the root stage
       const auto& it = (*state)->attach_map->stage_to_attach_iter.find(stage_id);
-      ICHECK(it != (*state)->attach_map->stage_to_attach_iter.end());
+      TVM_ICHECK(it != (*state)->attach_map->stage_to_attach_iter.end());
       Array<Integer> spatial_split_step_ids = GetSpatialSplitStepIds(*state, it->second.first);
 
       // Fuse all iterators to do cooperative fetching
@@ -915,7 +915,7 @@ PopulationGenerationRule::ResultKind MutateTileSize::Apply(SketchPolicyNode* pol
   do {
     step_id = split_step_ids[(*rand_gen)() % split_step_ids.size()];
     ps = (*state)->transform_steps[step_id].as<SplitStepNode>();
-    ICHECK(ps != nullptr);
+    TVM_ICHECK(ps != nullptr);
     extent = GetIntImm(ps->extent.value());
     retry_ct += 1;
   } while (retry_ct < static_cast<int>(split_step_ids.size()) << 2 && (extent == 1 || extent == 0));
@@ -947,7 +947,7 @@ PopulationGenerationRule::ResultKind MutateTileSize::Apply(SketchPolicyNode* pol
     // Divide one factor from lengths[src_idx] and multiply it to lengths[dst_idx]
     size_t dst_idx = random_perm[(i + 1) % random_perm.size()];
     const std::vector<int>& factors = policy->split_memo.GetFactors(length);
-    ICHECK_GE(factors.size(), 1);
+    TVM_ICHECK_GE(factors.size(), 1);
 
     int divide_factor;
     if (dst_idx == lengths.size() - 1) {
@@ -979,7 +979,7 @@ PopulationGenerationRule::ResultKind MutateTileSize::Apply(SketchPolicyNode* pol
       }
     }
 
-    ICHECK_LE(GetIntImm(new_lengths.back()), max_innermost_split_factor);
+    TVM_ICHECK_LE(GetIntImm(new_lengths.back()), max_innermost_split_factor);
 
     StateNode* pstate = state->CopyOnWrite();
     pstate->transform_steps.Set(
@@ -1012,7 +1012,7 @@ PopulationGenerationRule::ResultKind MutateAutoUnroll::Apply(SketchPolicyNode* p
   // Randomly pick up an auto unroll pragma step
   auto step_id = pragma_steps[(*rand_gen)() % pragma_steps.size()];
   auto ps = (*state)->transform_steps[step_id].as<PragmaStepNode>();
-  ICHECK(ps);
+  TVM_ICHECK(ps);
 
   // Mutate its value to a random candidates
   int val = auto_unroll_configs[(*rand_gen)() % auto_unroll_configs.size()];
@@ -1057,7 +1057,7 @@ PopulationGenerationRule::ResultKind MutateComputeLocation::Apply(SketchPolicyNo
   size_t step_id = compute_at_steps[(*rand_gen)() % compute_at_steps.size()];
   auto ps = (*state)->transform_steps[step_id].as<ComputeAtStepNode>();
   int stage_inc = GetTargetStageIDInState(*state, step_id) - ps->stage_id;
-  ICHECK(ps != nullptr);
+  TVM_ICHECK(ps != nullptr);
 
   // Randomly pick a new computation location
   std::vector<std::pair<int, int>> candidates =
@@ -1178,14 +1178,14 @@ PopulationGenerationRule::ResultKind MutateParallel::Apply(SketchPolicyNode* pol
         if (ps->iter_id == 0) {
           step = AnnotationStep(ps->stage_id, 0, ps->annotation);
         } else {
-          ICHECK_LE(ps->iter_id + iter_offset, tmp_s->stages[stage_id]->iters.size());
+          TVM_ICHECK_LE(ps->iter_id + iter_offset, tmp_s->stages[stage_id]->iters.size());
           step = AnnotationStep(ps->stage_id, ps->iter_id + iter_offset, ps->annotation);
         }
       } else if (auto ps = step.as<PragmaStepNode>()) {
         if (ps->iter_id == 0) {
           step = PragmaStep(ps->stage_id, 0, ps->pragma_type);
         } else {
-          ICHECK_LE(ps->iter_id + iter_offset, tmp_s->stages[stage_id]->iters.size());
+          TVM_ICHECK_LE(ps->iter_id + iter_offset, tmp_s->stages[stage_id]->iters.size());
           step = PragmaStep(ps->stage_id, ps->iter_id + iter_offset, ps->pragma_type);
         }
       } else {

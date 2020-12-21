@@ -74,7 +74,7 @@ inline int64_t GetConstInt(PrimExpr expr) {
   if (expr->IsInstance<tvm::IntImmNode>()) {
     return expr.as<tvm::IntImmNode>()->value;
   }
-  LOG(ERROR) << "expr must be a constant integer";
+  TVM_LOG(ERROR) << "expr must be a constant integer";
   return -1;
 }
 
@@ -91,7 +91,7 @@ inline std::vector<int> GetConstIntValues(Array<PrimExpr> exprs, const std::stri
   std::vector<int> result;
   if (!exprs.defined()) return result;
   for (auto expr : exprs) {
-    ICHECK(IsConstInt(expr)) << "All elements of " << var_name << " must be constant integers";
+    TVM_ICHECK(IsConstInt(expr)) << "All elements of " << var_name << " must be constant integers";
     result.push_back(GetConstInt(expr));
   }
   return result;
@@ -111,7 +111,7 @@ inline std::vector<int64_t> GetConstInt64Values(Array<PrimExpr> exprs,
   std::vector<int64_t> result;
   if (!exprs.defined()) return result;
   for (auto expr : exprs) {
-    ICHECK(IsConstInt(expr)) << "All elements of " << var_name << " must be constant integers";
+    TVM_ICHECK(IsConstInt(expr)) << "All elements of " << var_name << " must be constant integers";
     result.push_back(GetConstInt(expr));
   }
   return result;

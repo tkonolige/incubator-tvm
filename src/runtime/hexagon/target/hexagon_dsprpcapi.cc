@@ -32,7 +32,7 @@ namespace runtime {
 namespace hexagon {
 
 DspRpcAPI::DspRpcAPI() {
-  ICHECK(lib_handle_ = dlopen(rpc_lib_name_, RTLD_LAZY | RTLD_LOCAL));
+  TVM_ICHECK(lib_handle_ = dlopen(rpc_lib_name_, RTLD_LAZY | RTLD_LOCAL));
 
 #define RESOLVE(n) n##_ = GetSymbol<n##_t*>(#n)
   RESOLVE(remote_handle_close);

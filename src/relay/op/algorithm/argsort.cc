@@ -33,10 +33,10 @@ bool ArgsortRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
                 const TypeReporter& reporter) {
   // `types` contains: [data, result]
   const ArgsortAttrs* param = attrs.as<ArgsortAttrs>();
-  ICHECK_EQ(types.size(), 2);
+  TVM_ICHECK_EQ(types.size(), 2);
   const auto* data = types[0].as<TensorTypeNode>();
   if (data == nullptr) {
-    ICHECK(types[0].as<IncompleteTypeNode>())
+    TVM_ICHECK(types[0].as<IncompleteTypeNode>())
         << "Argsort: expect input type to be TensorType but get " << types[0];
     return false;
   }

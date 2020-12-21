@@ -125,7 +125,7 @@ class CandidateSelector final : public StmtExprVisitor {
   void VisitStmt_(const AttrStmtNode* op) final {
     if (op->attr_key == attr::thread_extent) {
       const IterVarNode* iv = op->node.as<IterVarNode>();
-      ICHECK(iv);
+      TVM_ICHECK(iv);
       Var var = iv->var;
       runtime::ThreadScope scope = runtime::ThreadScope::Create(iv->thread_tag);
       if ((scope.rank == 0) && (!is_const_int(op->value) || partition_const_loop_)) {
@@ -214,7 +214,7 @@ class PartitionFinder : public StmtExprVisitor {
     // handle thread_axis
     if (op->attr_key == attr::thread_extent) {
       const IterVarNode* thread_axis = op->node.as<IterVarNode>();
-      ICHECK(thread_axis);
+      TVM_ICHECK(thread_axis);
       const VarNode* var = thread_axis->var.get();
       IntSet dom = IntSet::FromRange(Range(make_zero(op->value.dtype()), op->value));
       hint_map_.insert({var, dom});
@@ -368,7 +368,7 @@ class LoopPartitioner : public StmtMutator {
     }
 
     const IterVarNode* iv = op->node.as<IterVarNode>();
-    ICHECK(iv);
+    TVM_ICHECK(iv);
     Var var = iv->var;
     auto as = GetRef<Stmt>(op);
     if (selector.candidates.count(as)) {
@@ -526,7 +526,7 @@ Stmt LoopPartitioner::TryPartition(const Stmt& stmt, Var var, PrimExpr min, Prim
     if (!analyzer_.CanProve(body_begin == min)) {
       PrimExpr cond = (body_begin - min >= 0);
       if (!analyzer_.CanProve(cond)) {
-        LOG(WARNING) << "Cannot prove: " << cond << ", when generating the pre doubt loop";
+        TVM_LOG(WARNING) << "Cannot prove: " << cond << ", when generating the pre doubt loop";
         body_begin = Max(body_begin, min);
         // stop recursing on this interval if we can't prove it has non-negative length
         pre_stmt_recurse = false;
@@ -551,7 +551,7 @@ Stmt LoopPartitioner::TryPartition(const Stmt& stmt, Var var, PrimExpr min, Prim
       // require the extent to be non-negative
       PrimExpr cond = (max - post_doubt_begin + 1 >= 0);
       if (!analyzer_.CanProve(cond)) {
-        LOG(WARNING) << "Cannot prove: " << cond << ", when generating the post doubt loop";
+        TVM_LOG(WARNING) << "Cannot prove: " << cond << ", when generating the post doubt loop";
         post_doubt_begin = Min(post_doubt_begin, max + 1);
         // stop recursing on this interval if we can't prove it has non-negative length
         post_stmt_recurse = false;
@@ -601,7 +601,7 @@ Stmt LoopPartitioner::TryPartition(const Stmt& stmt, Var var, PrimExpr min, Prim
 
 inline Stmt LoopPartitioner::MakeFor(const Object* node, PrimExpr extent, Stmt body) {
   const ForNode* for_node = static_cast<const ForNode*>(node);
-  ICHECK(for_node);
+  TVM_ICHECK(for_node);
   if (analyzer_.CanProve(extent == make_const(DataType::Int(32), 1)) &&
       !no_unroll_loop_with_extent_one_) {
     // If the loop extent is 1, do not create the loop anymore
@@ -616,7 +616,7 @@ class RemoveLikelyTags : public StmtExprMutator {
  public:
   PrimExpr VisitExpr_(const CallNode* op) final {
     if (op->op.same_as(builtin::likely())) {
-      ICHECK_EQ(op->args.size(), 1);
+      TVM_ICHECK_EQ(op->args.size(), 1);
       return StmtExprMutator::VisitExpr(op->args[0]);
     } else {
       return StmtExprMutator::VisitExpr_(op);

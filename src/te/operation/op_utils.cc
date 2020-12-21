@@ -98,9 +98,9 @@ std::vector<std::vector<Stmt> > MakeLoopNest(const Stage& stage,
           case kTensorized:
             break;
           default:
-            LOG(FATAL) << "Unknown iter type" << it_attr->iter_type << " in the iter_var_attrs";
+            TVM_LOG(FATAL) << "Unknown iter type" << it_attr->iter_type << " in the iter_var_attrs";
         }
-        ICHECK_EQ(it_attr->pragma_keys.size(), it_attr->pragma_values.size());
+        TVM_ICHECK_EQ(it_attr->pragma_keys.size(), it_attr->pragma_values.size());
         for (size_t k = 0; k < it_attr->pragma_keys.size(); ++k) {
           const std::string& pkey = it_attr->pragma_keys[k].as<StringImmNode>()->value;
           PrimExpr pvalue = it_attr->pragma_values[k];
@@ -125,8 +125,8 @@ std::vector<std::vector<Stmt> > MakeLoopNest(const Stage& stage,
         nest[i + 1].emplace_back(LetStmt(var, new_value, no_op));
       }
       if (it_attr.defined() && it_attr->prefetch_data.size() != 0) {
-        ICHECK(!is_one(dom->extent)) << "Cannot prefetch on trivial loop with extent=1";
-        ICHECK_EQ(it_attr->prefetch_data.size(), it_attr->prefetch_offset.size());
+        TVM_ICHECK(!is_one(dom->extent)) << "Cannot prefetch on trivial loop with extent=1";
+        TVM_ICHECK_EQ(it_attr->prefetch_data.size(), it_attr->prefetch_offset.size());
         for (size_t j = 0; j < it_attr->prefetch_data.size(); ++j) {
           nest[i + 1].emplace_back(AttrStmt(it_attr->prefetch_data[j], tir::attr::prefetch_scope,
                                             it_attr->prefetch_offset[j], no_op));
@@ -135,22 +135,22 @@ std::vector<std::vector<Stmt> > MakeLoopNest(const Stage& stage,
     } else if (bind_iv->thread_tag == "vthread" || bind_iv->thread_tag == "cthread") {
       // virtual thread
       // Always restrict threaded IterVar to starts from 0.
-      ICHECK(is_zero(dom->min));
-      ICHECK(is_positive_const(dom->extent));
+      TVM_ICHECK(is_zero(dom->min));
+      TVM_ICHECK(is_positive_const(dom->extent));
       // annotate the extent of the IterVar
       nest[i + 1].emplace_back(AttrStmt(bind_iv, tir::attr::virtual_thread, dom->extent, no_op));
       value_map[iv] = var;
     } else if (bind_iv->thread_tag == "pipeline") {
       // pipeline marker.
-      ICHECK(is_zero(dom->min));
-      ICHECK(is_one(dom->extent));
+      TVM_ICHECK(is_zero(dom->min));
+      TVM_ICHECK(is_one(dom->extent));
       // annotate the extent of the IterVar
       nest[i + 1].emplace_back(
           AttrStmt(bind_iv, tir::attr::pipeline_exec_scope, dom->extent, no_op));
       value_map[iv] = dom->min;
     } else {
       // Always restrict threaded IterVar to starts from 0.
-      ICHECK(is_zero(dom->min)) << "Itervar " << iv << " must start at zero, but it starts at "
+      TVM_ICHECK(is_zero(dom->min)) << "Itervar " << iv << " must start at zero, but it starts at "
                                 << dom->min;
       // annotate the extent of the IterVar
       nest[i + 1].emplace_back(AttrStmt(bind_iv, tir::attr::thread_extent, dom->extent, no_op));
@@ -167,7 +167,7 @@ std::vector<std::vector<Stmt> > MakeLoopNest(const Stage& stage,
           if (ts.dim_index == 0) {
             value_map[iv] = var;
           } else {
-            LOG(WARNING)
+            TVM_LOG(WARNING)
                 << "WARNING: threadIdx.y or threadIdx.z accessing warp-scope memory detected. "
                 << "TVM assumes only threadIdx.x indicates threads inside a warp, "
                 << "while threadIdx.y and threadIdx.z indicates different warps.";
@@ -205,7 +205,7 @@ class TensorReplacer : public tir::StmtExprMutator {
   PrimExpr VisitExpr_(const tir::ProducerLoadNode* op) final {
     PrimExpr expr = StmtExprMutator::VisitExpr_(op);
     op = expr.as<tir::ProducerLoadNode>();
-    ICHECK(op != nullptr);
+    TVM_ICHECK(op != nullptr);
 
     Tensor t = Downcast<Tensor>(op->producer);
     auto it = vmap_.find(t);

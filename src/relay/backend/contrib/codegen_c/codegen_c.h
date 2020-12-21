@@ -85,7 +85,7 @@ class CodegenCBase {
    * \brief Exit a scope.
    */
   void ExitScope() {
-    ICHECK_GE(indent_, 2U) << "Wrong ident found.";
+    TVM_ICHECK_GE(indent_, 2U) << "Wrong ident found.";
     indent_ -= 2;
   }
 
@@ -262,7 +262,7 @@ class CodegenCBase {
    */
   std::string GetDtypeString(const Var& var) {
     auto ttype = var->checked_type().as<TensorTypeNode>();
-    ICHECK(ttype) << "Expect TensorTypeNode";
+    TVM_ICHECK(ttype) << "Expect TensorTypeNode";
     return GetDtypeString(ttype);
   }
 
@@ -282,7 +282,7 @@ class CodegenCBase {
     } else if (runtime::TypeMatch(ttype->dtype, kDLInt, 64)) {
       dtype = "int64_t";
     } else {
-      LOG(FATAL) << "Unsupported dtype " << ttype->dtype;
+      TVM_LOG(FATAL) << "Unsupported dtype " << ttype->dtype;
     }
 
     return dtype;
@@ -297,7 +297,7 @@ class CodegenCBase {
    */
   std::string CreateInitChecker(const std::string& symbol) const {
     std::ostringstream oss;
-    oss << "ICHECK(!" << symbol
+    oss << "TVM_ICHECK(!" << symbol
         << "_consts.empty()) << \"C source module hasn't been initialized.\";\n";
     return oss.str();
   }

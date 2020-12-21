@@ -424,7 +424,7 @@ inline void SetValue<std::string>(std::string* ptr, const TVMArgValue& val) {
   if (String::CanConvertFrom(val)) {
     *ptr = val.operator std::string();
   } else {
-    LOG(FATAL) << "Expect str";
+    TVM_LOG(FATAL) << "Expect str";
   }
 }
 
@@ -434,13 +434,13 @@ inline void SetValue<double>(double* ptr, const TVMArgValue& val) {
     *ptr = val.operator double();
   } else {
     ObjectRef expr = val;
-    ICHECK(expr.defined());
+    TVM_ICHECK(expr.defined());
     if (const IntImmNode* op = expr.as<IntImmNode>()) {
       *ptr = static_cast<double>(op->value);
     } else if (const FloatImmNode* op = expr.as<FloatImmNode>()) {
       *ptr = static_cast<double>(op->value);
     } else {
-      LOG(FATAL) << "Expect float value, but get " << expr->GetTypeKey();
+      TVM_LOG(FATAL) << "Expect float value, but get " << expr->GetTypeKey();
     }
   }
 }
@@ -670,7 +670,7 @@ class AttrsNode : public BaseAttrsNode {
   }
 
   void InitByPackedArgs(const runtime::TVMArgs& args, bool allow_unknown) final {
-    ICHECK_EQ(args.size() % 2, 0);
+    TVM_ICHECK_EQ(args.size() % 2, 0);
     const int kLinearSearchBound = 16;
     int hit_count = 0;
     // applies two stratgies to lookup
@@ -678,7 +678,7 @@ class AttrsNode : public BaseAttrsNode {
       // linear search.
       auto ffind = [&args](const char* key, runtime::TVMArgValue* val) {
         for (int i = 0; i < args.size(); i += 2) {
-          ICHECK_EQ(args.type_codes[i], kTVMStr);
+          TVM_ICHECK_EQ(args.type_codes[i], kTVMStr);
           if (!std::strcmp(key, args.values[i].v_str)) {
             *val = args[i + 1];
             return true;
@@ -693,7 +693,7 @@ class AttrsNode : public BaseAttrsNode {
       // construct a map then do lookup.
       std::unordered_map<std::string, runtime::TVMArgValue> kwargs;
       for (int i = 0; i < args.size(); i += 2) {
-        ICHECK_EQ(args.type_codes[i], kTVMStr);
+        TVM_ICHECK_EQ(args.type_codes[i], kTVMStr);
         kwargs[args[i].operator std::string()] = args[i + 1];
       }
       auto ffind = [&kwargs](const char* key, runtime::TVMArgValue* val) {

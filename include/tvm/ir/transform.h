@@ -166,7 +166,7 @@ class PassContext : public ObjectRef {
    * \return const access pointer.
    */
   const PassContextNode* operator->() const {
-    ICHECK(get() != nullptr);
+    TVM_ICHECK(get() != nullptr);
     return static_cast<const PassContextNode*>(get());
   }
   /*!
@@ -174,7 +174,7 @@ class PassContext : public ObjectRef {
    * \return mutable access pointer.
    */
   PassContextNode* operator->() {
-    ICHECK(get() != nullptr);
+    TVM_ICHECK(get() != nullptr);
     return static_cast<PassContextNode*>(get_mutable());
   }
 
@@ -351,7 +351,7 @@ class Pass : public ObjectRef {
    */
   IRModule operator()(IRModule mod) const {
     const PassNode* node = operator->();
-    ICHECK(node != nullptr);
+    TVM_ICHECK(node != nullptr);
     return node->operator()(std::move(mod));
   }
   /*!
@@ -364,7 +364,7 @@ class Pass : public ObjectRef {
    */
   IRModule operator()(IRModule mod, const PassContext& pass_ctx) const {
     const PassNode* node = operator->();
-    ICHECK(node != nullptr);
+    TVM_ICHECK(node != nullptr);
     return node->operator()(std::move(mod), pass_ctx);
   }
 
@@ -415,7 +415,7 @@ CreateModulePass(const runtime::TypedPackedFunc<IRModule(IRModule, PassContext)>
                  int opt_level, String name, Array<runtime::String> required);
 
 /*!
- * \brief A special trace pass that prints the header and IR to LOG(INFO).
+ * \brief A special trace pass that prints the header and IR to TVM_LOG(INFO).
  * \param header The header to be attached to the output.
  * \param show_meta_data Whether should we show meta data.
  * \return The pass.

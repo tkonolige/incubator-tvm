@@ -28,7 +28,7 @@ namespace runtime {
 
 Module AOCLModuleCreate(std::string data, std::string fmt,
                         std::unordered_map<std::string, FunctionInfo> fmap, std::string source) {
-  LOG(WARNING) << "AOCL runtime not enabled, return a source module...";
+  TVM_LOG(WARNING) << "AOCL runtime not enabled, return a source module...";
   return codegen::DeviceSourceModuleCreate(data, fmt, fmap, "aocl");
 }
 

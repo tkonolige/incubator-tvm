@@ -51,7 +51,7 @@ CallGraph::CallGraph(IRModule module) {
 }
 
 void CallGraphNode::AddToCallGraph(const GlobalVar& gv, const Function& func) {
-  ICHECK(func.defined() && gv.defined());
+  TVM_ICHECK(func.defined() && gv.defined());
   // Add the current global function as an entry to the call grpah.
   CallGraphEntry* cg_node = LookupGlobalVar(gv);
 
@@ -73,20 +73,20 @@ void CallGraphNode::AddToCallGraph(const GlobalVar& gv, const Function& func) {
 
 const CallGraphEntry* CallGraphNode::operator[](const GlobalVar& gv) const {
   const_iterator cit = call_graph_.find(gv);
-  ICHECK(cit != call_graph_.end())
+  TVM_ICHECK(cit != call_graph_.end())
       << "GlobalVar " << gv->name_hint << " not found in the call graph!";
   return cit->second.get();
 }
 
 CallGraphEntry* CallGraphNode::operator[](const GlobalVar& gv) {
   const_iterator cit = call_graph_.find(gv);
-  ICHECK(cit != call_graph_.end())
+  TVM_ICHECK(cit != call_graph_.end())
       << "GlobalVar " << gv->name_hint << " not found in the call graph!";
   return cit->second.get();
 }
 
 BaseFunc CallGraphNode::GetGlobalFunction(const GlobalVar& var) const {
-  ICHECK(module->ContainGlobalVar(var->name_hint))
+  TVM_ICHECK(module->ContainGlobalVar(var->name_hint))
       << "GlobalVar " << var->name_hint << " not found in the current ir module";
   return module->Lookup(var);
 }
@@ -94,13 +94,13 @@ BaseFunc CallGraphNode::GetGlobalFunction(const GlobalVar& var) const {
 // Query the existence of a GlobalVar in the call graph. It creates an entry if
 // there is no such node available.
 CallGraphEntry* CallGraphNode::LookupGlobalVar(const GlobalVar& gv) {
-  ICHECK(gv.defined());
+  TVM_ICHECK(gv.defined());
 
   // This inserts an element to the call graph if it is not there yet.
   auto& call_graph_node = call_graph_[gv];
   if (call_graph_node) return call_graph_node.get();
 
-  ICHECK(module->ContainGlobalVar(gv->name_hint))
+  TVM_ICHECK(module->ContainGlobalVar(gv->name_hint))
       << "GlobalVar " << gv->name_hint << " not found in the current ir module";
 
   // Create the node for the inserted entry.
@@ -118,7 +118,7 @@ void CallGraphNode::Print(std::ostream& os) const {
 
 GlobalVar CallGraphNode::RemoveGlobalVarFromModule(CallGraphEntry* cg_node,
                                                    bool update_call_graph) {
-  ICHECK(cg_node->empty() || (cg_node->IsRecursive() && cg_node->size() == 1))
+  TVM_ICHECK(cg_node->empty() || (cg_node->IsRecursive() && cg_node->size() == 1))
       << "Cannot remove global var " << cg_node->GetNameHint()
       << " from call graph, because it still calls " << cg_node->size()
       << " other global functions";
@@ -168,11 +168,11 @@ std::vector<CallGraphEntry*> CallGraphNode::TopologicalOrder() const {
   if (ret.size() != module->functions.size()) {
     for (auto it : module->functions) {
       if (visited.find((*this)[it.first]) == visited.end()) {
-        LOG(WARNING) << "Missing global:" << it.first->name_hint
+        TVM_LOG(WARNING) << "Missing global:" << it.first->name_hint
                      << " with # refs = " << (*this)[it.first]->GetRefCount();
       }
     }
-    LOG(FATAL) << "Expected " << module->functions.size() << " globals, but received "
+    TVM_LOG(FATAL) << "Expected " << module->functions.size() << " globals, but received "
                << ret.size();
   }
 
@@ -232,7 +232,7 @@ inline void CallGraphEntry::AddCalledGlobal(CallGraphEntry* cg_node) {
 // Remove an edge from the current global function to the callee.
 void CallGraphEntry::RemoveCallTo(const GlobalVar& callee) {
   for (auto it = begin();; ++it) {
-    ICHECK(it != end()) << "Cannot find global function " << callee->name_hint << " to remove!";
+    TVM_ICHECK(it != end()) << "Cannot find global function " << callee->name_hint << " to remove!";
     if (it->second->GetGlobalVar() == callee) {
       // Only remove one occurrence of the call site.
       it->second->DecRef();
@@ -256,7 +256,7 @@ void CallGraphEntry::RemoveAllCallTo(CallGraphEntry* callee) {
     }
   }
   // Make sure all references to the callee are removed.
-  ICHECK_EQ(callee->GetRefCount(), 0U)
+  TVM_ICHECK_EQ(callee->GetRefCount(), 0U)
       << "All references to " << callee->GetNameHint() << " should have been removed";
 }
 
@@ -291,7 +291,7 @@ TVM_REGISTER_NODE_TYPE(CallGraphNode);
 TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
     .set_dispatch<CallGraphNode>([](const ObjectRef& ref, ReprPrinter* p) {
       auto* node = static_cast<const CallGraphNode*>(ref.get());
-      ICHECK(node);
+      TVM_ICHECK(node);
       p->stream << "CallGraph: \n" << GetRef<CallGraph>(node);
     });
 

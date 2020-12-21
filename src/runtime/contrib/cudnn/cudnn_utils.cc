@@ -39,10 +39,10 @@ cudnnDataType_t CuDNNDataType::DLTypeToCuDNNType(const DLDataType& dtype) {
       else if (dtype.bits == 8 && dtype.lanes == 4)
         return CUDNN_DATA_INT8x4;
       else
-        LOG(FATAL) << "Unsupported type";
+        TVM_LOG(FATAL) << "Unsupported type";
       break;
     case kDLUInt:
-      LOG(FATAL) << "Unsupported type";
+      TVM_LOG(FATAL) << "Unsupported type";
       break;
     case kDLFloat:
       if (dtype.bits == 32 && dtype.lanes == 1)
@@ -52,7 +52,7 @@ cudnnDataType_t CuDNNDataType::DLTypeToCuDNNType(const DLDataType& dtype) {
       else if (dtype.bits == 16 && dtype.lanes == 1)
         return CUDNN_DATA_HALF;
       else
-        LOG(FATAL) << "Unsupported type";
+        TVM_LOG(FATAL) << "Unsupported type";
       break;
   }
   return CUDNN_DATA_FLOAT;

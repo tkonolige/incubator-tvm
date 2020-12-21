@@ -54,7 +54,7 @@ IRModule ToBasicBlockNormalForm(const IRModule& mod) {
   tvm::Map<GlobalVar, Function> updates;
   auto funcs = mod->functions;
   for (const auto& it : funcs) {
-    ICHECK_EQ(FreeVars(it.second).size(), 0) << "Expected no free variables";
+    TVM_ICHECK_EQ(FreeVars(it.second).size(), 0) << "Expected no free variables";
     if (const auto* n = it.second.as<FunctionNode>()) {
       if (n->GetAttr<String>(attr::kCompiler).defined()) continue;
     }
@@ -77,7 +77,7 @@ bool BasicBlockNormalFormCheck(const Expr& e) {
   DependencyGraph dg = DependencyGraph::Create(&arena, e);
   std::pair<NodeScopeMap, ExprSet> scopes = CalcScope(dg);
   for (auto expr : scopes.second) {
-    LOG(FATAL) << "The expression below violates the basic block normal form in that "
+    TVM_LOG(FATAL) << "The expression below violates the basic block normal form in that "
                << "its scope should be lifted:\n"
                << expr;
   }

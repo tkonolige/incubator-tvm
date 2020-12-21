@@ -54,7 +54,7 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 
 inline const PackedFunc& GetPackedFunc(const std::string& name) {
   const PackedFunc* pf = tvm::runtime::Registry::Get(name);
-  ICHECK(pf != nullptr) << "Cannot find function " << name << " in registry";
+  TVM_ICHECK(pf != nullptr) << "Cannot find function " << name << " in registry";
   return *pf;
 }
 
@@ -146,7 +146,7 @@ struct Stack {
       }
     }
 
-    LOG(FATAL) << "could not find variable binding for " << local
+    TVM_LOG(FATAL) << "could not find variable binding for " << local
                << "address= " << local.operator->();
     return ObjectRef();
   }
@@ -237,7 +237,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
 
   ObjectRef VisitExpr_(const OpNode* id) override {
     // TODO(@jroesch): Eta-expand and return in this case.
-    LOG(FATAL) << "internal error, need to wrap intrinsic into call synthetic call node "
+    TVM_LOG(FATAL) << "internal error, need to wrap intrinsic into call synthetic call node "
                << "in "
                << "this case, eta expand";
     return ObjectRef();
@@ -347,12 +347,12 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
         }
       }
     }
-    ICHECK_EQ(arg_counter, cfunc->inputs.size()) << "Shape function input sizes mismatch";
+    TVM_ICHECK_EQ(arg_counter, cfunc->inputs.size()) << "Shape function input sizes mismatch";
 
     auto fset_shape_output = [&](size_t i, Type val_type) {
       // TODO(@icemelon): allow recursive tuple
       const TensorTypeNode* rtype = val_type.as<TensorTypeNode>();
-      ICHECK(rtype != nullptr);
+      TVM_ICHECK(rtype != nullptr);
       int64_t ndim = rtype->shape.size();
       auto arr = NDArray::Empty({ndim}, DataType::Int(64), cpu_ctx);
       outputs[i] = arr;
@@ -371,7 +371,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
       auto tt = Downcast<TensorType>(ret_type);
       fset_shape_output(0, tt);
     }
-    ICHECK_EQ(cfunc->outputs.size(), out_cnt) << "Shape function output sizes mismatch";
+    TVM_ICHECK_EQ(cfunc->outputs.size(), out_cnt) << "Shape function output sizes mismatch";
 
     PackedFunc shape_func;
     Module m;
@@ -428,7 +428,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
     if (const auto* tuple_type = func->body->checked_type().as<TupleTypeNode>()) {
       arg_len += tuple_type->fields.size();
     } else {
-      ICHECK(func->body->checked_type().as<TensorTypeNode>()) << func->body->checked_type();
+      TVM_ICHECK(func->body->checked_type().as<TensorTypeNode>()) << func->body->checked_type();
       arg_len += 1;
     }
     std::vector<TVMValue> values(arg_len);
@@ -439,7 +439,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
       const auto nd_array = Downcast<NDArray>(val);
       setter(i, nd_array);
       DLContext arg_ctx = nd_array->ctx;
-      ICHECK(arg_ctx.device_type == context_.device_type && arg_ctx.device_id == context_.device_id)
+      TVM_ICHECK(arg_ctx.device_type == context_.device_type && arg_ctx.device_id == context_.device_id)
           << "Interpreter expect context to be " << context_ << ", but get " << arg_ctx;
     };
 
@@ -461,12 +461,12 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
     // return type.
     auto fset_output = [&](size_t i, Type val_type) {
       const TensorTypeNode* rtype = val_type.as<TensorTypeNode>();
-      ICHECK(rtype != nullptr);
+      TVM_ICHECK(rtype != nullptr);
       // Allocate output tensor.
       std::vector<int64_t> shape;
       for (auto dim : rtype->shape) {
         const auto* ivalue = tir::as_const_int(dim);
-        ICHECK(ivalue) << "expected concrete dimensions";
+        TVM_ICHECK(ivalue) << "expected concrete dimensions";
         shape.push_back(ivalue[0]);
       }
       DLDataType dtype = rtype->dtype;
@@ -480,14 +480,14 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
     bool is_dyn = IsDynamic(ret_type);
 
     if (is_dyn) {
-      ICHECK(func->HasNonzeroAttr(attr::kPrimitive));
+      TVM_ICHECK(func->HasNonzeroAttr(attr::kPrimitive));
       out_shapes = ComputeDynamicShape(func, args);
     }
 
     PackedFunc packed_func = engine_->JIT(CCacheKey(func, target_));
     TVMRetValue rv;
     if (const TupleTypeNode* rtype = func->body->checked_type().as<TupleTypeNode>()) {
-      ICHECK(!is_dyn || out_shapes.size() == rtype->fields.size());
+      TVM_ICHECK(!is_dyn || out_shapes.size() == rtype->fields.size());
       std::vector<ObjectRef> fields;
       for (size_t i = 0; i < rtype->fields.size(); ++i) {
         if (is_dyn) {
@@ -503,7 +503,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
     } else {
       ObjectRef out_tensor;
       if (is_dyn) {
-        ICHECK_EQ(out_shapes.size(), 1);
+        TVM_ICHECK_EQ(out_shapes.size(), 1);
         auto sh = out_shapes[0];
         auto tt = Downcast<TensorType>(ret_type);
         out_tensor = fset_output(0, TensorType(sh, tt->dtype));
@@ -526,16 +526,16 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
     // Allocate a frame with the parameters and free variables.
     tvm::Map<Var, ObjectRef> locals;
 
-    ICHECK_EQ(func->params.size(), args.size());
+    TVM_ICHECK_EQ(func->params.size(), args.size());
 
     for (size_t i = 0; i < func->params.size(); i++) {
-      ICHECK_EQ(locals.count(func->params[i]), 0);
+      TVM_ICHECK_EQ(locals.count(func->params[i]), 0);
       locals.Set(func->params[i], args[i]);
     }
 
     // Add the var to value mappings from the Closure's environment.
     for (auto it = closure->env.begin(); it != closure->env.end(); ++it) {
-      ICHECK_EQ(locals.count((*it).first), 0);
+      TVM_ICHECK_EQ(locals.count((*it).first), 0);
       locals.Set((*it).first, (*it).second);
     }
 
@@ -557,7 +557,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
     // We have some functions cotaining chunks of operators
     // which will be loaded into operator map.
     if (const auto* op_node = call->op.as<OpNode>()) {
-      LOG(FATAL) << "found " << op_node->name
+      TVM_LOG(FATAL) << "found " << op_node->name
                  << "; operators should be removed by future passes; try "
                     "fusing and lowering";
     }
@@ -572,7 +572,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
     } else if (const RecClosureObj* closure_node = fn_val.as<RecClosureObj>()) {
       return this->Invoke(closure_node->clos, args, closure_node->bind);
     } else {
-      LOG(FATAL) << "internal error: type error, expected function value in the call "
+      TVM_LOG(FATAL) << "internal error: type error, expected function value in the call "
                  << "position";
       return ObjectRef();
     }
@@ -593,9 +593,9 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
   ObjectRef VisitExpr_(const TupleGetItemNode* op) final {
     ObjectRef val = Eval(op->tuple);
     const auto* adt_obj = val.as<ADTObj>();
-    ICHECK(adt_obj) << "interal error: when evaluating TupleGetItem expected an ADT value";
+    TVM_ICHECK(adt_obj) << "interal error: when evaluating TupleGetItem expected an ADT value";
     auto adt = GetRef<ADT>(adt_obj);
-    ICHECK_LT(static_cast<size_t>(op->index), adt.size()) << "internal error: index out of bounds";
+    TVM_ICHECK_LT(static_cast<size_t>(op->index), adt.size()) << "internal error: index out of bounds";
     return adt[op->index];
   }
 
@@ -607,7 +607,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
       cpu_ctx.device_type = kDLCPU;
       cpu_ctx.device_id = 0;
       NDArray cpu_array = nd_array.CopyTo(cpu_ctx);
-      ICHECK_EQ(DataType(cpu_array->dtype), DataType::Bool());
+      TVM_ICHECK_EQ(DataType(cpu_array->dtype), DataType::Bool());
       // TODO(@jroesch, @MK): Refactor code into helper from DCE.
       if (reinterpret_cast<uint8_t*>(cpu_array->data)[0]) {
         return Eval(op->true_branch);
@@ -615,7 +615,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
         return Eval(op->false_branch);
       }
     } else {
-      LOG(FATAL) << "type error, type system should have caught this";
+      TVM_LOG(FATAL) << "type error, type system should have caught this";
       return ObjectRef();
     }
   }
@@ -626,7 +626,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
       rv->value = Eval(op->value);
       return ADT::Tuple(std::vector<ObjectRef>());
     } else {
-      LOG(FATAL) << "type error, type system should have caught this";
+      TVM_LOG(FATAL) << "type error, type system should have caught this";
       return ObjectRef();
     }
   }
@@ -638,7 +638,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
     if (const RefValueObj* rv = r.as<RefValueObj>()) {
       return rv->value;
     } else {
-      LOG(FATAL) << "type error, type system should have caught this";
+      TVM_LOG(FATAL) << "type error, type system should have caught this";
       return ObjectRef();
     }
   }
@@ -650,17 +650,17 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
         return VisitExpr(c->rhs);
       }
     }
-    LOG(FATAL) << "did not find any match";
+    TVM_LOG(FATAL) << "did not find any match";
     return ObjectRef();
   }
 
   bool VisitPattern_(const PatternConstructorNode* op, const ObjectRef& v) final {
     const ConstructorValueObj* cvn = v.as<ConstructorValueObj>();
-    ICHECK(cvn) << "need to be a constructor for match";
-    ICHECK_NE(op->constructor->tag, -1);
-    ICHECK_NE(cvn->tag, -1);
+    TVM_ICHECK(cvn) << "need to be a constructor for match";
+    TVM_ICHECK_NE(op->constructor->tag, -1);
+    TVM_ICHECK_NE(cvn->tag, -1);
     if (op->constructor->tag == cvn->tag) {
-      ICHECK_EQ(op->patterns.size(), cvn->fields.size());
+      TVM_ICHECK_EQ(op->patterns.size(), cvn->fields.size());
       for (size_t i = 0; i < op->patterns.size(); ++i) {
         if (!VisitPattern(op->patterns[i], cvn->fields[i])) {
           return false;
@@ -673,7 +673,7 @@ class Interpreter : public ExprFunctor<ObjectRef(const Expr& n)>,
 
   bool VisitPattern_(const PatternTupleNode* op, const ObjectRef& v) final {
     auto adt = Downcast<ADT>(v);
-    ICHECK_EQ(op->patterns.size(), adt.size());
+    TVM_ICHECK_EQ(op->patterns.size(), adt.size());
     for (size_t i = 0; i < op->patterns.size(); ++i) {
       if (!VisitPattern(op->patterns[i], adt[i])) {
         return false;
@@ -730,7 +730,7 @@ TypedPackedFunc<ObjectRef(Expr)> CreateInterpreter(IRModule mod, DLContext conte
   auto intrp = std::make_shared<Interpreter>(mod, context, target);
   auto packed = [intrp](Expr expr) {
     auto f = DetectFeature(expr);
-    ICHECK(f.is_subset_of(FeatureSet::All() - fGraph));
+    TVM_ICHECK(f.is_subset_of(FeatureSet::All() - fGraph));
     return intrp->Eval(expr);
   };
   return TypedPackedFunc<ObjectRef(Expr)>(packed);

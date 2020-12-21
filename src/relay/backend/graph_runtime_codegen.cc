@@ -80,7 +80,7 @@ class GraphNodeRef {
     writer->EndArray();
   }
 
-  inline void Load(dmlc::JSONReader* reader) { LOG(FATAL) << "Not implemented."; }
+  inline void Load(dmlc::JSONReader* reader) { TVM_LOG(FATAL) << "Not implemented."; }
 
  protected:
   int ident_;
@@ -248,9 +248,9 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
   std::vector<GraphNodeRef> AddNode(GraphObjectPtr node, Expr expr) {
     auto checked_type = expr->checked_type();
     size_t count = storage_device_map_.count(expr);
-    ICHECK_GT(count, 0) << "Expr is not existing in storage plan";
+    TVM_ICHECK_GT(count, 0) << "Expr is not existing in storage plan";
     auto storage_device_info = storage_device_map_[expr];
-    ICHECK_EQ(storage_device_info.size(), 2);
+    TVM_ICHECK_EQ(storage_device_info.size(), 2);
     // storage
     std::vector<int64_t> storage_info;
     for (auto& v : storage_device_info[0]) {
@@ -264,7 +264,7 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
     }
     size_t num_unknown_devices = std::count(device_types.begin(), device_types.end(), 0);
     if (num_unknown_devices != 0 && num_unknown_devices != device_types.size()) {
-      LOG(FATAL) << "The graph contains not annotated nodes for "
+      TVM_LOG(FATAL) << "The graph contains not annotated nodes for "
                  << "heterogeneous execution. All nodes must be "
                  << "annotated.";
     }
@@ -284,10 +284,10 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
           shape.emplace_back(_ShapeToJSON(typ->shape));
           dtype.emplace_back(DType2String(typ->dtype));
         } else {
-          LOG(FATAL) << "type " << checked_type->GetTypeKey() << " not supported";
+          TVM_LOG(FATAL) << "type " << checked_type->GetTypeKey() << " not supported";
         }
       }
-      ICHECK_EQ(node->Type(), kGraphOpNode);
+      TVM_ICHECK_EQ(node->Type(), kGraphOpNode);
       auto op_nd = std::dynamic_pointer_cast<GraphOpNode>(node);
       op_nd->attrs_["shape"] = shape;
       op_nd->attrs_["dtype"] = dtype;
@@ -303,7 +303,7 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
       node->attrs_["shape"] = shape;
       node->attrs_["dtype"] = dtype;
     } else {
-      LOG(FATAL) << "type " << checked_type->GetTypeKey() << " not supported";
+      TVM_LOG(FATAL) << "type " << checked_type->GetTypeKey() << " not supported";
     }
     return {GraphNodeRef(node_id, 0)};
   }
@@ -319,7 +319,7 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
     std::string name = "p" + std::to_string(index);
     auto node = GraphInputNode::make_node_ptr(name, GraphAttrs());
     auto to_return = AddNode(node, expr);
-    CHECK_EQ(to_return.size(), 1) << "Expected exactly 1 parameter node created";
+    TVM_CHECK_EQ(to_return.size(), 1) << "Expected exactly 1 parameter node created";
     param_storage_ids_[name] = storage_device_map_[expr][0][0]->value;
     params_[name] = op->data;
     return to_return;
@@ -353,17 +353,17 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
     Expr expr = GetRef<Expr>(op);
     Function func;
     if (op->op.as<OpNode>()) {
-      LOG(FATAL) << "Operators should be transformed away; try applying"
+      TVM_LOG(FATAL) << "Operators should be transformed away; try applying"
                  << "the fuse_ops transformation to the expression.";
     } else if (op->op.as<GlobalVarNode>()) {
-      LOG(FATAL) << "Not implemented";
+      TVM_LOG(FATAL) << "Not implemented";
     } else if (op->op.as<FunctionNode>()) {
       func = GetRef<Function>(op->op.as<FunctionNode>());
     } else {
-      LOG(FATAL) << "TVM runtime does not support calls to " << op->op->GetTypeKey();
+      TVM_LOG(FATAL) << "TVM runtime does not support calls to " << op->op->GetTypeKey();
     }
     if (!func->HasNonzeroAttr(attr::kPrimitive)) {
-      LOG(FATAL) << "TVM only support calls to primitive functions "
+      TVM_LOG(FATAL) << "TVM only support calls to primitive functions "
                  << "(i.e functions composed of fusable operator invocations)";
     }
 
@@ -375,12 +375,12 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
       target = Target("ext_dev");
       CCacheKey key = (*pf0)(func, target);
       CachedFunc ext_func = (*pf1)(compile_engine_, key);
-      ICHECK(ext_func.defined()) << "External function is not defined.";
+      TVM_ICHECK(ext_func.defined()) << "External function is not defined.";
       UpdateConstants(func, &params_);
       return GraphAddCallNode(op, ext_func->func_name, ext_func->func_name);
     }
 
-    ICHECK_GE(storage_device_map_.count(expr), 0);
+    TVM_ICHECK_GE(storage_device_map_.count(expr), 0);
     auto& device_type = storage_device_map_[expr][1];
     auto call_dev_type = device_type[0]->value;
     // Normal Relay Function
@@ -397,7 +397,7 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
         call_dev_name = runtime::DeviceName(call_dev_type);
       }
       if (targets_.count(call_dev_type) == 0) {
-        LOG(FATAL) << "No target is provided for device " << call_dev_name;
+        TVM_LOG(FATAL) << "No target is provided for device " << call_dev_name;
       }
       target = targets_[call_dev_type];
     }
@@ -411,7 +411,7 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
   }
 
   std::vector<GraphNodeRef> VisitExpr_(const LetNode* op) override {
-    ICHECK_EQ(var_map_.count(op->var.get()), 0);
+    TVM_ICHECK_EQ(var_map_.count(op->var.get()), 0);
     var_map_[op->var.get()] = VisitExpr(op->value);
     return VisitExpr(op->body);
   }
@@ -432,7 +432,7 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
     return {};
   }
   std::vector<GraphNodeRef> VisitExpr_(const FunctionNode* op) override {
-    ICHECK(op->GetAttr<String>(attr::kCompiler).defined())
+    TVM_ICHECK(op->GetAttr<String>(attr::kCompiler).defined())
         << "Only functions supported by custom codegen";
     return {};
   }
@@ -480,7 +480,7 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
       const auto& storage_id = dmlc::get<std::vector<int64_t>>(node->attrs_["storage_id"]);
       const auto& dtype_vec = dmlc::get<std::vector<std::string>>(node->attrs_["dtype"]);
 
-      ICHECK_EQ(node->num_outputs_, shape_vec.size());
+      TVM_ICHECK_EQ(node->num_outputs_, shape_vec.size());
       num_entry += node->num_outputs_;
 
       shapes.insert(shapes.end(), shape_vec.begin(), shape_vec.end());
@@ -563,14 +563,14 @@ class GraphRuntimeCodegenModule : public runtime::ModuleNode {
   virtual PackedFunc GetFunction(const std::string& name, const ObjectPtr<Object>& sptr_to_self) {
     if (name == "init") {
       return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-        ICHECK_EQ(args.num_args, 2) << "The expected of arguments are: "
+        TVM_ICHECK_EQ(args.num_args, 2) << "The expected of arguments are: "
                                     << "runtime::Module mod and Map<int, Target> targets";
         void* mod = args[0];
         Map<Integer, tvm::Target> tmp = args[1];
         TargetsMap targets;
         for (const auto& it : tmp) {
           auto dev_type = it.first.as<tir::IntImmNode>();
-          ICHECK(dev_type);
+          TVM_ICHECK(dev_type);
           targets[dev_type->value] = it.second;
         }
         codegen_ =
@@ -596,14 +596,14 @@ class GraphRuntimeCodegenModule : public runtime::ModuleNode {
       return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
         String key = args[0];
         auto it = this->output_.params.find(key);
-        CHECK(it != this->output_.params.end()) << "no such parameter " << key;
+        TVM_CHECK(it != this->output_.params.end()) << "no such parameter " << key;
         *rv = (*it).second.second;
       });
     } else if (name == "get_param_id") {
       return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
         String key = args[0];
         auto it = this->output_.params.find(key);
-        CHECK(it != this->output_.params.end()) << "no such parameter " << key;
+        TVM_CHECK(it != this->output_.params.end()) << "no such parameter " << key;
         *rv = (*it).second.first;
       });
     } else if (name == "get_irmodule") {
@@ -654,7 +654,7 @@ struct Handler<std::shared_ptr<tvm::relay::backend::GraphNode>> {
   }
   inline static void Read(dmlc::JSONReader* reader,
                           std::shared_ptr<tvm::relay::backend::GraphNode>* data) {
-    LOG(FATAL) << "Not implemented.";
+    TVM_LOG(FATAL) << "Not implemented.";
   }
 };
 template <>
@@ -678,14 +678,14 @@ struct Handler<std::unordered_map<std::string, dmlc::any>> {
       } else if (SameType<std::vector<dmlc::any>>(v)) {
         writer->WriteObjectKeyValue(k, dmlc::get<std::vector<dmlc::any>>(v));
       } else {
-        LOG(FATAL) << "Not supported";
+        TVM_LOG(FATAL) << "Not supported";
       }
     }
     writer->EndObject();
   }
   inline static void Read(dmlc::JSONReader* reader,
                           std::unordered_map<std::string, dmlc::any>* data) {
-    LOG(FATAL) << "Not implemented.";
+    TVM_LOG(FATAL) << "Not implemented.";
   }
 };
 
@@ -705,13 +705,13 @@ struct Handler<std::vector<dmlc::any>> {
       } else if (SameType<std::vector<std::string>>(v)) {
         writer->WriteArrayItem(dmlc::get<std::vector<std::string>>(v));
       } else {
-        LOG(FATAL) << "Not supported";
+        TVM_LOG(FATAL) << "Not supported";
       }
     }
     writer->EndArray();
   }
   inline static void Read(dmlc::JSONReader* reader, std::vector<dmlc::any>* data) {
-    LOG(FATAL) << "Not implemented.";
+    TVM_LOG(FATAL) << "Not implemented.";
   }
 };
 }  // namespace json

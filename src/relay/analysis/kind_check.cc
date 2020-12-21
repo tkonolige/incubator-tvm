@@ -51,7 +51,7 @@ struct KindChecker : TypeFunctor<Kind(const Type&)> {
     if (this->diag_ctx) {
       this->diag_ctx.value().EmitFatal(diagnostic);
     } else {
-      LOG(FATAL) << diagnostic->message;
+      TVM_LOG(FATAL) << diagnostic->message;
     }
   }
 

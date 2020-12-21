@@ -69,7 +69,7 @@ class RPCDeviceAPI final : public DeviceAPI {
                       TVMContext ctx_from, TVMContext ctx_to, DLDataType type_hint,
                       TVMStreamHandle stream) final {
     if (IsRPCSessionContext(ctx_from) && IsRPCSessionContext(ctx_to)) {
-      ICHECK(ctx_from.device_type == ctx_to.device_type)
+      TVM_ICHECK(ctx_from.device_type == ctx_to.device_type)
           << "Cannot copy across two different remote session";
       auto remote_ctx_from = RemoveRPCSessionMask(ctx_from);
       auto remote_ctx_to = RemoveRPCSessionMask(ctx_to);
@@ -90,7 +90,7 @@ class RPCDeviceAPI final : public DeviceAPI {
                                     static_cast<const RemoteSpace*>(to)->data, to_offset, size,
                                     remote_ctx_to, type_hint);
     } else {
-      LOG(FATAL) << "expect copy from/to remote or between remote";
+      TVM_LOG(FATAL) << "expect copy from/to remote or between remote";
     }
   }
 

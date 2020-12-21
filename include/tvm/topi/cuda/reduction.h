@@ -60,7 +60,7 @@ Schedule ScheduleReduce(const Target& target, Operation op, Schedule sch,
   }
 
   auto out_stage = sch[data_out];
-  ICHECK_GT(out_stage->op.as<ComputeOpNode>()->reduce_axis.size(), 0)
+  TVM_ICHECK_GT(out_stage->op.as<ComputeOpNode>()->reduce_axis.size(), 0)
       << "reduce_axis must be greater than zero";
 
   bool all_reduce;
@@ -144,7 +144,7 @@ void TraverseBeforeReduce(Schedule s, Operation op) {
       TraverseBeforeReduce(s, tensor->op);
     }
   } else {
-    LOG(ERROR) << "Unsupported operator " << op->tag;
+    TVM_LOG(ERROR) << "Unsupported operator " << op->tag;
   }
 }
 
@@ -158,7 +158,7 @@ void TraverseBeforeReduce(Schedule s, Operation op) {
  */
 void TraverseAfterReduce(const Target& target, Schedule s, Operation op) {
   if (is_broadcast(op->tag)) {
-    LOG(ERROR) << "Elementwise op after reduce is not yet supported";
+    TVM_LOG(ERROR) << "Elementwise op after reduce is not yet supported";
   } else if (op->tag == kCommReduce) {
     ScheduleReduce(target, op, s, false);
     for (auto tensor : op->InputTensors()) {
@@ -170,7 +170,7 @@ void TraverseAfterReduce(const Target& target, Schedule s, Operation op) {
       TraverseBeforeReduce(s, tensor->op);
     }
   } else {
-    LOG(ERROR) << "Unsupported operator " << op->tag;
+    TVM_LOG(ERROR) << "Unsupported operator " << op->tag;
   }
 }
 
@@ -183,7 +183,7 @@ void TraverseAfterReduce(const Target& target, Schedule s, Operation op) {
  * \return A schedule for the given ops.
  */
 Schedule schedule_reduce(const Target& target, Array<Tensor> outs) {
-  ICHECK_EQ(outs.size(), 1) << "outs must have size 1";
+  TVM_ICHECK_EQ(outs.size(), 1) << "outs must have size 1";
   Array<Operation> out_ops;
   for (auto t : outs) {
     out_ops.push_back(t->op);

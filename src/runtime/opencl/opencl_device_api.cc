@@ -47,7 +47,7 @@ void OpenCLWorkspace::GetAttr(TVMContext ctx, DeviceAttrKind kind, TVMRetValue* 
     *rv = static_cast<int>(index < devices.size());
     return;
   }
-  ICHECK_LT(index, devices.size()) << "Invalid device id " << index;
+  TVM_ICHECK_LT(index, devices.size()) << "Invalid device id " << index;
   switch (kind) {
     case kExist:
       break;
@@ -119,7 +119,7 @@ void OpenCLWorkspace::GetAttr(TVMContext ctx, DeviceAttrKind kind, TVMRetValue* 
 void* OpenCLWorkspace::AllocDataSpace(TVMContext ctx, size_t size, size_t alignment,
                                       DLDataType type_hint) {
   this->Init();
-  ICHECK(context != nullptr) << "No OpenCL device";
+  TVM_ICHECK(context != nullptr) << "No OpenCL device";
   cl_int err_code;
   cl_mem mptr = clCreateBuffer(this->context, CL_MEM_READ_WRITE, size, nullptr, &err_code);
   OPENCL_CHECK_ERROR(err_code);
@@ -140,7 +140,7 @@ void OpenCLWorkspace::CopyDataFromTo(const void* from, size_t from_offset, void*
                                      TVMContext ctx_to, DLDataType type_hint,
                                      TVMStreamHandle stream) {
   this->Init();
-  ICHECK(stream == nullptr);
+  TVM_ICHECK(stream == nullptr);
   if (IsOpenCLDevice(ctx_from) && IsOpenCLDevice(ctx_to)) {
     OPENCL_CALL(clEnqueueCopyBuffer(this->GetQueue(ctx_to),
                                     static_cast<cl_mem>((void*)from),  // NOLINT(*)
@@ -158,12 +158,12 @@ void OpenCLWorkspace::CopyDataFromTo(const void* from, size_t from_offset, void*
                                      0, nullptr, nullptr));
     OPENCL_CALL(clFinish(this->GetQueue(ctx_to)));
   } else {
-    LOG(FATAL) << "Expect copy from/to OpenCL or between OpenCL";
+    TVM_LOG(FATAL) << "Expect copy from/to OpenCL or between OpenCL";
   }
 }
 
 void OpenCLWorkspace::StreamSync(TVMContext ctx, TVMStreamHandle stream) {
-  ICHECK(stream == nullptr);
+  TVM_ICHECK(stream == nullptr);
   OPENCL_CALL(clFinish(this->GetQueue(ctx)));
 }
 
@@ -237,7 +237,7 @@ void OpenCLWorkspace::Init(const std::string& type_key, const std::string& devic
   // matched platforms
   std::vector<cl_platform_id> platform_ids = cl::GetPlatformIDs();
   if (platform_ids.size() == 0) {
-    LOG(WARNING) << "No OpenCL platform matched given existing options ...";
+    TVM_LOG(WARNING) << "No OpenCL platform matched given existing options ...";
     return;
   }
   this->platform_id = nullptr;
@@ -247,7 +247,7 @@ void OpenCLWorkspace::Init(const std::string& type_key, const std::string& devic
     }
     std::vector<cl_device_id> devices_matched = cl::GetDeviceIDs(platform_id, device_type);
     if ((devices_matched.size() == 0) && (device_type == "gpu")) {
-      LOG(WARNING) << "Using CPU OpenCL device";
+      TVM_LOG(WARNING) << "Using CPU OpenCL device";
       devices_matched = cl::GetDeviceIDs(platform_id, "cpu");
     }
     if (devices_matched.size() > 0) {
@@ -259,14 +259,14 @@ void OpenCLWorkspace::Init(const std::string& type_key, const std::string& devic
     }
   }
   if (this->platform_id == nullptr) {
-    LOG(WARNING) << "No OpenCL device";
+    TVM_LOG(WARNING) << "No OpenCL device";
     return;
   }
   cl_int err_code;
   this->context = clCreateContext(nullptr, this->devices.size(), &(this->devices[0]), nullptr,
                                   nullptr, &err_code);
   OPENCL_CHECK_ERROR(err_code);
-  ICHECK_EQ(this->queues.size(), 0U);
+  TVM_ICHECK_EQ(this->queues.size(), 0U);
   for (size_t i = 0; i < this->devices.size(); ++i) {
     cl_device_id did = this->devices[i];
     this->queues.push_back(clCreateCommandQueue(this->context, did, 0, &err_code));

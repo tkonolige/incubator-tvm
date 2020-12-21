@@ -174,7 +174,7 @@ AttachPath CreateAttachPath(Schedule sch) {
     std::unordered_set<const Object*> visited;
     Array<IterVar> path;
     for (Stage s = stage; s.defined();) {
-      ICHECK(!visited.count(s.get())) << "Find loop in compute_at attach group";
+      TVM_ICHECK(!visited.count(s.get())) << "Find loop in compute_at attach group";
       visited.insert(s.get());
       Stage spec = s.GetAttachSpec();
       bool start_attach;
@@ -183,14 +183,14 @@ AttachPath CreateAttachPath(Schedule sch) {
         attach_ivar = spec->attach_ivar;
         s = spec->attach_stage;
         start_attach = false;
-        ICHECK(attach_ivar.defined());
+        TVM_ICHECK(attach_ivar.defined());
       } else if (spec->attach_type == kScanUpdate) {
         s = spec->attach_stage;
         start_attach = true;
       } else {
         break;
       }
-      ICHECK(s.defined());
+      TVM_ICHECK(s.defined());
       for (size_t i = s->leaf_iter_vars.size(); i != 0; --i) {
         IterVar iv = s->leaf_iter_vars[i - 1];
         if (!start_attach && iv.same_as(attach_ivar)) {
@@ -198,7 +198,7 @@ AttachPath CreateAttachPath(Schedule sch) {
         }
         if (start_attach) path.push_back(iv);
       }
-      ICHECK(start_attach) << "Invalid Schedule: cannot find attach point " << attach_ivar
+      TVM_ICHECK(start_attach) << "Invalid Schedule: cannot find attach point " << attach_ivar
                            << " in the schedule of " << s->op;
     }
     if (!ret.count(stage->op)) {
@@ -378,7 +378,7 @@ Map<IterVar, PrimExpr> ScanFixPointAnalysis(const Operation& scan_op) {
           if (k != target && place_holder_ref.count(k)) break;
           stack.pop_back();
           if (!reach.count(k)) {
-            LOG(FATAL) << "cannot find reach of " << k.op << "-" << k.dim;
+            TVM_LOG(FATAL) << "cannot find reach of " << k.op << "-" << k.dim;
           }
 
           for (TensorDimKey kk : reach.at(k)) {

@@ -49,10 +49,10 @@
  *  arith::PVar<Var> v;
  *  // We can match integer and Var, both of which are
  *  // special case container of Expr
- *  ICHECK((v * c).Match(tx * 3));
- *  ICHECK_EQ(c.Eval()->value, 3);
+ *  TVM_ICHECK((v * c).Match(tx * 3));
+ *  TVM_ICHECK_EQ(c.Eval()->value, 3);
  *  // cannot match c to ty
- *  ICHECK(!(v * c).Match(tx * ty));
+ *  TVM_ICHECK(!(v * c).Match(tx * ty));
  *
  * \endcode
  *
@@ -199,7 +199,7 @@ class PVar : public Pattern<PVar<T>> {
   }
 
   T Eval() const {
-    ICHECK(filled_);
+    TVM_ICHECK(filled_);
     return value_;
   }
 

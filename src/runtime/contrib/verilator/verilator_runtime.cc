@@ -52,7 +52,7 @@ class VerilatorJSONRuntime : public JSONRuntimeBase {
   void Init(const Array<NDArray>& consts) override {
     BuildEngine();
 
-    CHECK_EQ(consts.size(), const_idx_.size())
+    TVM_CHECK_EQ(consts.size(), const_idx_.size())
         << "The number of input constants must match the number of required.";
 
     // Setup constants entries for weights.
@@ -75,14 +75,14 @@ class VerilatorJSONRuntime : public JSONRuntimeBase {
     for (size_t nid = 0; nid < nodes_.size(); ++nid) {
       const auto& node = nodes_[nid];
       if (node.GetOpType() == "kernel") {
-        CHECK_EQ(node.GetOpType(), "kernel");
+        TVM_CHECK_EQ(node.GetOpType(), "kernel");
         auto op_name = node.GetOpName();
         if ("add" == op_name) {
           auto entry = node.GetInputs()[0];
           auto shape = nodes_[entry.id_].GetOpShape()[entry.index_];
           verilator_add(device_, in_ptr[0], in_ptr[1], out_ptr[0], shape[0], shape[1]);
         } else {
-          LOG(FATAL) << "Unsupported op: " << op_name;
+          TVM_LOG(FATAL) << "Unsupported op: " << op_name;
         }
       }
     }

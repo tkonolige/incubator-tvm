@@ -50,7 +50,7 @@ class SystemLibrary : public Library {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = tbl_.find(name);
     if (it != tbl_.end() && ptr != it->second) {
-      LOG(WARNING) << "SystemLib symbol " << name << " get overriden to a different address " << ptr
+      TVM_LOG(WARNING) << "SystemLib symbol " << name << " get overriden to a different address " << ptr
                    << "->" << it->second;
     }
     tbl_[name] = ptr;

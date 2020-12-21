@@ -44,7 +44,7 @@ class ONNXSourceModuleNode : public runtime::ModuleNode {
       return PackedFunc(
           [sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->const_vars_; });
     } else {
-      LOG(FATAL) << "ONNX Source module cannot execute, to get executable module"
+      TVM_LOG(FATAL) << "ONNX Source module cannot execute, to get executable module"
                  << " build TVM with 'onnx' runtime support";
       return PackedFunc(nullptr);
     }
@@ -53,8 +53,8 @@ class ONNXSourceModuleNode : public runtime::ModuleNode {
   std::string GetSource(const std::string& format) final { return code_; }
 
   void SaveToFile(const std::string& path, const std::string& format) final {
-    ICHECK_EQ(format, "onnx") << "Can only save to onnx format";
-    ICHECK_NE(code_.length(), 0);
+    TVM_ICHECK_EQ(format, "onnx") << "Can only save to onnx format";
+    TVM_ICHECK_NE(code_.length(), 0);
     const PackedFunc* to_onnx_ = runtime::Registry::Get("relay.ext.onnx.save_to_file");
     (*to_onnx_)(code_, path, format);
   }

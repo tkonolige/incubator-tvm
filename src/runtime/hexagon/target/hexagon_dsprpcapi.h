@@ -109,7 +109,7 @@ class DspRpcAPI {
 
 #define DECLFUNC(fn)                                   \
   fn##_t* fn##_ptr(bool allow_nullptr = false) const { \
-    if (!allow_nullptr) ICHECK(fn##_ != nullptr);      \
+    if (!allow_nullptr) TVM_ICHECK(fn##_ != nullptr);      \
     return fn##_;                                      \
   }
   DECLFUNC(remote_handle_close)

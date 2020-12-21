@@ -43,7 +43,7 @@ sl::TensorInfo GetTensorInfo(std::map<Expr, std::vector<sl::TensorInfo>> tensor_
 bool IsEthosnOp(const Call& call, const std::string& op_name) {
   if (call->op->IsInstance<OpNode>()) {
     Op op = Downcast<Op>(call->op);
-    ICHECK(op.defined());
+    TVM_ICHECK(op.defined());
     return op == Op::Get(op_name);
   } else {
     return false;
@@ -53,7 +53,7 @@ bool IsEthosnOp(const Call& call, const std::string& op_name) {
 bool IsEthosnFunc(const Call& call, const std::string& op_name) {
   if (call->op->IsInstance<FunctionNode>()) {
     Function func = Downcast<Function>(call->op);
-    ICHECK(func.defined());
+    TVM_ICHECK(func.defined());
     auto name_node = func->GetAttr<String>(attr::kComposite);
     return name_node.value() == op_name;
   }
@@ -62,7 +62,7 @@ bool IsEthosnFunc(const Call& call, const std::string& op_name) {
 
 std::map<Expr, std::vector<sl::TensorInfo>> InferTensorsVisitor::Infer(const Expr& expr) {
   tensor_table_.clear();
-  ICHECK(expr->checked_type().defined());
+  TVM_ICHECK(expr->checked_type().defined());
   size_t output_size = 1;
   if (auto tuple = expr->checked_type().as<TupleTypeNode>()) {
     output_size = tuple->fields.size();
@@ -162,7 +162,7 @@ void InferTensorsVisitor::VisitExpr_(const CallNode* cn) {
 
 void InferTensorsVisitor::VisitExpr_(const TupleNode* tn) {
   auto tuple = GetRef<Tuple>(tn);
-  ICHECK(tensor_table_.find(tuple) != tensor_table_.end());
+  TVM_ICHECK(tensor_table_.find(tuple) != tensor_table_.end());
   for (size_t i = 0; i < tn->fields.size(); i++) {
     tensor_table_[tn->fields[i]] = {tensor_table_[tuple][i]};
   }
@@ -176,7 +176,7 @@ void InferTensorsVisitor::VisitExpr_(const TupleGetItemNode* tgn) {
   // Don't assume it must be targeting a TupleNode
   // Vars and calls can still have TupleType
   auto tg = GetRef<TupleGetItem>(tgn);
-  ICHECK(tensor_table_.find(tg) != tensor_table_.end());
+  TVM_ICHECK(tensor_table_.find(tg) != tensor_table_.end());
   auto tuple = tg->tuple;
   auto type = tuple->checked_type().as<TupleTypeNode>();
   int index = tg->index;
@@ -517,13 +517,13 @@ runtime::Module EthosnCompiler::CreateRuntimeModule(const ObjectRef& ref) {
     IRModule mod;
     Function func = Downcast<Function>(ref);
     auto name_node = func->GetAttr<String>(tvm::attr::kGlobalSymbol);
-    ICHECK(name_node.defined()) << "Failed to retrieved external symbol.";
+    TVM_ICHECK(name_node.defined()) << "Failed to retrieved external symbol.";
     GlobalVar gvar = GlobalVar(name_node.value());
     mod->Add(gvar, func);
     Function mod_func = Downcast<Function>(mod->functions.at(gvar));
     cmms.emplace_back(CompileEthosnFunc(mod, gvar, mod_func));
   } else {
-    LOG(FATAL) << "The input ref is expected to be a Relay function";
+    TVM_LOG(FATAL) << "The input ref is expected to be a Relay function";
   }
   auto n = make_object<runtime::ethosn::EthosnModule>(&cmms);
   return runtime::Module(n);
@@ -539,7 +539,7 @@ runtime::ethosn::OrderedCompiledNetwork EthosnCompiler::CompileEthosnFunc(const 
   // Finally compile the network
   std::vector<std::unique_ptr<sl::CompiledNetwork>> compiled_networks =
       sl::Compile(*network_with_ids.network, options);
-  ICHECK_GE(compiled_networks.size(), 1) << "Ethos-N compiler failed to compile network";
+  TVM_ICHECK_GE(compiled_networks.size(), 1) << "Ethos-N compiler failed to compile network";
   auto compiled_network = std::move(compiled_networks[0]);
   // Determine the order that the inputs/outputs are in and how that corresponds to the
   // order that the TVM runtime will expect them in

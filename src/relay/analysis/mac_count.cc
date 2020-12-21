@@ -61,28 +61,28 @@ using FMacCount = runtime::TypedPackedFunc<int64_t(const Call& call_node)>;
 
 int64_t ConvMacCount(const Call& call_node) {
   if (!call_node->checked_type_.defined()) {
-    LOG(WARNING) << "The infer type pass should be called before the mac count pass";
+    TVM_LOG(WARNING) << "The infer type pass should be called before the mac count pass";
     return 0;
   }
   Array<Expr> args = call_node->args;
-  ICHECK_EQ(args.size(), 2) << "The number of input arguments of a CONV 2D node should be 2.";
+  TVM_ICHECK_EQ(args.size(), 2) << "The number of input arguments of a CONV 2D node should be 2.";
   const auto* conv_2d_attr = call_node->attrs.as<Conv2DAttrs>();
   const auto* data_type = args[0]->checked_type().as<TensorTypeNode>();
   Array<IndexExpr> data_shape = data_type->shape;
   std::string data_layout = conv_2d_attr->data_layout;
   int32_t C_ind = Layout(data_layout).IndexOf(LayoutAxis::Get('C'));
   int32_t c_ind = Layout(data_layout).IndexOf(LayoutAxis::Get('c'));
-  ICHECK_NE(C_ind, -1) << "There is no input channel dimension.";
+  TVM_ICHECK_NE(C_ind, -1) << "There is no input channel dimension.";
   int64_t input_channel = static_cast<int64_t>(data_shape[C_ind].as<IntImmNode>()->value);
   if (c_ind != -1) input_channel *= static_cast<int64_t>(data_shape[c_ind].as<IntImmNode>()->value);
   Array<IndexExpr> kernel_size = conv_2d_attr->kernel_size;
-  ICHECK_EQ(kernel_size.size(), 2) << "The dimension of the kernel in Conv 2D should be 2.";
+  TVM_ICHECK_EQ(kernel_size.size(), 2) << "The dimension of the kernel in Conv 2D should be 2.";
   const auto* expr = call_node->checked_type().as<TensorTypeNode>();
   Array<IndexExpr> output_tensor = expr->shape;
-  ICHECK(output_tensor.size() == 4 || output_tensor.size() == 5)
+  TVM_ICHECK(output_tensor.size() == 4 || output_tensor.size() == 5)
       << "The dimension of the output tensor in Conv 2D should be 4 or 5.";
   int64_t count = GetCartesianProd(output_tensor) * GetCartesianProd(kernel_size);
-  ICHECK_EQ(input_channel % conv_2d_attr->groups, 0)
+  TVM_ICHECK_EQ(input_channel % conv_2d_attr->groups, 0)
       << "The number of input channels is not divisble by groups.";
   count *= input_channel / conv_2d_attr->groups;
   return count;
@@ -90,11 +90,11 @@ int64_t ConvMacCount(const Call& call_node) {
 
 int64_t Conv2dTransposeMacCount(const Call& call_node) {
   if (!call_node->checked_type_.defined()) {
-    LOG(WARNING) << "The infer type pass should be called before the mac count pass";
+    TVM_LOG(WARNING) << "The infer type pass should be called before the mac count pass";
     return 0;
   }
   Array<Expr> args = call_node->args;
-  ICHECK_EQ(args.size(), 2)
+  TVM_ICHECK_EQ(args.size(), 2)
       << "The number of input arguments of a CONV 2D Transpose node should be 2.";
   const auto* conv_2d_transpose_attr = call_node->attrs.as<Conv2DTransposeAttrs>();
   const auto* data_type = args[0]->checked_type().as<TensorTypeNode>();
@@ -102,18 +102,18 @@ int64_t Conv2dTransposeMacCount(const Call& call_node) {
   std::string data_layout = conv_2d_transpose_attr->data_layout;
   int32_t C_ind = Layout(data_layout).IndexOf(LayoutAxis::Get('C'));
   int32_t c_ind = Layout(data_layout).IndexOf(LayoutAxis::Get('c'));
-  ICHECK_NE(C_ind, -1) << "There is no input channel dimension.";
+  TVM_ICHECK_NE(C_ind, -1) << "There is no input channel dimension.";
   int64_t input_channel = static_cast<int64_t>(data_shape[C_ind].as<IntImmNode>()->value);
   if (c_ind != -1) input_channel *= static_cast<int64_t>(data_shape[c_ind].as<IntImmNode>()->value);
   Array<IndexExpr> kernel_size = conv_2d_transpose_attr->kernel_size;
-  ICHECK_EQ(kernel_size.size(), 2)
+  TVM_ICHECK_EQ(kernel_size.size(), 2)
       << "The dimension of the kernel in Conv 2D Transpose should be 2.";
   const auto* expr = call_node->checked_type().as<TensorTypeNode>();
   Array<IndexExpr> output_tensor = expr->shape;
-  ICHECK(output_tensor.size() == 4 || output_tensor.size() == 5)
+  TVM_ICHECK(output_tensor.size() == 4 || output_tensor.size() == 5)
       << "The dimension of the output tensor in Conv 2D Transpose should be 4 or 5.";
   int64_t count = GetCartesianProd(output_tensor) * GetCartesianProd(kernel_size);
-  ICHECK_EQ(input_channel % conv_2d_transpose_attr->groups, 0)
+  TVM_ICHECK_EQ(input_channel % conv_2d_transpose_attr->groups, 0)
       << "The number of input channels is not divisble by groups.";
   count *= input_channel / conv_2d_transpose_attr->groups;
   return count;
@@ -121,33 +121,33 @@ int64_t Conv2dTransposeMacCount(const Call& call_node) {
 
 int64_t DenseMacCount(const Call& call_node) {
   if (!call_node->checked_type_.defined()) {
-    LOG(WARNING) << "The infer type pass should be called before the mac count pass";
+    TVM_LOG(WARNING) << "The infer type pass should be called before the mac count pass";
     return 0;
   }
   Array<Expr> args = call_node->args;
-  ICHECK_EQ(args.size(), 2) << "The number of input arguments of a Dense node should be 2.";
+  TVM_ICHECK_EQ(args.size(), 2) << "The number of input arguments of a Dense node should be 2.";
   const auto* data_type = args[0]->checked_type().as<TensorTypeNode>();
   const auto* weight_type = args[1]->checked_type().as<TensorTypeNode>();
   Array<IndexExpr> data_shape = data_type->shape;
   Array<IndexExpr> weight_shape = weight_type->shape;
-  ICHECK(data_shape.size() == 2 && weight_shape.size() == 2)
+  TVM_ICHECK(data_shape.size() == 2 && weight_shape.size() == 2)
       << "The dimension of an input tensor to Dense node should be 2.";
   int64_t d1 = static_cast<int64_t>(data_shape[0].as<IntImmNode>()->value);
   int64_t d2 = static_cast<int64_t>(data_shape[1].as<IntImmNode>()->value);
   int64_t d3 = static_cast<int64_t>(weight_shape[0].as<IntImmNode>()->value);
   int64_t d4 = static_cast<int64_t>(weight_shape[1].as<IntImmNode>()->value);
-  ICHECK_EQ(d2, d4) << "The dimensions of input arguments do not match.";
+  TVM_ICHECK_EQ(d2, d4) << "The dimensions of input arguments do not match.";
   int64_t count = d1 * d2 * d3;
   return count;
 }
 
 int64_t BatchMatmulMacCount(const Call& call_node) {
   if (!call_node->checked_type_.defined()) {
-    LOG(WARNING) << "The infer type pass should be called before the mac count pass";
+    TVM_LOG(WARNING) << "The infer type pass should be called before the mac count pass";
     return 0;
   }
   Array<Expr> args = call_node->args;
-  ICHECK_EQ(args.size(), 2);
+  TVM_ICHECK_EQ(args.size(), 2);
   Array<IndexExpr> x_shape = args[0]->checked_type().as<TensorTypeNode>()->shape;
   Array<IndexExpr> y_shape = args[1]->checked_type().as<TensorTypeNode>()->shape;
   int64_t batch = x_shape[0].as<IntImmNode>()->value;
@@ -169,7 +169,7 @@ class MacCounter : private ExprVisitor {
  public:
   MacCounter() { count_ = 0; }
   static int64_t GetTotalMacNumber(const Expr& expr) {
-    LOG(INFO) << "This pass only counts MACs in direct conv2d, "
+    TVM_LOG(INFO) << "This pass only counts MACs in direct conv2d, "
               << "conv2d_transpose, dense, and batch_matmul ops";
     MacCounter counter;
     counter(expr);
