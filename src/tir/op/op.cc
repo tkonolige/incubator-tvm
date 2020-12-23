@@ -56,7 +56,7 @@ runtime::DataType GetRuntimeDataType(const Type& type) {
   } else if (IsVoidType(type)) {
     return DataType::Void();
   } else {
-    TVM_LOG(FATAL) << "Type " << type << " does not have a corresponding runtime::DataType";
+    LOG(FATAL) << "Type " << type << " does not have a corresponding runtime::DataType";
     return DataType::Handle();
   }
 }
@@ -109,7 +109,7 @@ void BinaryOpMatchTypes(PrimExpr& lhs, PrimExpr& rhs, Span span) {  // NOLINT(*)
   } else if (rtype.lanes() == 1 && ltype.lanes() != 1) {
     rhs = tir::Broadcast(rhs, ltype.lanes());
   } else {
-    TVM_ICHECK(ltype.lanes() == rtype.lanes()) << "Cannot match type " << ltype << " vs " << rtype;
+    ICHECK(ltype.lanes() == rtype.lanes()) << "Cannot match type " << ltype << " vs " << rtype;
   }
   if (lhs.dtype() == rhs.dtype()) return;
   // Only do very simple type coversion
@@ -141,14 +141,14 @@ void BinaryOpMatchTypes(PrimExpr& lhs, PrimExpr& rhs, Span span) {  // NOLINT(*)
     lhs = SimpleCast(DataType::Int(bits, lhs.dtype().lanes()), lhs, span);
     rhs = SimpleCast(DataType::Int(bits, rhs.dtype().lanes()), rhs, span);
   } else {
-    TVM_LOG(FATAL) << "Cannot match type " << ltype << " vs " << rtype;
+    LOG(FATAL) << "Cannot match type " << ltype << " vs " << rtype;
   }
 }
 
 // maximum and min limits
 PrimExpr max_value(const DataType& dtype, Span span) {
   using namespace tir;
-  TVM_ICHECK_EQ(dtype.lanes(), 1);
+  ICHECK_EQ(dtype.lanes(), 1);
   if (dtype.is_int()) {
     if (dtype.bits() == 64) {
       return IntImm(dtype, std::numeric_limits<int64_t>::max(), span);
@@ -174,17 +174,17 @@ PrimExpr max_value(const DataType& dtype, Span span) {
       return FloatImm(dtype, 65504.0, span);
     }
   }
-  TVM_LOG(FATAL) << "Cannot decide max_value for type" << dtype;
+  LOG(FATAL) << "Cannot decide max_value for type" << dtype;
   return PrimExpr();
 }
 
 PrimExpr min_value(const DataType& dtype, Span span) {
   using namespace tir;
-  TVM_ICHECK_EQ(dtype.lanes(), 1);
+  ICHECK_EQ(dtype.lanes(), 1);
   if (datatype::Registry::Global()->GetTypeRegistered(dtype.code())) {
     // TODO(tkonolige): need to convert all registered min functions to use the span.
     auto f = datatype::GetMinFunc(dtype.code());
-    TVM_ICHECK(f) << "No minimum function registered for custom dtype " << (unsigned int)dtype.code();
+    ICHECK(f) << "No minimum function registered for custom dtype " << (unsigned int)dtype.code();
     // TODO(@hypercubestart) Document this change (and others associated with the overflowing
     // floatimm min bug)
     return (*f)(dtype.bits());
@@ -207,14 +207,14 @@ PrimExpr min_value(const DataType& dtype, Span span) {
       return FloatImm(dtype, -65504.0, span);
     }
   }
-  TVM_LOG(FATAL) << "Cannot decide min_value for type" << dtype;
+  LOG(FATAL) << "Cannot decide min_value for type" << dtype;
   return PrimExpr();
 }
 
 // infinity
 PrimExpr infinity(const DataType& dtype, Span span) {
   using namespace tir;
-  TVM_ICHECK_EQ(dtype.lanes(), 1);
+  ICHECK_EQ(dtype.lanes(), 1);
   if (dtype.is_float()) {
     if (dtype.bits() == 64) {
       return FloatImm(dtype, std::numeric_limits<double>::infinity(), span);
@@ -222,7 +222,7 @@ PrimExpr infinity(const DataType& dtype, Span span) {
       return FloatImm(dtype, std::numeric_limits<float>::infinity(), span);
     }
   }
-  TVM_LOG(FATAL) << "Cannot decide infinity for type " << dtype;
+  LOG(FATAL) << "Cannot decide infinity for type " << dtype;
   return PrimExpr();
 }
 
@@ -276,7 +276,7 @@ PrimExpr cast(const DataType& t, PrimExpr value, Span span) {
       }
       return tir::Broadcast(value, t.lanes(), span);
     } else {
-      TVM_ICHECK(value.dtype().lanes() == t.lanes());
+      ICHECK(value.dtype().lanes() == t.lanes());
       return tir::Cast(t, value, span);
     }
   }
@@ -336,8 +336,8 @@ PrimExpr div(PrimExpr a, PrimExpr b, Span span) {
 }
 
 PrimExpr truncdiv(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.dtype().is_int() || a.dtype().is_uint()) << a;
-  TVM_ICHECK(b.dtype().is_int() || b.dtype().is_uint()) << b;
+  ICHECK(a.dtype().is_int() || a.dtype().is_uint()) << a;
+  ICHECK(b.dtype().is_int() || b.dtype().is_uint()) << b;
   return div(a, b, span);
 }
 
@@ -358,8 +358,8 @@ PrimExpr indexdiv(PrimExpr a, PrimExpr b, Span span) { return floordiv(a, b, spa
 PrimExpr indexmod(PrimExpr a, PrimExpr b, Span span) { return floormod(a, b, span); }
 
 PrimExpr floordiv(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.dtype().is_int() || a.dtype().is_uint()) << a;
-  TVM_ICHECK(b.dtype().is_int() || b.dtype().is_uint()) << b;
+  ICHECK(a.dtype().is_int() || a.dtype().is_uint()) << a;
+  ICHECK(b.dtype().is_int() || b.dtype().is_uint()) << b;
   BinaryOpMatchTypes(a, b, span);
   PrimExpr ret = arith::TryConstFold<tir::FloorDiv>(a, b);
   if (ret.defined()) return ret;
@@ -367,8 +367,8 @@ PrimExpr floordiv(PrimExpr a, PrimExpr b, Span span) {
 }
 
 PrimExpr floormod(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.dtype().is_int() || a.dtype().is_uint()) << a;
-  TVM_ICHECK(b.dtype().is_int() || b.dtype().is_uint()) << b;
+  ICHECK(a.dtype().is_int() || a.dtype().is_uint()) << a;
+  ICHECK(b.dtype().is_int() || b.dtype().is_uint()) << b;
   BinaryOpMatchTypes(a, b, span);
   PrimExpr ret = arith::TryConstFold<tir::FloorMod>(a, b);
   if (ret.defined()) return ret;
@@ -405,7 +405,7 @@ PrimExpr max(PrimExpr a, PrimExpr b, Span span) {
 
 // if_then_else
 PrimExpr if_then_else(PrimExpr cond, PrimExpr true_value, PrimExpr false_value, Span span) {
-  TVM_ICHECK(cond.dtype() == DataType::Bool(1))
+  ICHECK(cond.dtype() == DataType::Bool(1))
       << "if_then_else only accept the condition to be boolean type.";
   BinaryOpMatchTypes(true_value, false_value, span);
   if (const IntImmNode* op = cond.as<IntImmNode>()) {
@@ -477,8 +477,8 @@ PrimExpr not_equal(PrimExpr a, PrimExpr b, Span span) {
 
 PrimExpr operator&&(PrimExpr a, PrimExpr b) { return logical_and(a, b); }
 PrimExpr logical_and(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.dtype().is_bool());
-  TVM_ICHECK(b.dtype().is_bool());
+  ICHECK(a.dtype().is_bool());
+  ICHECK(b.dtype().is_bool());
   PrimExpr ret = arith::TryConstFold<tir::And>(a, b);
   if (ret.defined()) return ret;
   return tir::And(a, b, span);
@@ -486,8 +486,8 @@ PrimExpr logical_and(PrimExpr a, PrimExpr b, Span span) {
 
 PrimExpr operator||(PrimExpr a, PrimExpr b) { return logical_or(a, b); }
 PrimExpr logical_or(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.dtype().is_bool());
-  TVM_ICHECK(b.dtype().is_bool());
+  ICHECK(a.dtype().is_bool());
+  ICHECK(b.dtype().is_bool());
   PrimExpr ret = arith::TryConstFold<tir::Or>(a, b);
   if (ret.defined()) return ret;
   return tir::Or(a, b, span);
@@ -495,7 +495,7 @@ PrimExpr logical_or(PrimExpr a, PrimExpr b, Span span) {
 
 PrimExpr operator!(PrimExpr a) { return logical_not(a); }
 PrimExpr logical_not(PrimExpr a, Span span) {
-  TVM_ICHECK(a.dtype().is_bool());
+  ICHECK(a.dtype().is_bool());
   PrimExpr ret = arith::TryConstFold<tir::Not>(a);
   if (ret.defined()) return ret;
   return tir::Not(a, span);
@@ -505,13 +505,13 @@ PrimExpr logical_not(PrimExpr a, Span span) {
 PrimExpr operator>>(PrimExpr a, PrimExpr b) { return right_shift(a, b); }
 
 PrimExpr right_shift(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.dtype().is_int() || a.dtype().is_uint());
-  TVM_ICHECK(b.dtype().is_int() || b.dtype().is_uint());
+  ICHECK(a.dtype().is_int() || a.dtype().is_uint());
+  ICHECK(b.dtype().is_int() || b.dtype().is_uint());
   BinaryOpMatchTypes(a, b, span);
   TVM_INDEX_CONST_PROPAGATION({
     const DataType& rtype = a.dtype();
     if (pb)
-      TVM_ICHECK(pb->value >= 0 && pb->value < rtype.bits())
+      ICHECK(pb->value >= 0 && pb->value < rtype.bits())
           << "Shift amount must be non-negative and less than " << rtype.bits() << " for type "
           << rtype;
     if (pa && pb) {
@@ -528,13 +528,13 @@ PrimExpr right_shift(PrimExpr a, PrimExpr b, Span span) {
 // shift left
 PrimExpr operator<<(PrimExpr a, PrimExpr b) { return left_shift(a, b); }
 PrimExpr left_shift(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.dtype().is_int() || a.dtype().is_uint());
-  TVM_ICHECK(b.dtype().is_int() || b.dtype().is_uint());
+  ICHECK(a.dtype().is_int() || a.dtype().is_uint());
+  ICHECK(b.dtype().is_int() || b.dtype().is_uint());
   BinaryOpMatchTypes(a, b, span);
   TVM_INDEX_CONST_PROPAGATION({
     const DataType& rtype = a.dtype();
     if (pb)
-      TVM_ICHECK(pb->value >= 0 && pb->value < rtype.bits())
+      ICHECK(pb->value >= 0 && pb->value < rtype.bits())
           << "Shift amount must be non-negative and less than " << rtype.bits() << " for type "
           << rtype;
     if (pa && pb) return IntImm(rtype, (pa->value << pb->value), span);
@@ -548,8 +548,8 @@ PrimExpr left_shift(PrimExpr a, PrimExpr b, Span span) {
 // bitwise and
 PrimExpr operator&(PrimExpr a, PrimExpr b) { return bitwise_and(a, b); }
 PrimExpr bitwise_and(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.dtype().is_int() || a.dtype().is_uint());
-  TVM_ICHECK(b.dtype().is_int() || b.dtype().is_uint());
+  ICHECK(a.dtype().is_int() || a.dtype().is_uint());
+  ICHECK(b.dtype().is_int() || b.dtype().is_uint());
   BinaryOpMatchTypes(a, b, span);
   TVM_INDEX_CONST_PROPAGATION({
     const DataType& rtype = a.dtype();
@@ -561,8 +561,8 @@ PrimExpr bitwise_and(PrimExpr a, PrimExpr b, Span span) {
 // bitwise_or
 PrimExpr operator|(PrimExpr a, PrimExpr b) { return bitwise_or(a, b); }
 PrimExpr bitwise_or(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.dtype().is_int() || a.dtype().is_uint());
-  TVM_ICHECK(b.dtype().is_int() || b.dtype().is_uint());
+  ICHECK(a.dtype().is_int() || a.dtype().is_uint());
+  ICHECK(b.dtype().is_int() || b.dtype().is_uint());
   BinaryOpMatchTypes(a, b, span);
   TVM_INDEX_CONST_PROPAGATION({
     const DataType& rtype = a.dtype();
@@ -574,8 +574,8 @@ PrimExpr bitwise_or(PrimExpr a, PrimExpr b, Span span) {
 // bitwise_xor
 PrimExpr operator^(PrimExpr a, PrimExpr b) { return bitwise_xor(a, b); }
 PrimExpr bitwise_xor(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.dtype().is_int() || a.dtype().is_uint());
-  TVM_ICHECK(b.dtype().is_int() || b.dtype().is_uint());
+  ICHECK(a.dtype().is_int() || a.dtype().is_uint());
+  ICHECK(b.dtype().is_int() || b.dtype().is_uint());
   BinaryOpMatchTypes(a, b, span);
   TVM_INDEX_CONST_PROPAGATION({
     const DataType& rtype = a.dtype();
@@ -588,7 +588,7 @@ PrimExpr bitwise_xor(PrimExpr a, PrimExpr b, Span span) {
 PrimExpr operator~(PrimExpr a) { return bitwise_neg(a); }
 
 PrimExpr bitwise_neg(PrimExpr a, Span span) {
-  TVM_ICHECK(a.dtype().is_int() || a.dtype().is_uint());
+  ICHECK(a.dtype().is_int() || a.dtype().is_uint());
   return tir::Call(a.dtype(), tir::builtin::bitwise_not(), {a}, span);
 }
 
@@ -599,7 +599,7 @@ TVM_REGISTER_GLOBAL("tir.bitwise_not").set_body_typed([](PrimExpr a, Span span) 
 // pow
 PrimExpr pow(PrimExpr x, PrimExpr y, Span span) {
   BinaryOpMatchTypes(x, y, span);
-  TVM_ICHECK(x.dtype().is_float()) << "power only applies to float";
+  ICHECK(x.dtype().is_float()) << "power only applies to float";
   static auto op = Op::Get("tir.pow");
   return tir::Call(x.dtype(), op, {x, y}, span);
 }
@@ -626,7 +626,7 @@ PrimExpr abs(PrimExpr x, Span span) {
   } else if (x.dtype().is_uint()) {
     return x;
   } else {
-    TVM_LOG(FATAL) << "Data type " << x.dtype()
+    LOG(FATAL) << "Data type " << x.dtype()
                << " not supported for absolute op. Skipping absolute op...";
     return x;
   }
@@ -652,7 +652,7 @@ PrimExpr isnan(PrimExpr x, Span span) {
       return tir::Call(t, op, {x}, span);
     }
   } else {
-    TVM_LOG(FATAL) << "Data type " << x.dtype() << " not supported for isnan op. Skipping isnan op...";
+    LOG(FATAL) << "Data type " << x.dtype() << " not supported for isnan op. Skipping isnan op...";
     return x;
   }
 }
@@ -666,7 +666,7 @@ PrimExpr isinf(PrimExpr x, Span span) {
     PrimExpr infX = infinity(x.dtype(), span);
     return abs(x, span) == infX && !isnan(x, span);
   } else {
-    TVM_LOG(FATAL) << "Data type " << x.dtype() << " not supported for finiteness ops. Skipping it...";
+    LOG(FATAL) << "Data type " << x.dtype() << " not supported for finiteness ops. Skipping it...";
     return x;
   }
 }
@@ -683,7 +683,7 @@ PrimExpr sum(PrimExpr source, Array<IterVar> rdom, Array<PrimExpr> init, Span sp
 }
 
 PrimExpr all(PrimExpr source, Array<IterVar> rdom, Array<PrimExpr> init, Span span) {
-  TVM_ICHECK(source.dtype().is_bool());
+  ICHECK(source.dtype().is_bool());
   Var x("x", source.dtype(), span), y("y", source.dtype());
   PrimExpr result = tir::And(x, y, span);
   PrimExpr identity_element = make_const(source.dtype(), true, span);
@@ -692,7 +692,7 @@ PrimExpr all(PrimExpr source, Array<IterVar> rdom, Array<PrimExpr> init, Span sp
 }
 
 PrimExpr any(PrimExpr source, Array<IterVar> rdom, Array<PrimExpr> init, Span span) {
-  TVM_ICHECK(source.dtype().is_bool());
+  ICHECK(source.dtype().is_bool());
   Var x("x", source.dtype(), span), y("y", source.dtype(), span);
   PrimExpr result = tir::Or(x, y, span);
   PrimExpr identity_element = make_const(source.dtype(), false, span);
@@ -727,7 +727,7 @@ PrimExpr prod(PrimExpr source, Array<IterVar> rdom, Array<PrimExpr> init, Span s
 // fmod
 PrimExpr fmod(PrimExpr x, PrimExpr y, Span span) {
   BinaryOpMatchTypes(x, y, span);
-  TVM_ICHECK(x.dtype().is_float()) << "fmod only applies to float";
+  ICHECK(x.dtype().is_float()) << "fmod only applies to float";
   static auto op = Op::Get("tir.fmod");
   return tir::Call(x.dtype(), op, {x, y}, span);
 }
@@ -872,7 +872,7 @@ TVM_REGISTER_GLOBAL("node._const").set_body([](TVMArgs args, TVMRetValue* ret) {
   } else if (args[0].type_code() == kDLFloat) {
     *ret = tir::make_const(args[1], args[0].operator double(), args[2]);
   } else {
-    TVM_LOG(FATAL) << "only accept int or float";  // FIXME
+    LOG(FATAL) << "only accept int or float";  // FIXME
   }
 });
 

@@ -36,9 +36,9 @@ namespace tir {
 #define TVM_DEFINE_BINOP_CONSTRUCTOR(Name)                                               \
   Name::Name(PrimExpr a, PrimExpr b, Span span) {                                        \
     using T = Name::ContainerType;                                                       \
-    TVM_ICHECK(a.defined()) << "ValueError: a is undefined\n";                               \
-    TVM_ICHECK(b.defined()) << "ValueError: b is undefined\n";                               \
-    TVM_ICHECK(a.dtype() == b.dtype())                                                       \
+    ICHECK(a.defined()) << "ValueError: a is undefined\n";                               \
+    ICHECK(b.defined()) << "ValueError: b is undefined\n";                               \
+    ICHECK(a.dtype() == b.dtype())                                                       \
         << "TypeError: mismatched types. " << a.dtype() << " vs. " << b.dtype() << "\n"; \
     ObjectPtr<T> node = make_object<T>();                                                \
     node->dtype = a.dtype();                                                             \
@@ -51,9 +51,9 @@ namespace tir {
 #define TVM_DEFINE_CMPOP_CONSTRUCTOR(Name)                             \
   Name::Name(PrimExpr a, PrimExpr b, Span span) {                      \
     using T = Name::ContainerType;                                     \
-    TVM_ICHECK(a.defined()) << "ValueError: a is undefined\n";             \
-    TVM_ICHECK(b.defined()) << "ValueError: b is undefined\n";             \
-    TVM_ICHECK(a.dtype() == b.dtype()) << "TypeError: mismatched types\n"; \
+    ICHECK(a.defined()) << "ValueError: a is undefined\n";             \
+    ICHECK(b.defined()) << "ValueError: b is undefined\n";             \
+    ICHECK(a.dtype() == b.dtype()) << "TypeError: mismatched types\n"; \
     ObjectPtr<T> node = make_object<T>();                              \
     node->dtype = DataType::Bool(a.dtype().lanes());                   \
     node->a = std::move(a);                                            \
@@ -189,8 +189,8 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 
 // Cast
 Cast::Cast(DataType t, PrimExpr value, Span span) {
-  TVM_ICHECK(value.defined());
-  TVM_ICHECK_EQ(t.lanes(), value.dtype().lanes());
+  ICHECK(value.defined());
+  ICHECK_EQ(t.lanes(), value.dtype().lanes());
   ObjectPtr<CastNode> node = make_object<CastNode>();
   node->dtype = t;
   node->value = std::move(value);
@@ -491,11 +491,11 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 
 // And
 And::And(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.defined()) << "ValueError: a is undefined";
-  TVM_ICHECK(b.defined()) << "ValueError: b is undefined";
-  TVM_ICHECK(a.dtype().is_bool());
-  TVM_ICHECK(b.dtype().is_bool());
-  TVM_ICHECK(a.dtype() == b.dtype()) << "TypeError: mismatched types";
+  ICHECK(a.defined()) << "ValueError: a is undefined";
+  ICHECK(b.defined()) << "ValueError: b is undefined";
+  ICHECK(a.dtype().is_bool());
+  ICHECK(b.dtype().is_bool());
+  ICHECK(a.dtype() == b.dtype()) << "TypeError: mismatched types";
 
   ObjectPtr<AndNode> node = make_object<AndNode>();
   node->dtype = DataType::Bool(a.dtype().lanes());
@@ -523,11 +523,11 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 
 // Or
 Or::Or(PrimExpr a, PrimExpr b, Span span) {
-  TVM_ICHECK(a.defined()) << "ValueError: a is undefined";
-  TVM_ICHECK(b.defined()) << "ValueError: b is undefined";
-  TVM_ICHECK(a.dtype().is_bool());
-  TVM_ICHECK(b.dtype().is_bool());
-  TVM_ICHECK(a.dtype() == b.dtype()) << "TypeError: mismatched types";
+  ICHECK(a.defined()) << "ValueError: a is undefined";
+  ICHECK(b.defined()) << "ValueError: b is undefined";
+  ICHECK(a.dtype().is_bool());
+  ICHECK(b.dtype().is_bool());
+  ICHECK(a.dtype() == b.dtype()) << "TypeError: mismatched types";
 
   ObjectPtr<OrNode> node = make_object<OrNode>();
   node->dtype = DataType::Bool(a.dtype().lanes());
@@ -555,8 +555,8 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 
 // Not
 Not::Not(PrimExpr a, Span span) {
-  TVM_ICHECK(a.defined()) << "ValueError: a is undefined";
-  TVM_ICHECK(a.dtype().is_bool());
+  ICHECK(a.defined()) << "ValueError: a is undefined";
+  ICHECK(a.dtype().is_bool());
 
   ObjectPtr<NotNode> node = make_object<NotNode>();
   node->dtype = DataType::Bool(a.dtype().lanes());
@@ -578,12 +578,12 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 
 // Select
 Select::Select(PrimExpr condition, PrimExpr true_value, PrimExpr false_value, Span span) {
-  TVM_ICHECK(condition.defined()) << "ValueError: condition is undefined";
-  TVM_ICHECK(true_value.defined()) << "ValueError: true_value is undefined";
-  TVM_ICHECK(false_value.defined()) << "ValueError: true_value is undefined";
-  TVM_ICHECK(condition.dtype().is_bool());
-  TVM_ICHECK(condition.dtype().lanes() == true_value.dtype().lanes() || condition.dtype().lanes() == 1);
-  TVM_ICHECK(false_value.dtype() == true_value.dtype()) << "TypeError: mismatched types";
+  ICHECK(condition.defined()) << "ValueError: condition is undefined";
+  ICHECK(true_value.defined()) << "ValueError: true_value is undefined";
+  ICHECK(false_value.defined()) << "ValueError: true_value is undefined";
+  ICHECK(condition.dtype().is_bool());
+  ICHECK(condition.dtype().lanes() == true_value.dtype().lanes() || condition.dtype().lanes() == 1);
+  ICHECK(false_value.dtype() == true_value.dtype()) << "TypeError: mismatched types";
 
   ObjectPtr<SelectNode> node = make_object<SelectNode>();
   node->dtype = true_value.dtype();
@@ -615,11 +615,11 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 
 // Load
 Load::Load(DataType dtype, Var buffer_var, PrimExpr index, PrimExpr predicate, Span span) {
-  TVM_ICHECK(buffer_var.defined());
-  TVM_ICHECK(predicate.defined());
-  TVM_ICHECK(index.defined());
-  TVM_ICHECK_EQ(dtype.lanes(), index.dtype().lanes());
-  TVM_ICHECK_EQ(dtype.lanes(), predicate.dtype().lanes());
+  ICHECK(buffer_var.defined());
+  ICHECK(predicate.defined());
+  ICHECK(index.defined());
+  ICHECK_EQ(dtype.lanes(), index.dtype().lanes());
+  ICHECK_EQ(dtype.lanes(), predicate.dtype().lanes());
 
   ObjectPtr<LoadNode> node = make_object<LoadNode>();
   node->dtype = dtype;
@@ -658,12 +658,12 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 
 // Ramp
 Ramp::Ramp(PrimExpr base, PrimExpr stride, int lanes, Span span) {
-  TVM_ICHECK(base.defined());
-  TVM_ICHECK(stride.defined());
-  TVM_ICHECK(base.dtype().is_scalar());
-  TVM_ICHECK(stride.dtype().is_scalar());
-  TVM_ICHECK_GT(lanes, 1);
-  TVM_ICHECK_EQ(stride.dtype(), base.dtype());
+  ICHECK(base.defined());
+  ICHECK(stride.defined());
+  ICHECK(base.dtype().is_scalar());
+  ICHECK(stride.dtype().is_scalar());
+  ICHECK_GT(lanes, 1);
+  ICHECK_EQ(stride.dtype(), base.dtype());
 
   ObjectPtr<RampNode> node = make_object<RampNode>();
   node->dtype = base.dtype().with_lanes(lanes);
@@ -693,9 +693,9 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 
 // Broadcast
 Broadcast::Broadcast(PrimExpr value, int lanes, Span span) {
-  TVM_ICHECK(value.defined());
-  TVM_ICHECK(value.dtype().is_scalar());
-  TVM_ICHECK_GT(lanes, 1);
+  ICHECK(value.defined());
+  ICHECK(value.dtype().is_scalar());
+  ICHECK_GT(lanes, 1);
 
   ObjectPtr<BroadcastNode> node = make_object<BroadcastNode>();
   node->dtype = value.dtype().with_lanes(lanes);
@@ -721,9 +721,9 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 
 // Let
 Let::Let(Var var, PrimExpr value, PrimExpr body, Span span) {
-  TVM_ICHECK(value.defined());
-  TVM_ICHECK(body.defined());
-  TVM_ICHECK_EQ(value.dtype(), var.dtype());
+  ICHECK(value.defined());
+  ICHECK(body.defined());
+  ICHECK_EQ(value.dtype(), var.dtype());
 
   ObjectPtr<LetNode> node = make_object<LetNode>();
   node->dtype = body.dtype();
@@ -754,7 +754,7 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 // Call
 Call::Call(DataType dtype, RelayExpr op, Array<PrimExpr> args, Span span) {
   for (size_t i = 0; i < args.size(); ++i) {
-    TVM_ICHECK(args[i].defined());
+    ICHECK(args[i].defined());
   }
 
   ObjectPtr<CallNode> node = make_object<CallNode>();
@@ -769,7 +769,7 @@ TVM_REGISTER_GLOBAL("tir.Call")
     .set_body_typed([](DataType type, RelayExpr op, Array<ObjectRef> args, Span span) {
       Array<PrimExpr> prim_expr_args;
       for (const auto& it : args) {
-        TVM_ICHECK(it->IsInstance<runtime::StringObj>() || it->IsInstance<PrimExprNode>())
+        ICHECK(it->IsInstance<runtime::StringObj>() || it->IsInstance<PrimExprNode>())
             << "Argument " << it << " is not a string or primexpr";
         if (const auto* str = it.as<runtime::StringObj>()) {
           prim_expr_args.push_back(StringImm(str->data));
@@ -789,7 +789,7 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
         p->stream << ptr_op->name << "(";
       } else {
         auto* ptr_gvar = op->op.as<GlobalVarNode>();
-        TVM_ICHECK(ptr_gvar != nullptr);
+        ICHECK(ptr_gvar != nullptr);
         p->stream << "@" << ptr_gvar->name_hint << "(";
       }
       for (size_t i = 0; i < op->args.size(); ++i) {
@@ -803,17 +803,17 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 
 // Shuffle
 Shuffle::Shuffle(Array<PrimExpr> vectors, Array<PrimExpr> indices, Span span) {
-  TVM_ICHECK_NE(vectors.size(), 0U);
-  TVM_ICHECK_NE(indices.size(), 0U);
+  ICHECK_NE(vectors.size(), 0U);
+  ICHECK_NE(indices.size(), 0U);
 
   DataType base_type = vectors[0].dtype().element_of();
   int total_lanes = 0;
 
   for (PrimExpr val : vectors) {
-    TVM_ICHECK(val.dtype().element_of() == base_type);
+    ICHECK(val.dtype().element_of() == base_type);
     total_lanes += val.dtype().lanes();
   }
-  TVM_ICHECK_LE(indices.size(), static_cast<size_t>(total_lanes));
+  ICHECK_LE(indices.size(), static_cast<size_t>(total_lanes));
 
   ObjectPtr<ShuffleNode> node = make_object<ShuffleNode>();
   node->dtype = base_type.with_lanes(static_cast<int>(indices.size()));
@@ -824,7 +824,7 @@ Shuffle::Shuffle(Array<PrimExpr> vectors, Array<PrimExpr> indices, Span span) {
 }
 
 PrimExpr Shuffle::Concat(Array<PrimExpr> vectors, Span span) {
-  TVM_ICHECK_NE(vectors.size(), 0);
+  ICHECK_NE(vectors.size(), 0);
   if (vectors.size() == 1) {
     return vectors[0];
   }
@@ -882,9 +882,9 @@ CommReducer::CommReducer(Array<Var> lhs, Array<Var> rhs, Array<PrimExpr> result,
 }
 
 Array<PrimExpr> CommReducerNode::operator()(Array<PrimExpr> a, Array<PrimExpr> b) const {
-  TVM_ICHECK_EQ(a.size(), b.size());
-  TVM_ICHECK_EQ(lhs.size(), a.size());
-  TVM_ICHECK_EQ(rhs.size(), b.size());
+  ICHECK_EQ(a.size(), b.size());
+  ICHECK_EQ(lhs.size(), a.size());
+  ICHECK_EQ(rhs.size(), b.size());
   Map<Var, PrimExpr> value_map;
   for (size_t i = 0; i < a.size(); ++i) {
     value_map.Set(lhs[i], a[i]);
@@ -917,20 +917,20 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
 Reduce::Reduce(CommReducer combiner, Array<PrimExpr> source, Array<IterVar> axis,
                PrimExpr condition, int value_index, Array<PrimExpr> init, Span span) {
   for (size_t i = 0; i < axis.size(); ++i) {
-    TVM_ICHECK_EQ(axis[i]->iter_type, kCommReduce) << "Can only take axis created by reduce_axis";
+    ICHECK_EQ(axis[i]->iter_type, kCommReduce) << "Can only take axis created by reduce_axis";
   }
   if (!condition.defined()) {
     condition = const_true();
   }
   auto n = make_object<ReduceNode>();
-  TVM_ICHECK(source.defined());
+  ICHECK(source.defined());
   for (size_t i = 0; i < axis.size(); ++i) {
-    TVM_ICHECK(axis[i].defined());
+    ICHECK(axis[i].defined());
   }
   if (!init.empty()) {
-    TVM_ICHECK_EQ(init.size(), source.size()) << "Number of inits should match number of exprs";
+    ICHECK_EQ(init.size(), source.size()) << "Number of inits should match number of exprs";
     for (size_t i = 0; i < init.size(); i++) {
-      TVM_ICHECK(init[i]->IsInstance<ProducerLoadNode>() || init[i]->IsInstance<IntImmNode>() ||
+      ICHECK(init[i]->IsInstance<ProducerLoadNode>() || init[i]->IsInstance<IntImmNode>() ||
              init[i]->IsInstance<FloatImmNode>())
           << "init can only be a IntImm, FloatImm or ProducerLoad";
     }

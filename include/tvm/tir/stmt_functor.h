@@ -97,7 +97,7 @@ class StmtFunctor<R(const Stmt& n, Args... args)> {
   virtual R VisitStmt_(const SeqStmtNode* op, Args... args) STMT_FUNCTOR_DEFAULT;
   virtual R VisitStmt_(const EvaluateNode* op, Args... args) STMT_FUNCTOR_DEFAULT;
   virtual R VisitStmtDefault_(const Object* op, Args...) {
-    TVM_LOG(FATAL) << "Do not have a default for " << op->GetTypeKey();
+    LOG(FATAL) << "Do not have a default for " << op->GetTypeKey();
     return R();
   }
 

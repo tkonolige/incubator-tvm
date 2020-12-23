@@ -106,7 +106,7 @@ class SourceMap : public ObjectRef {
   void Add(const Source& source);
 
   SourceMapNode* operator->() {
-    TVM_ICHECK(get() != nullptr);
+    ICHECK(get() != nullptr);
     return static_cast<SourceMapNode*>(get_mutable());
   }
 

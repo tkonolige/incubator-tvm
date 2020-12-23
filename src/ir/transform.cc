@@ -60,8 +60,8 @@ void PassContext::EnterWithScope() {
 
 void PassContext::ExitWithScope() {
   PassContextThreadLocalEntry* entry = RelayPassContextThreadLocalStore::Get();
-  TVM_ICHECK(!entry->context_stack.empty());
-  TVM_ICHECK(entry->context_stack.top().same_as(*this));
+  ICHECK(!entry->context_stack.empty());
+  ICHECK(entry->context_stack.top().same_as(*this));
   entry->context_stack.pop();
 }
 
@@ -97,7 +97,7 @@ bool PassContext::PassEnabled(const PassInfo& info) const {
 class PassConfigManager {
  public:
   void Register(std::string key, uint32_t value_type_index) {
-    TVM_ICHECK_EQ(key2vtype_.count(key), 0U);
+    ICHECK_EQ(key2vtype_.count(key), 0U);
     ValueTypeInfo info;
     info.type_index = value_type_index;
     info.type_key = runtime::Object::TypeIndex2Key(value_type_index);
@@ -120,17 +120,17 @@ class PassConfigManager {
           if (counter++ != 0) os << ',';
           os << kv.first;
         }
-        TVM_LOG(FATAL) << os.str();
+        LOG(FATAL) << os.str();
       }
       const auto& info = it->second;
-      TVM_ICHECK(kv.second.defined()) << "AttributeError: " << kv.first << " is None";
+      ICHECK(kv.second.defined()) << "AttributeError: " << kv.first << " is None";
       if (kv.second->IsInstance<Map<String, ObjectRef>::ContainerType>()) {
         ObjectRef converted =
             reflection->CreateObject(info.type_key, Downcast<Map<String, ObjectRef>>(kv.second));
         update.emplace_back(kv.first, converted);
       } else {
         if (!runtime::ObjectInternal::DerivedFrom(kv.second.get(), info.type_index)) {
-          TVM_LOG(FATAL) << "AttributeError: expect config " << kv.first << " to have type "
+          LOG(FATAL) << "AttributeError: expect config " << kv.first << " to have type "
                      << info.type_key << " but get " << kv.second->GetTypeKey();
         }
       }
@@ -303,21 +303,21 @@ IRModule ModulePassNode::operator()(IRModule mod, const PassContext& pass_ctx) c
     pass_ctx->diag_ctx = previous;
   }
 
-  TVM_ICHECK(pass_ctx->diag_ctx)
+  ICHECK(pass_ctx->diag_ctx)
       << "The diagnostic context was set at the top of this block this is a bug.";
 
   const PassInfo& pass_info = Info();
   DLOG(INFO) << "Executing module pass : " << pass_info->name
              << " with opt level: " << pass_info->opt_level;
 
-  TVM_ICHECK(mod.defined()) << "The input module must be set.";
+  ICHECK(mod.defined()) << "The input module must be set.";
 
   pass_ctx.Trace(mod, pass_info, true);
   mod = pass_func(std::move(mod), pass_ctx);
 
-  TVM_ICHECK(mod.defined()) << "The return value of a module pass must be set.";
+  ICHECK(mod.defined()) << "The return value of a module pass must be set.";
 
-  TVM_ICHECK(pass_ctx->diag_ctx)
+  ICHECK(pass_ctx->diag_ctx)
       << "The diagnostic context was set at the top of this block this is a bug.";
 
   pass_ctx->diag_ctx.value().Render();
@@ -351,7 +351,7 @@ void SequentialNode::ResolveDependency(const IRModule& mod) {
   // 1. Consider the required passes for each pass.
   // 2. Only resolve the enabled passes.
   // 3. Build a dependency graph. Probably we need to update the pass list.
-  TVM_LOG(FATAL) << "Pass dependency has not been resolved yet."
+  LOG(FATAL) << "Pass dependency has not been resolved yet."
              << "\n";
 }
 
@@ -364,7 +364,7 @@ Pass GetPass(const String& pass_name) {
     // pass
   } else if ((f = Registry::Get("relay._transform." + pass_name))) {
   }
-  TVM_ICHECK(f != nullptr) << "Cannot use " << pass_name << "to create the pass";
+  ICHECK(f != nullptr) << "Cannot use " << pass_name << "to create the pass";
   return (*f)();
 }
 
@@ -373,7 +373,7 @@ Pass GetPass(const String& pass_name) {
 // ordering problem needs to be handled in the future.
 IRModule SequentialNode::operator()(IRModule mod, const PassContext& pass_ctx) const {
   for (const Pass& pass : passes) {
-    TVM_ICHECK(pass.defined()) << "Found undefined pass for optimization.";
+    ICHECK(pass.defined()) << "Found undefined pass for optimization.";
     const PassInfo& pass_info = pass->Info();
     if (!pass_ctx.PassEnabled(pass_info)) continue;
     // resolve dependencies
@@ -514,7 +514,7 @@ TVM_REGISTER_GLOBAL("transform.ExitPassContext").set_body_typed(PassContext::Int
 
 Pass PrintIR(String header, bool show_meta_data) {
   auto pass_func = [header, show_meta_data](IRModule mod, const PassContext& ctx) {
-    TVM_LOG(INFO) << "PrintIR(" << header << "):\n" << AsText(mod, show_meta_data);
+    LOG(INFO) << "PrintIR(" << header << "):\n" << AsText(mod, show_meta_data);
     return mod;
   };
   return CreateModulePass(pass_func, 0, "PrintIR", {});

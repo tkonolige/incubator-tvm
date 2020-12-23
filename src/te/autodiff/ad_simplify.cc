@@ -97,7 +97,7 @@ Array<IterVar> IterVarsFromMap(const Array<Var>& vars, const Map<Var, Range>& vr
                                IterVarType iter_type = kDataPar, std::string thread_tag = "") {
   Array<IterVar> res;
   for (const Var& v : vars) {
-    TVM_ICHECK(vranges.count(v)) << "A range for the variable " << v << " was not provided in map "
+    ICHECK(vranges.count(v)) << "A range for the variable " << v << " was not provided in map "
                              << vranges;
     res.push_back(IterVar(vranges[v], v, iter_type, thread_tag));
   }
@@ -478,7 +478,7 @@ class FactorOutAtomicFormulasFunctor
 // and a non-atomic residual. Atomic formulas are consts, calls, variables and comparisons (a <= b,
 // etc), i.e. formulas which are not logical operators (||, &&, !) on the top level.
 FactorOutAtomicFormulasResult FactorOutAtomicFormulas(const PrimExpr& e) {
-  TVM_ICHECK(e.dtype().is_bool());
+  ICHECK(e.dtype().is_bool());
   return FactorOutAtomicFormulasFunctor().VisitExpr(e);
 }
 
@@ -494,7 +494,7 @@ inline PrimExpr ModImpl(PrimExpr a, PrimExpr b, DivMode mode) {
   if (mode == kTruncDiv) {
     return truncmod(a, b);
   } else {
-    TVM_ICHECK_EQ(mode, kFloorDiv);
+    ICHECK_EQ(mode, kFloorDiv);
     return floormod(a, b);
   }
 }
@@ -503,7 +503,7 @@ inline PrimExpr DivImpl(PrimExpr a, PrimExpr b, DivMode mode) {
   if (mode == kTruncDiv) {
     return truncdiv(a, b);
   } else {
-    TVM_ICHECK_EQ(mode, kFloorDiv);
+    ICHECK_EQ(mode, kFloorDiv);
     return floordiv(a, b);
   }
 }
@@ -652,12 +652,12 @@ class EliminateDivModMutator : public ExprMutator {
 
     // We don't want to add unbounded variables
     if (!div_range.get() || !mod_range.get()) {
-      TVM_LOG(WARNING) << "EliminateDivMod: won't eliminate " << DivImpl(e, val_e, mode)
+      LOG(WARNING) << "EliminateDivMod: won't eliminate " << DivImpl(e, val_e, mode)
                    << "  because its bounds cannot be inferred";
       return tresult();
     }
     if (!mod_range.get()) {
-      TVM_LOG(WARNING) << "EliminateDivMod: won't eliminate " << ModImpl(e, val_e, mode)
+      LOG(WARNING) << "EliminateDivMod: won't eliminate " << ModImpl(e, val_e, mode)
                    << "  because its bounds cannot be inferred";
       return tresult();
     }
@@ -683,7 +683,7 @@ class EliminateDivModMutator : public ExprMutator {
       // If we use the C/C++ definition of mod, there may be multiple values of `mod`
       // satisfying the added condition if the expr `e` may change its sign, so we
       // have to add another condition.
-      TVM_LOG(WARNING) << "EliminateDivMod: cannot fully eliminate div or mod because "
+      LOG(WARNING) << "EliminateDivMod: cannot fully eliminate div or mod because "
                    << ModImpl(e, val_e, mode) << "  probably may change its sign";
       conditions.push_back(Select(e >= 0, mod >= 0, mod <= 0));
     }
@@ -817,7 +817,7 @@ PrimExpr SimplifyReductionDomain(const PrimExpr& expr, const Map<Var, Range>& ou
 // Extract from cond an implication of cond not containing vars
 std::pair<PrimExpr, PrimExpr> ImplicationNotContainingVars(
     const PrimExpr& cond, const std::unordered_set<const VarNode*>& vars) {
-  TVM_ICHECK(cond.dtype().is_bool()) << "The type of cond must be bool";
+  ICHECK(cond.dtype().is_bool()) << "The type of cond must be bool";
   // TODO(sgrechanik-h): NOTs could be pushed down using De Morgan laws
   // before running this function but this case didn't seem to be important enough.
   if (const AndNode* op = cond.as<AndNode>()) {
@@ -938,7 +938,7 @@ class RemoveRedundantInequalitiesMutator : public ExprMutator {
 
   virtual PrimExpr VisitExpr_(const ReduceNode* op) {
     Array<PrimExpr> known_with_axes = known_;
-    TVM_ICHECK(op->init.empty()) << "Derivative of Reduction with initialization is not implemented";
+    ICHECK(op->init.empty()) << "Derivative of Reduction with initialization is not implemented";
     for (const PrimExpr& axis_cond : IterVarsToInequalities(op->axis)) {
       known_with_axes.push_back(axis_cond);
     }
@@ -1011,7 +1011,7 @@ PrimExpr TrySimplifyCompute(const PrimExpr& expr, const PrimExpr& cond,
   Array<Var> used_res_variables;
   for (const Var& var : res->dst->variables) {
     if (ExprUseVar(new_expr, var)) {
-      TVM_ICHECK(res->dst->ranges.count(var)) << "Range of " << var << " cannot be inferred.";
+      ICHECK(res->dst->ranges.count(var)) << "Range of " << var << " cannot be inferred.";
       used_res_variables.push_back(var);
     }
   }
@@ -1031,7 +1031,7 @@ PrimExpr TrySimplifyCompute(const PrimExpr& expr, const PrimExpr& cond,
   // Compute volumes before and after
   PrimExpr old_volume = make_const(DataType::Int(64), 1);
   for (const Var& var : outer_axis) {
-    TVM_ICHECK(vranges.count(var)) << "Range of " << var << " was not provided.";
+    ICHECK(vranges.count(var)) << "Range of " << var << " was not provided.";
     old_volume = old_volume * vranges[var]->extent;
   }
 
@@ -1069,7 +1069,7 @@ class ReductionAsTensorAccessMutator : public ExprMutator {
     ReductionAsTensorAccessMutator new_mutator(Concat(IterVarsToVars(op->axis), outer_axis_),
                                                Merge(vranges_, IterVarsToMap(op->axis)), name_);
 
-    TVM_ICHECK(op->init.empty()) << "Derivative of Reduction with initialization is not implemented";
+    ICHECK(op->init.empty()) << "Derivative of Reduction with initialization is not implemented";
     Array<PrimExpr> new_source;
     for (const PrimExpr& src : op->source) {
       new_source.push_back(new_mutator(src));
@@ -1152,7 +1152,7 @@ PrimExpr RemoveJacobianAndLiftNonzeroCondImpl(const PrimExpr& expr_orig, const A
   PrimExpr expr = analyzer.Simplify(expr_orig, kSimplifyRewriteCanonicalRewrite);
 
   if (const ReduceNode* red = expr.as<ReduceNode>()) {
-    TVM_ICHECK(red->init.empty()) << "Derivative of Reduction with initialization is not implemented";
+    ICHECK(red->init.empty()) << "Derivative of Reduction with initialization is not implemented";
     // TODO(sgrechanik-h): There are some other operations which behave like sum
     bool is_sum = IsSumCombiner(red->combiner, vranges);
     if (is_sum || CanFactorZeroFromCombiner(red->combiner, red->value_index, vranges)) {

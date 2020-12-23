@@ -34,7 +34,7 @@ namespace support {
 
 std::vector<std::vector<int>> rr_partitioner(int begin, int end, int step, int num_threads) {
   int total_task_count = (end - begin) / step;
-  TVM_ICHECK_GE(total_task_count, 0) << "Infinite loop condition with begin: " << begin
+  ICHECK_GE(total_task_count, 0) << "Infinite loop condition with begin: " << begin
                                  << " end: " << end << " step: " << step;
   std::vector<std::vector<int>> ret;
   ret.reserve(num_threads);
@@ -53,7 +53,7 @@ void parallel_for(int begin, int end, const std::function<void(int)>& f, int ste
   static std::mutex M_GLOBAL_PARALLEL_FOR_FLAG;
   {
     std::unique_lock<std::mutex> l(M_GLOBAL_PARALLEL_FOR_FLAG);
-    TVM_ICHECK(!GLOBAL_PARALLEL_FOR_FLAG) << "There's another parallel_for running. Maybe you're "
+    ICHECK(!GLOBAL_PARALLEL_FOR_FLAG) << "There's another parallel_for running. Maybe you're "
                                       << "currently inside another parallel_for loop.";
     GLOBAL_PARALLEL_FOR_FLAG = true;
   }
@@ -81,7 +81,7 @@ void parallel_for(int begin, int end, const std::function<void(int)>& f, int ste
   }
   {
     std::unique_lock<std::mutex> l(M_GLOBAL_PARALLEL_FOR_FLAG);
-    TVM_ICHECK(GLOBAL_PARALLEL_FOR_FLAG);
+    ICHECK(GLOBAL_PARALLEL_FOR_FLAG);
     GLOBAL_PARALLEL_FOR_FLAG = false;
   }
   try {
@@ -89,7 +89,7 @@ void parallel_for(int begin, int end, const std::function<void(int)>& f, int ste
       i.get();
     }
   } catch (const std::exception& e) {
-    TVM_LOG(FATAL) << "Parallel_for error with " << e.what();
+    LOG(FATAL) << "Parallel_for error with " << e.what();
   }
 }
 

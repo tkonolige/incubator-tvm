@@ -45,16 +45,16 @@ class TensorRTLogger : public nvinfer1::ILogger {
 
     switch (severity) {
       case Severity::kINTERNAL_ERROR:
-        TVM_LOG(ERROR) << "INTERNAL_ERROR: " << msg;
+        LOG(ERROR) << "INTERNAL_ERROR: " << msg;
         break;
       case Severity::kERROR:
-        TVM_LOG(ERROR) << "ERROR: " << msg;
+        LOG(ERROR) << "ERROR: " << msg;
         break;
       case Severity::kWARNING:
-        TVM_LOG(WARNING) << "WARNING: " << msg;
+        LOG(WARNING) << "WARNING: " << msg;
         break;
       case Severity::kINFO:
-        TVM_LOG(INFO) << "INFO: " << msg;
+        LOG(INFO) << "INFO: " << msg;
         break;
 #if TRT_VERSION_GE(5, 1, 5)
       case Severity::kVERBOSE:
@@ -62,7 +62,7 @@ class TensorRTLogger : public nvinfer1::ILogger {
         break;
 #endif
       default:
-        TVM_LOG(INFO) << "UNKNOWN: " << msg;
+        LOG(INFO) << "UNKNOWN: " << msg;
         break;
     }
   }

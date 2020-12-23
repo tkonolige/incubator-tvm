@@ -31,8 +31,8 @@ namespace contrib {
 
 using namespace runtime;
 
-#ifndef TVM_CHECK_ROCBLAS_ERROR
-#define TVM_CHECK_ROCBLAS_ERROR(error)                                                                \
+#ifndef CHECK_ROCBLAS_ERROR
+#define CHECK_ROCBLAS_ERROR(error)                                                                \
   if (error != rocblas_status_success) {                                                          \
     fprintf(stderr, "rocBLAS error: ");                                                           \
     if (error == rocblas_status_invalid_handle) fprintf(stderr, "rocblas_status_invalid_handle"); \
@@ -56,18 +56,18 @@ TVM_REGISTER_GLOBAL("tvm.contrib.rocblas.matmul").set_body([](TVMArgs args, TVMR
   bool transa = args[3];
   bool transb = args[4];
   // call gemm for simple compact code.
-  TVM_ICHECK_EQ(A->ndim, 2);
-  TVM_ICHECK_EQ(B->ndim, 2);
-  TVM_ICHECK_EQ(C->ndim, 2);
-  TVM_ICHECK(C->strides == nullptr);
-  TVM_ICHECK(B->strides == nullptr);
-  TVM_ICHECK(A->strides == nullptr);
-  TVM_ICHECK(TypeMatch(A->dtype, kDLFloat, 32));
-  TVM_ICHECK(TypeMatch(B->dtype, kDLFloat, 32));
-  TVM_ICHECK(TypeMatch(C->dtype, kDLFloat, 32));
+  ICHECK_EQ(A->ndim, 2);
+  ICHECK_EQ(B->ndim, 2);
+  ICHECK_EQ(C->ndim, 2);
+  ICHECK(C->strides == nullptr);
+  ICHECK(B->strides == nullptr);
+  ICHECK(A->strides == nullptr);
+  ICHECK(TypeMatch(A->dtype, kDLFloat, 32));
+  ICHECK(TypeMatch(B->dtype, kDLFloat, 32));
+  ICHECK(TypeMatch(C->dtype, kDLFloat, 32));
 
   rocblas_handle handle;
-  TVM_CHECK_ROCBLAS_ERROR(rocblas_create_handle(&handle));
+  CHECK_ROCBLAS_ERROR(rocblas_create_handle(&handle));
   float alpha = 1.0;
   float beta = 0.0;
   float* A_ptr = reinterpret_cast<float*>(static_cast<char*>(A->data) + A->byte_offset);
@@ -83,10 +83,10 @@ TVM_REGISTER_GLOBAL("tvm.contrib.rocblas.matmul").set_body([](TVMArgs args, TVMR
   size_t ldb = transb ? K : N;
   size_t ldc = N;
 
-  TVM_CHECK_ROCBLAS_ERROR(rocblas_sgemm(handle, roc_trans_B, roc_trans_A, N, M, K, &alpha, B_ptr, ldb,
+  CHECK_ROCBLAS_ERROR(rocblas_sgemm(handle, roc_trans_B, roc_trans_A, N, M, K, &alpha, B_ptr, ldb,
                                     A_ptr, lda, &beta, C_ptr, ldc));
 
-  TVM_CHECK_ROCBLAS_ERROR(rocblas_destroy_handle(handle));
+  CHECK_ROCBLAS_ERROR(rocblas_destroy_handle(handle));
 });
 
 TVM_REGISTER_GLOBAL("tvm.contrib.rocblas.batch_matmul")
@@ -97,15 +97,15 @@ TVM_REGISTER_GLOBAL("tvm.contrib.rocblas.batch_matmul")
       bool transa = args[3];
       bool transb = args[4];
       // call gemm for simple compact code.
-      TVM_ICHECK_EQ(A->ndim, 3);
-      TVM_ICHECK_EQ(B->ndim, 3);
-      TVM_ICHECK_EQ(C->ndim, 3);
-      TVM_ICHECK(TypeMatch(A->dtype, kDLFloat, 32));
-      TVM_ICHECK(TypeMatch(B->dtype, kDLFloat, 32));
-      TVM_ICHECK(TypeMatch(C->dtype, kDLFloat, 32));
+      ICHECK_EQ(A->ndim, 3);
+      ICHECK_EQ(B->ndim, 3);
+      ICHECK_EQ(C->ndim, 3);
+      ICHECK(TypeMatch(A->dtype, kDLFloat, 32));
+      ICHECK(TypeMatch(B->dtype, kDLFloat, 32));
+      ICHECK(TypeMatch(C->dtype, kDLFloat, 32));
 
       rocblas_handle handle;
-      TVM_CHECK_ROCBLAS_ERROR(rocblas_create_handle(&handle));
+      CHECK_ROCBLAS_ERROR(rocblas_create_handle(&handle));
       float alpha = 1.0;
       float beta = 0.0;
       float* A_ptr = reinterpret_cast<float*>(static_cast<char*>(A->data) + A->byte_offset);
@@ -122,7 +122,7 @@ TVM_REGISTER_GLOBAL("tvm.contrib.rocblas.batch_matmul")
       size_t ldb = transb ? K : N;
       size_t ldc = N;
 
-      TVM_CHECK_ROCBLAS_ERROR(rocblas_sgemm_strided_batched(
+      CHECK_ROCBLAS_ERROR(rocblas_sgemm_strided_batched(
           handle, roc_trans_B, roc_trans_A, N, M, K, &alpha, B_ptr, ldb, K * N, A_ptr, lda, M * K,
           &beta, C_ptr, ldc, M * N, batch_size));
     });

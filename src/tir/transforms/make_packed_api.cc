@@ -47,10 +47,10 @@ inline Stmt MakeAssertEQ(PrimExpr lhs, PrimExpr rhs, std::string msg) {
 
 PrimFunc MakePackedAPI(PrimFunc&& func, int num_unpacked_args) {
   auto global_symbol = func->GetAttr<String>(tvm::attr::kGlobalSymbol);
-  TVM_ICHECK(global_symbol) << "MakePackedAPI: Expect PrimFunc to have the global_symbol attribute";
+  ICHECK(global_symbol) << "MakePackedAPI: Expect PrimFunc to have the global_symbol attribute";
 
   auto target = func->GetAttr<Target>(tvm::attr::kTarget);
-  TVM_ICHECK(target.defined()) << "MakePackedAPI: Require the target attribute";
+  ICHECK(target.defined()) << "MakePackedAPI: Require the target attribute";
   int target_device_type = target.value()->kind->device_type;
 
   std::string name_hint = global_symbol.value();
@@ -58,7 +58,7 @@ PrimFunc MakePackedAPI(PrimFunc&& func, int num_unpacked_args) {
   auto* func_ptr = func.CopyOnWrite();
   const Stmt nop = Evaluate(0);
   int num_args = static_cast<int>(func_ptr->params.size());
-  TVM_ICHECK_LE(num_unpacked_args, num_args);
+  ICHECK_LE(num_unpacked_args, num_args);
 
   int num_packed_args = num_args - num_unpacked_args;
   // Data field definitions
@@ -143,7 +143,7 @@ PrimFunc MakePackedAPI(PrimFunc&& func, int num_unpacked_args) {
         msg << name_hint << ": Expect arg[" << i << "] to be int";
         seq_check.emplace_back(AssertStmt(tcode == kDLInt, tvm::tir::StringImm(msg.str()), nop));
       } else {
-        TVM_ICHECK(t.is_float());
+        ICHECK(t.is_float());
         std::ostringstream msg;
         msg << name_hint << ": Expect arg[" << i << "] to be float";
         seq_check.emplace_back(AssertStmt(tcode == kDLFloat, tvm::tir::StringImm(msg.str()), nop));
@@ -161,7 +161,7 @@ PrimFunc MakePackedAPI(PrimFunc&& func, int num_unpacked_args) {
   }
 
   size_t expected_nargs = num_unpacked_args + (num_packed_args != 0 ? 6 : 0);
-  TVM_ICHECK_EQ(args.size(), expected_nargs);
+  ICHECK_EQ(args.size(), expected_nargs);
 
   // Arg definitions are defined before buffer binding to avoid the use before
   // def errors.
@@ -207,7 +207,7 @@ PrimFunc MakePackedAPI(PrimFunc&& func, int num_unpacked_args) {
       os << " \'" << v->name_hint << "\' ";
     }
     os << " is not bound to any variables";
-    TVM_LOG(FATAL) << "Not all Vars are passed in api_args: " << os.str();
+    LOG(FATAL) << "Not all Vars are passed in api_args: " << os.str();
   }
 
   func_ptr->buffer_map = Map<Var, Buffer>();

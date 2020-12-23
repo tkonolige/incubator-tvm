@@ -46,7 +46,7 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
   explicit CodegenC(const std::string& id) { this->ext_func_id_ = id; }
 
   std::vector<Output> VisitExprDefault_(const Object* op) final {
-    TVM_LOG(FATAL) << "C codegen doesn't support: " << op->GetTypeKey();
+    LOG(FATAL) << "C codegen doesn't support: " << op->GetTypeKey();
     return {};
   }
 
@@ -61,7 +61,7 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
     std::vector<Output> outs;
     for (auto field : node->fields) {
       auto res = VisitExpr(field);
-      TVM_ICHECK_EQ(res.size(), 1U) << "Do not support tuple nest";
+      ICHECK_EQ(res.size(), 1U) << "Do not support tuple nest";
       outs.push_back(res[0]);
     }
     return outs;
@@ -69,7 +69,7 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
 
   std::vector<Output> VisitExpr_(const TupleGetItemNode* op) final {
     auto res = VisitExpr(op->tuple);
-    TVM_ICHECK_GT(res.size(), static_cast<size_t>(op->index));
+    ICHECK_GT(res.size(), static_cast<size_t>(op->index));
 
     // Only keep the item we want for the child node.
     // FIXME(@comaniac): The other items should still be requried for the primary outputs.
@@ -84,7 +84,7 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
     // Get const: static_cast<float*>(gcc_0_consts[0]->data)
     output.name = CreateDataReference(ext_func_id_, const_idx_);
     const auto* type_node = cn->checked_type().as<TensorTypeNode>();
-    TVM_ICHECK(type_node);
+    ICHECK(type_node);
     const auto& dtype = GetDtypeString(type_node);
 
     // Generate the global variable for needed ndarrays
@@ -94,7 +94,7 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
       ext_func_body_.insert(ext_func_body_.begin(), checker);
     }
 
-    TVM_ICHECK(dtype == "float" || dtype == "int") << "Only float and int are supported for now.";
+    ICHECK(dtype == "float" || dtype == "int") << "Only float and int are supported for now.";
     output.dtype = dtype;
 
     std::string const_var_name = CreateConstVar(ext_func_id_, const_idx_);
@@ -121,7 +121,7 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
     } else if (IsOp(call, "multiply")) {
       macro_stream << "*";
     } else {
-      TVM_LOG(FATAL) << "Unrecognized op";
+      LOG(FATAL) << "Unrecognized op";
     }
 
     auto in_shape = GetShape(call->args[0]->checked_type());
@@ -130,7 +130,7 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
     }
 
     const auto* type_node = call->checked_type().as<TensorTypeNode>();
-    TVM_ICHECK(type_node);
+    ICHECK(type_node);
     const auto& dtype = GetDtypeString(type_node);
     macro_stream << ", " << dtype;
 
@@ -216,7 +216,7 @@ class CodegenC : public MemoizedExprTranslator<std::vector<Output>>, public Code
 class CSourceCodegen : public CSourceModuleCodegenBase {
  public:
   std::pair<std::string, Array<String>> GenCFunc(const Function& func) {
-    TVM_ICHECK(func.defined()) << "Input error: expect a Relay function.";
+    ICHECK(func.defined()) << "Input error: expect a Relay function.";
 
     // Record the external symbol for runtime lookup.
     auto sid = GetExtSymbol(func);
@@ -260,7 +260,7 @@ class CSourceCodegen : public CSourceModuleCodegenBase {
 
     code_stream_ << operator_macro << "\n\n";
 
-    TVM_ICHECK(ref->IsInstance<FunctionNode>());
+    ICHECK(ref->IsInstance<FunctionNode>());
     auto res = GenCFunc(Downcast<Function>(ref));
     std::string code = code_stream_.str();
 
@@ -269,7 +269,7 @@ class CSourceCodegen : public CSourceModuleCodegenBase {
 
     // Create a CSource module
     const auto* pf = runtime::Registry::Get("runtime.CSourceModuleCreate");
-    TVM_ICHECK(pf != nullptr) << "Cannot find csource module to create the external runtime module";
+    ICHECK(pf != nullptr) << "Cannot find csource module to create the external runtime module";
     return (*pf)(code, "c", sym, variables);
   }
 

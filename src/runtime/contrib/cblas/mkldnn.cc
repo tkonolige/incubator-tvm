@@ -48,7 +48,7 @@ struct MKLDNNSgemmOp {
 // matrix multiplication for row major
 TVM_REGISTER_GLOBAL("tvm.contrib.mkldnn.matmul").set_body([](TVMArgs args, TVMRetValue* ret) {
   DLTensor* A = args[0];
-  TVM_ICHECK(TypeMatch(A->dtype, kDLFloat, 32));
+  ICHECK(TypeMatch(A->dtype, kDLFloat, 32));
   CallGemm(args, ret, MKLDNNSgemmOp());
 });
 }  // namespace contrib

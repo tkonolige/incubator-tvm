@@ -137,7 +137,7 @@ class RelayBuildModule : public runtime::ModuleNode {
           [sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetModule(); });
     } else if (name == "build") {
       return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-        TVM_ICHECK_EQ(args.num_args, 3);
+        ICHECK_EQ(args.num_args, 3);
         this->Build(args[0], args[1], args[2]);
       });
     } else if (name == "list_params") {
@@ -163,11 +163,11 @@ class RelayBuildModule : public runtime::ModuleNode {
       });
     } else if (name == "optimize") {
       return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-        TVM_ICHECK_EQ(args.num_args, 2);
+        ICHECK_EQ(args.num_args, 2);
         *rv = this->Optimize(args[0], args[1], this->params_);
       });
     } else {
-      TVM_LOG(FATAL) << "Unknown packed function: " << name;
+      LOG(FATAL) << "Unknown packed function: " << name;
       return PackedFunc([sptr_to_self, name](TVMArgs args, TVMRetValue* rv) {});
     }
   }
@@ -254,10 +254,10 @@ class RelayBuildModule : public runtime::ModuleNode {
    */
   IRModule Optimize(IRModule relay_module, const TargetsMap& targets,
                     const std::unordered_map<std::string, runtime::NDArray>& params) {
-    TVM_ICHECK(relay_module.defined()) << "The IRModule must be defined for the Relay compiler.";
+    ICHECK(relay_module.defined()) << "The IRModule must be defined for the Relay compiler.";
 
     if (params.size()) {
-      TVM_ICHECK(relay_module->ContainGlobalVar("main")) << "Missing the main entry function";
+      ICHECK(relay_module->ContainGlobalVar("main")) << "Missing the main entry function";
       GlobalVar main_glb_var = relay_module->GetGlobalVar("main");
       Function main_func = Downcast<Function>(relay_module->Lookup(main_glb_var));
       auto new_main = BindParamsByName(main_func, params);
@@ -332,7 +332,7 @@ class RelayBuildModule : public runtime::ModuleNode {
       Optional<Integer> opt_fallback_dev =
           pass_ctx->GetConfig("relay.fallback_device_type", Integer(static_cast<int>(kDLCPU)));
       auto fallback_dev = opt_fallback_dev.value();
-      TVM_ICHECK_GT(fallback_dev->value, 0U);
+      ICHECK_GT(fallback_dev->value, 0U);
       relay_module = RunDeviceAnnotationPass(relay_module, fallback_dev->value);
     }
 
@@ -365,7 +365,7 @@ class RelayBuildModule : public runtime::ModuleNode {
     relay_module = transform::Inline()(relay_module);
     relay_module = transform::InferType()(relay_module);
 
-    TVM_ICHECK(relay_module.defined());
+    ICHECK(relay_module.defined());
 
     return relay_module;
   }
@@ -413,7 +413,7 @@ class RelayBuildModule : public runtime::ModuleNode {
     UpdateHeterogeneousInputs(fallback_device);
     auto rewrite = transform::RewriteAnnotatedOps(fallback_device);
     auto updated_module = rewrite(relay_module);
-    TVM_ICHECK(updated_module.defined());
+    ICHECK(updated_module.defined());
 
     tvm::Map<Expr, Integer> device_map;
     for (const auto& it : updated_module->functions) {
@@ -438,7 +438,7 @@ class RelayBuildModule : public runtime::ModuleNode {
           break;
         }
         for (auto kv : annotation_map) {
-          TVM_ICHECK_EQ(kv.second->value, dev_type) << "Expressions in the function are "
+          ICHECK_EQ(kv.second->value, dev_type) << "Expressions in the function are "
                                                 << "annotated with various device types,"
                                                 << "but not device copy operators "
                                                 << "found. Please check the "
@@ -481,7 +481,7 @@ class RelayBuildModule : public runtime::ModuleNode {
 
     // Generate a placeholder function that attaches linked params as its arguments.
     if (target_host->GetAttr<Bool>("link-params").value_or(Bool(false))) {
-      TVM_CHECK(pf != nullptr) << "Unable to link-params with no target_host and no llvm codegen.";
+      CHECK(pf != nullptr) << "Unable to link-params with no target_host and no llvm codegen.";
       auto param_ids = graph_codegen_->GetParamIds();
       auto link_params = Map<String, tir::LinkedParam>();
       for (auto param : ret_.params) {

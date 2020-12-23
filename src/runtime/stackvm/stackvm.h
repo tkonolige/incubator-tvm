@@ -162,7 +162,7 @@ class StackVM {
     /*!
      * \brief Assert condition is true.
      * \code
-     *  TVM_ICHECK(stack[sp]) << str_data[code[pc + 1].v_int];
+     *  ICHECK(stack[sp]) << str_data[code[pc + 1].v_int];
      *  sp = sp - 1;
      * \endcode
      */
@@ -201,7 +201,7 @@ class StackVM {
     /*!
      * \brief debug instruction.
      * \code
-     *  TVM_ICHECK_EQ(sp, code[pc + 1]).v_int;
+     *  ICHECK_EQ(sp, code[pc + 1]).v_int;
      *  pc += 2;
      * \code
      */
@@ -378,10 +378,10 @@ class StackVM {
       case LE_I64:
         return LE_F64;
       case MOD_I64:
-        TVM_LOG(FATAL) << "cannot handle mod for float";
+        LOG(FATAL) << "cannot handle mod for float";
         return ADD_F64;
       default:
-        TVM_LOG(FATAL) << "cannot handle op " << code;
+        LOG(FATAL) << "cannot handle op " << code;
         return ADD_F64;
     }
   }
@@ -391,7 +391,7 @@ class StackVM {
    * \return The load opcode
    */
   static OpCode GetLoad(DLDataType t) {
-    TVM_ICHECK_EQ(t.lanes, 1U);
+    ICHECK_EQ(t.lanes, 1U);
     if (t.code == kTVMOpaqueHandle) return ARRAY_LOAD_HANDLE;
     if (t.code == kDLInt) {
       switch (t.bits) {
@@ -411,7 +411,7 @@ class StackVM {
           return ARRAY_LOAD_FP64;
       }
     }
-    TVM_LOG(FATAL) << "Cannot load type " << t;
+    LOG(FATAL) << "Cannot load type " << t;
     return ARRAY_LOAD_FP64;
   }
   /*!
@@ -420,7 +420,7 @@ class StackVM {
    * \return The load opcode
    */
   static OpCode GetStore(DLDataType t) {
-    TVM_ICHECK_EQ(t.lanes, 1U);
+    ICHECK_EQ(t.lanes, 1U);
     if (t.code == kTVMOpaqueHandle) return ARRAY_STORE_HANDLE;
     if (t.code == kDLInt) {
       switch (t.bits) {
@@ -440,7 +440,7 @@ class StackVM {
           return ARRAY_STORE_FP64;
       }
     }
-    TVM_LOG(FATAL) << "Cannot store type " << t;
+    LOG(FATAL) << "Cannot store type " << t;
     return ARRAY_STORE_FP64;
   }
   friend std::ostream& operator<<(std::ostream& os, const StackVM& vm);  // NOLINT(*)

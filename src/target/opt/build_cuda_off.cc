@@ -27,7 +27,7 @@ namespace runtime {
 Module CUDAModuleCreate(std::string data, std::string fmt,
                         std::unordered_map<std::string, FunctionInfo> fmap,
                         std::string cuda_source) {
-  TVM_LOG(FATAL) << "CUDA is not enabled";
+  LOG(FATAL) << "CUDA is not enabled";
   return Module();
 }
 }  // namespace runtime

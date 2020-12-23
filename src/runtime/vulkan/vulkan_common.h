@@ -82,7 +82,7 @@ inline const char* VKGetErrorString(VkResult error) {
  */
 #define VULKAN_CHECK_ERROR(__e)                                      \
   {                                                                  \
-    TVM_ICHECK(__e == VK_SUCCESS) << "Vulan Error, code=" << __e << ": " \
+    ICHECK(__e == VK_SUCCESS) << "Vulan Error, code=" << __e << ": " \
                               << vulkan::VKGetErrorString(__e);      \
   }
 

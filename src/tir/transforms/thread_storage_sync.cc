@@ -97,7 +97,7 @@ class ThreadSyncPlanner : public StorageAccessVisitor {
         }
       }
       if (sync_before_stmt) {
-        TVM_ICHECK_EQ(condition_counter(), 0) << "Cannot insert syncs inside condition";
+        ICHECK_EQ(condition_counter(), 0) << "Cannot insert syncs inside condition";
         syncs_inserted_.insert(s.stmt);
       }
     }
@@ -124,7 +124,7 @@ class ThreadSyncPlanner : public StorageAccessVisitor {
           }
         }
         if (sync_before_stmt) {
-          TVM_ICHECK_EQ(condition_counter(), 0) << "Cannot insert syncs inside condition";
+          ICHECK_EQ(condition_counter(), 0) << "Cannot insert syncs inside condition";
           syncs_inserted_.insert(s.stmt);
           break;
         }
@@ -263,7 +263,7 @@ class ThreadSyncInserter : public StmtExprMutator {
     if (op->op.same_as(builtin::tvm_access_ptr())) {
       PrimExpr expr = StmtExprMutator::VisitExpr_(op);
       op = expr.as<CallNode>();
-      TVM_ICHECK_EQ(op->args.size(), 5U);
+      ICHECK_EQ(op->args.size(), 5U);
       const VarNode* buffer_var = op->args[1].as<VarNode>();
       Var var(GetRef<Var>(buffer_var));
       const IntImmNode* flag = op->args[4].as<IntImmNode>();
@@ -297,7 +297,7 @@ class ThreadSyncInserter : public StmtExprMutator {
   }
   // private functions.
   Stmt InitGlobalBarrier(const AttrStmtNode* op) {
-    TVM_ICHECK(op != nullptr);
+    ICHECK(op != nullptr);
     Array<PrimExpr> pargs = {StringImm(runtime::symbol::tvm_prepare_global_barrier)};
     Stmt prep = Evaluate(Call(DataType::Int(32), builtin::tvm_call_packed(), pargs));
     Stmt body = op->body;
@@ -314,9 +314,9 @@ class ThreadSyncInserter : public StmtExprMutator {
     return SeqStmt({prep, body});
   }
   Stmt MakeGlobalBarrier() {
-    TVM_ICHECK(sync_scope_.rank == StorageRank::kGlobal);
+    ICHECK(sync_scope_.rank == StorageRank::kGlobal);
     if (!num_blocks_.defined()) {
-      TVM_ICHECK(!is_lead_.defined());
+      ICHECK(!is_lead_.defined());
       num_work_dim_ = thread_extents_.size();
       for (const AttrStmtNode* attr : thread_extents_) {
         IterVar iv = Downcast<IterVar>(attr->node);
@@ -329,7 +329,7 @@ class ThreadSyncInserter : public StmtExprMutator {
         }
       }
     } else {
-      TVM_ICHECK_EQ(num_work_dim_, thread_extents_.size());
+      ICHECK_EQ(num_work_dim_, thread_extents_.size());
     }
     return Evaluate(Call(DataType::Int(32), builtin::tvm_storage_sync(),
                          {StringImm(sync_scope_.to_string()), is_lead_, num_blocks_}));

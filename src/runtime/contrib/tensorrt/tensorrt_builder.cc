@@ -70,7 +70,7 @@ void TensorRTBuilder::AddInput(int nid, uint32_t entry_id, const JSONGraphNode& 
   auto node_name = node.GetOpName();
   auto shapes = node.GetOpShape();
   auto dtypes = node.GetOpDataType();
-  TVM_ICHECK_EQ(shapes.size(), dtypes.size());
+  ICHECK_EQ(shapes.size(), dtypes.size());
   node_output_map_[nid] = {};
   for (size_t i = 0; i < shapes.size(); ++i) {
     const std::string name = node_name + "_" + std::to_string(i);
@@ -80,7 +80,7 @@ void TensorRTBuilder::AddInput(int nid, uint32_t entry_id, const JSONGraphNode& 
       shape.erase(shape.begin());
     }
     nvinfer1::Dims dims = VectorToTrtDims(shape);
-    TVM_ICHECK(TypeMatch(dtypes[i], kDLFloat, 32)) << "Only FP32 inputs are supported.";
+    ICHECK(TypeMatch(dtypes[i], kDLFloat, 32)) << "Only FP32 inputs are supported.";
     auto input_tensor = network_->addInput(name.c_str(), nvinfer1::DataType::kFLOAT, dims);
     node_output_map_[nid].push_back(TensorRTOpInput(input_tensor));
     network_input_names_.push_back(name);
@@ -100,7 +100,7 @@ void TensorRTBuilder::AddConstant(int nid, const DLTensor* data) {
 
 void TensorRTBuilder::AddOutput(const JSONGraphNodeEntry& node, uint32_t entry_id) {
   auto it = node_output_map_.find(node.id_);
-  TVM_ICHECK(it != node_output_map_.end()) << "Output was not found.";
+  ICHECK(it != node_output_map_.end()) << "Output was not found.";
   auto out_tensor = it->second[node.index_].tensor;
   std::string name = "tensorrt_output_" + std::to_string(network_output_names_.size());
   out_tensor->setName(name.c_str());
@@ -113,26 +113,26 @@ void TensorRTBuilder::AddLayer(int nid, const JSONGraphNode& node) {
   TensorRTOpConverterParams params(network_, node, &trt_weights_);
   // Look up converter.
   auto it = GetOpConverters()->find(params.op_name);
-  TVM_ICHECK(it != GetOpConverters()->end())
+  ICHECK(it != GetOpConverters()->end())
       << "Unsupported operator conversion to TRT, op name: " << params.op_name;
   const auto converter = it->second;
   // Get inputs.
   for (size_t i = 0; i < node.GetInputs().size(); ++i) {
     auto in_node = node.GetInputs()[i];
     auto it = node_output_map_.find(in_node.id_);
-    TVM_ICHECK(it != node_output_map_.end()) << "Input was not found.";
+    ICHECK(it != node_output_map_.end()) << "Input was not found.";
     auto input = it->second[in_node.index_];
     if (!converter->variable_input_count) {
       if (converter->input_types[i] == kTensor && input.type == kWeight) {
         input = TensorRTOpInput(GetInputAsTensor(input));
       } else if (converter->input_types[i] == kWeight && input.type == kTensor) {
-        TVM_LOG(FATAL) << "Input " << i << " for " << params.op_name
+        LOG(FATAL) << "Input " << i << " for " << params.op_name
                    << " requires weights but got a tensor.";
       }
     }
     params.inputs.push_back(input);
   }
-  TVM_ICHECK(converter->variable_input_count || converter->input_types.size() == params.inputs.size())
+  ICHECK(converter->variable_input_count || converter->input_types.size() == params.inputs.size())
       << "Op expected a different number of inputs.";
 
   // Convert op to TRT.
@@ -170,7 +170,7 @@ TensorRTEngineAndContext TensorRTBuilder::BuildEngine() {
 #else
   nvinfer1::ICudaEngine* engine = builder_->buildCudaEngine(*network_);
 #endif
-  TVM_ICHECK_EQ(engine->getNbBindings(), network_input_names_.size() + network_output_names_.size());
+  ICHECK_EQ(engine->getNbBindings(), network_input_names_.size() + network_output_names_.size());
   nvinfer1::IExecutionContext* context = engine->createExecutionContext();
   CleanUp();
 
@@ -187,8 +187,8 @@ TensorRTEngineAndContext TensorRTBuilder::BuildEngine() {
 
 nvinfer1::Weights TensorRTBuilder::GetDLTensorAsWeights(const DLTensor* dptr,
                                                         DLDeviceType src_device) {
-  TVM_ICHECK_EQ(dptr->ctx.device_type, src_device);
-  TVM_ICHECK(static_cast<int>(dptr->dtype.code) == kDLFloat ||
+  ICHECK_EQ(dptr->ctx.device_type, src_device);
+  ICHECK(static_cast<int>(dptr->dtype.code) == kDLFloat ||
          static_cast<int>(dptr->dtype.code) == kDLInt);
   const auto trt_dtype = static_cast<int>(dptr->dtype.code) == kDLFloat
                              ? nvinfer1::DataType::kFLOAT
@@ -199,10 +199,10 @@ nvinfer1::Weights TensorRTBuilder::GetDLTensorAsWeights(const DLTensor* dptr,
   for (tvm_index_t i = 0; i < dptr->ndim; ++i) {
     count *= dptr->shape[i];
   }
-  TVM_ICHECK_EQ(count * 4, weight_bytes);
+  ICHECK_EQ(count * 4, weight_bytes);
   weight.count = count;
   weight.values = new float[count];
-  TVM_ICHECK_EQ(TVMArrayCopyToBytes(const_cast<DLTensor*>(dptr), const_cast<void*>(weight.values),
+  ICHECK_EQ(TVMArrayCopyToBytes(const_cast<DLTensor*>(dptr), const_cast<void*>(weight.values),
                                 weight_bytes),
             0)
       << TVMGetLastError();
@@ -236,7 +236,7 @@ void TensorRTBuilder::AllocateDeviceBuffer(nvinfer1::ICudaEngine* engine, const 
   const uint32_t entry_id = entry_id_map_[name];
   if (data_entry_[entry_id]->ctx.device_type != kDLGPU) {
     const int binding_index = engine->getBindingIndex(name.c_str());
-    TVM_ICHECK_NE(binding_index, -1);
+    ICHECK_NE(binding_index, -1);
     std::vector<int64_t> shape(data_entry_[entry_id]->shape,
                                data_entry_[entry_id]->shape + data_entry_[entry_id]->ndim);
     device_buffers->at(binding_index) =

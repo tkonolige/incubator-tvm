@@ -268,7 +268,7 @@ PartialSolvedInequalities SolveLinearInequalities(const IntConstraints& system_t
 
   Map<Var, IntGroupBounds> res_bounds;
   for (const Var& v : system_to_solve->variables) {
-    TVM_ICHECK(!res_bounds.count(v))
+    ICHECK(!res_bounds.count(v))
         << "Variable " << v
         << " appears more than one time in the `variables` which might be a bug";
 
@@ -436,7 +436,7 @@ IntConstraints SolveInequalitiesToRange(const IntConstraints& inequalities) {
     analyzer.Bind(vranges);
 
     const Var& var = *it;
-    TVM_ICHECK(solved_bounds.count(var));
+    ICHECK(solved_bounds.count(var));
     auto bnd = solved_bounds[var];
     if (is_one(bnd->coef) && !bnd->equal.empty()) {
       // There is an equation of the form `v == expr`, so this variable can be completely removed.
@@ -595,7 +595,7 @@ TVM_REGISTER_GLOBAL("arith.SolveInequalitiesAsCondition")
         problem = IntConstraints(args[0], args[1], args[2]);
         ret_ineq = SolveLinearInequalities(problem);
       } else {
-        TVM_LOG(FATAL) << "arith.SolveInequalitiesAsCondition expects 1 or 3 arguments, gets "
+        LOG(FATAL) << "arith.SolveInequalitiesAsCondition expects 1 or 3 arguments, gets "
                    << args.size();
       }
       *ret = AsConditions(problem->variables, ret_ineq.first, ret_ineq.second);
@@ -608,7 +608,7 @@ TVM_REGISTER_GLOBAL("arith.SolveInequalitiesToRange").set_body([](TVMArgs args, 
     IntConstraints problem(args[0], args[1], args[2]);
     *ret = SolveInequalitiesToRange(problem);
   } else {
-    TVM_LOG(FATAL) << "arith.SolveInequalitiesToRange expects 1 or 3 arguments, gets " << args.size();
+    LOG(FATAL) << "arith.SolveInequalitiesToRange expects 1 or 3 arguments, gets " << args.size();
   }
 });
 
@@ -620,7 +620,7 @@ TVM_REGISTER_GLOBAL("arith.SolveInequalitiesDeskewRange")
         IntConstraints problem(args[0], args[1], args[2]);
         *ret = SolveInequalitiesDeskewRange(problem);
       } else {
-        TVM_LOG(FATAL) << "arith.SolveInequalitiesDeskewRange expects 1 or 3 arguments, gets "
+        LOG(FATAL) << "arith.SolveInequalitiesDeskewRange expects 1 or 3 arguments, gets "
                    << args.size();
       }
     });

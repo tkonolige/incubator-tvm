@@ -68,7 +68,7 @@ struct QnnBinaryOpArguments {
   Expr output_zero_point;
 
   explicit QnnBinaryOpArguments(const Array<Expr>& new_args) {
-    TVM_ICHECK_EQ(new_args.size(), kNumQnnBinaryOpInputs);
+    ICHECK_EQ(new_args.size(), kNumQnnBinaryOpInputs);
     int idx = 0;
     lhs = new_args[idx++];
     rhs = new_args[idx++];
@@ -78,7 +78,7 @@ struct QnnBinaryOpArguments {
     rhs_zero_point = new_args[idx++];
     output_scale = new_args[idx++];
     output_zero_point = new_args[idx++];
-    TVM_ICHECK_EQ(idx, kNumQnnBinaryOpInputs);
+    ICHECK_EQ(idx, kNumQnnBinaryOpInputs);
   }
 };
 
@@ -92,9 +92,9 @@ struct QnnBinaryOpTensorType {
   Array<PrimExpr> shape;
 
   explicit QnnBinaryOpTensorType(const Array<tvm::relay::Type>& arg_types, const int32_t arg_idx) {
-    TVM_ICHECK_EQ(arg_types.size(), kNumQnnBinaryOpArgTypes);
+    ICHECK_EQ(arg_types.size(), kNumQnnBinaryOpArgTypes);
     auto tensor_type = arg_types[arg_idx].as<TensorTypeNode>();
-    TVM_ICHECK(tensor_type != nullptr);
+    ICHECK(tensor_type != nullptr);
     dtype = tensor_type->dtype;
     shape = tensor_type->shape;
   }
@@ -170,7 +170,7 @@ static inline bool QnnBroadcastRel(const Array<Type>& types, int num_inputs, con
                                    const TypeReporter& reporter) {
   // Expected Types: lhs, rhs, lhs_scale, lhs_zero_point, rhs_scale, rhs_zero_point, output_scale,
   // output_zero_point, out_type
-  TVM_ICHECK_EQ(types.size(), kNumQnnBinaryOpArgTypes);
+  ICHECK_EQ(types.size(), kNumQnnBinaryOpArgTypes);
 
   // Check the lhs and rhs types
   for (size_t i = 0; i < 2; ++i) {
@@ -184,12 +184,12 @@ static inline bool QnnBroadcastRel(const Array<Type>& types, int num_inputs, con
       return false;
     }
   }
-  TVM_ICHECK(IsScalarType(types[2], DataType::Float(32)));  // lhs_scale
-  TVM_ICHECK(IsScalarType(types[3], DataType::Int(32)));    // lhs_zero_point
-  TVM_ICHECK(IsScalarType(types[4], DataType::Float(32)));  // rhs_scale
-  TVM_ICHECK(IsScalarType(types[5], DataType::Int(32)));    // rhs_zero_point
-  TVM_ICHECK(IsScalarType(types[6], DataType::Float(32)));  // output_scale
-  TVM_ICHECK(IsScalarType(types[7], DataType::Int(32)));    // output_zero_point
+  ICHECK(IsScalarType(types[2], DataType::Float(32)));  // lhs_scale
+  ICHECK(IsScalarType(types[3], DataType::Int(32)));    // lhs_zero_point
+  ICHECK(IsScalarType(types[4], DataType::Float(32)));  // rhs_scale
+  ICHECK(IsScalarType(types[5], DataType::Int(32)));    // rhs_zero_point
+  ICHECK(IsScalarType(types[6], DataType::Float(32)));  // output_scale
+  ICHECK(IsScalarType(types[7], DataType::Int(32)));    // output_zero_point
 
   // Collect the input tensor and output tensor devoid of scale and zero points to reuse Relay
   // BroadcastRel infer type function.

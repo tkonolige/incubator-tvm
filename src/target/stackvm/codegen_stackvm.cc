@@ -69,18 +69,18 @@ StackVM::StructFieldKind MapFieldKind(int64_t kind) {
     case builtin::kTVMValueContent:
       return StackVM::kTVMValueContent;
     default:
-      TVM_LOG(FATAL) << "Do not know how to map field " << kind;
+      LOG(FATAL) << "Do not know how to map field " << kind;
   }
   return StackVM::kArrData;
 }
 
 StackVM CodeGenStackVM::Compile(const PrimFunc& f) {
-  TVM_ICHECK_EQ(f->buffer_map.size(), 0U)
+  ICHECK_EQ(f->buffer_map.size(), 0U)
       << "Cannot codegen function with buffer_map, please lower them first";
   for (size_t i = 0; i < f->params.size(); ++i) {
     Var v = f->params[i];
     int vid = AllocVarID(v.get());
-    TVM_ICHECK_EQ(static_cast<size_t>(vid), i);
+    ICHECK_EQ(static_cast<size_t>(vid), i);
   }
   this->Push(f->body);
   vm_.InitCache();
@@ -101,7 +101,7 @@ void CodeGenStackVM::PushOp(StackVM::OpCode opcode) {
 }
 
 void CodeGenStackVM::SetOperand(int64_t operand_index, int64_t operand) {
-  TVM_ICHECK(operand >= std::numeric_limits<int>::min() && operand <= std::numeric_limits<int>::max());
+  ICHECK(operand >= std::numeric_limits<int>::min() && operand <= std::numeric_limits<int>::max());
   vm_.code.at(operand_index).v_int = static_cast<int>(operand);
 }
 
@@ -125,9 +125,9 @@ int CodeGenStackVM::GetStrID(const std::string& key) {
 }
 
 int CodeGenStackVM::AllocVarID(const VarNode* v) {
-  TVM_ICHECK(!var_idmap_.count(v));
+  ICHECK(!var_idmap_.count(v));
   int vid = static_cast<int>(vm_.heap_size);
-  TVM_ICHECK_EQ(vm_.heap_size, var_idmap_.size());
+  ICHECK_EQ(vm_.heap_size, var_idmap_.size());
   vm_.heap_id_name.push_back(v->name_hint);
   ++vm_.heap_size;
   var_idmap_[v] = vid;
@@ -136,7 +136,7 @@ int CodeGenStackVM::AllocVarID(const VarNode* v) {
 
 int CodeGenStackVM::GetVarID(const VarNode* v) const {
   auto it = var_idmap_.find(v);
-  TVM_ICHECK(it != var_idmap_.end()) << "Find undefined Variable " << v->name_hint;
+  ICHECK(it != var_idmap_.end()) << "Find undefined Variable " << v->name_hint;
   return it->second;
 }
 
@@ -171,13 +171,13 @@ void CodeGenStackVM::VisitStmt_(const StoreNode* op) {
 }
 
 void CodeGenStackVM::VisitStmt_(const AllocateNode* op) {
-  TVM_LOG(FATAL) << "Dynamic allocation not supported";
+  LOG(FATAL) << "Dynamic allocation not supported";
 }
 
 void CodeGenStackVM::VisitExpr_(const CallNode* op) {
   if (op->op.same_as(builtin::address_of())) {
     const LoadNode* l = op->args[0].as<LoadNode>();
-    TVM_ICHECK(op->args.size() == 1 && l);
+    ICHECK(op->args.size() == 1 && l);
     this->PushOp(StackVM::LOAD_HEAP, GetVarID(l->buffer_var.get()));
     this->Push(l->index);
     this->PushOp(StackVM::PUSH_I64, l->dtype.element_of().bytes());
@@ -186,11 +186,11 @@ void CodeGenStackVM::VisitExpr_(const CallNode* op) {
   } else if (op->op.same_as(builtin::reinterpret())) {
     this->Push(op->args[0]);
   } else if (op->op.same_as(builtin::tvm_struct_get())) {
-    TVM_ICHECK_EQ(op->args.size(), 3U);
+    ICHECK_EQ(op->args.size(), 3U);
     int kind = op->args[2].as<IntImmNode>()->value;
     this->Push(op->args[0]);
     const IntImmNode* index = op->args[1].as<IntImmNode>();
-    TVM_ICHECK(index != nullptr);
+    ICHECK(index != nullptr);
     StackVM::Code code;
     code.op_code = StackVM::TVM_STRUCT_GET;
     vm_.code.push_back(code);
@@ -199,9 +199,9 @@ void CodeGenStackVM::VisitExpr_(const CallNode* op) {
     code.v_int = MapFieldKind(kind);
     vm_.code.push_back(code);
   } else if (op->op.same_as(builtin::tvm_call_packed_lowered())) {
-    TVM_ICHECK_GE(op->args.size(), 5U);
+    ICHECK_GE(op->args.size(), 5U);
     const StringImmNode* s = op->args[0].as<StringImmNode>();
-    TVM_ICHECK(s != nullptr) << "tvm_call_global expect first argument as function name";
+    ICHECK(s != nullptr) << "tvm_call_global expect first argument as function name";
     this->Push(op->args[1]);
     this->Push(op->args[2]);
     int begin = op->args[3].as<IntImmNode>()->value;
@@ -228,10 +228,10 @@ void CodeGenStackVM::VisitExpr_(const CallNode* op) {
     code.v_int = end;
     vm_.code.push_back(code);
   } else if (op->op.same_as(builtin::tvm_stack_alloca())) {
-    TVM_ICHECK_EQ(op->args.size(), 2U);
+    ICHECK_EQ(op->args.size(), 2U);
     const std::string& type = op->args[0].as<StringImmNode>()->value;
     const IntImmNode* num = op->args[1].as<IntImmNode>();
-    TVM_ICHECK(num != nullptr);
+    ICHECK(num != nullptr);
     static_assert(alignof(TVMValue) % alignof(DLTensor) == 0, "invariant");
     // static_assert(alignof(TVMValue) % alignof(tvm_index_t) == 0, "invariant");
     size_t unit = sizeof(TVMValue);
@@ -245,13 +245,13 @@ void CodeGenStackVM::VisitExpr_(const CallNode* op) {
     } else if (type == "array") {
       size = (num->value * sizeof(DLTensor) + unit - 1) / unit;
     } else {
-      TVM_LOG(FATAL) << "Unknown stack alloca type " << type;
+      LOG(FATAL) << "Unknown stack alloca type " << type;
     }
     // add stack size to be safe.
     vm_.stack_size += size;
     this->PushOp(StackVM::TVM_STACK_ALLOCA_BY_8BYTE, static_cast<int>(size));
   } else if (op->op.same_as(backend_alloc_workspace_op_)) {
-    TVM_ICHECK_EQ(op->args.size(), 5U);
+    ICHECK_EQ(op->args.size(), 5U);
     this->Push(op->args[0]);
     this->Push(op->args[1]);
     this->Push(op->args[2]);
@@ -259,7 +259,7 @@ void CodeGenStackVM::VisitExpr_(const CallNode* op) {
     this->Push(op->args[4]);
     this->PushOp(StackVM::TVM_DEVICE_ALLOCA);
   } else if (op->op.same_as(backend_free_workspace_op_)) {
-    TVM_ICHECK_EQ(op->args.size(), 3U);
+    ICHECK_EQ(op->args.size(), 3U);
     this->Push(op->args[0]);
     this->Push(op->args[1]);
     this->Push(op->args[2]);
@@ -267,12 +267,12 @@ void CodeGenStackVM::VisitExpr_(const CallNode* op) {
   } else if (op->op.same_as(builtin::tvm_throw_last_error())) {
     this->PushOp(StackVM::TVM_THROW_LAST_ERROR);
   } else if (op->op.same_as(builtin::isnullptr())) {
-    TVM_ICHECK_EQ(op->args.size(), 1U);
+    ICHECK_EQ(op->args.size(), 1U);
     this->Push(op->args[0]);
     this->PushOp(StackVM::PUSH_I64, 0);
     this->PushOp(StackVM::EQ_HANDLE);
   } else {
-    TVM_LOG(FATAL) << "unknown function call " << op->op;
+    LOG(FATAL) << "unknown function call " << op->op;
   }
 }
 
@@ -305,14 +305,14 @@ void CodeGenStackVM::VisitExpr_(const StringImmNode* op) {
 }
 
 void CodeGenStackVM::VisitExpr_(const IntImmNode* op) {
-  TVM_ICHECK(op->value >= std::numeric_limits<int>::min() &&
+  ICHECK(op->value >= std::numeric_limits<int>::min() &&
          op->value <= std::numeric_limits<int>::max())
       << "Int constant exceed bound";
   this->PushOp(StackVM::PUSH_I64, static_cast<int>(op->value));
 }
 
 void CodeGenStackVM::VisitExpr_(const FloatImmNode* op) {
-  TVM_LOG(FATAL) << "Float Imm is not supported";
+  LOG(FATAL) << "Float Imm is not supported";
 }
 
 void CodeGenStackVM::VisitExpr_(const VarNode* op) {
@@ -399,7 +399,7 @@ void CodeGenStackVM::VisitExpr_(const NotNode* op) {
 }
 
 void CodeGenStackVM::VisitStmt_(const ForNode* op) {
-  TVM_ICHECK(is_zero(op->min));
+  ICHECK(is_zero(op->min));
   int vid = this->AllocVarID(op->loop_var.get());
   this->PushOp(StackVM::PUSH_I64, 0);
   int64_t loop_head = this->GetPC();
@@ -432,11 +432,11 @@ void CodeGenStackVM::VisitStmt_(const EvaluateNode* ev) {
   if (is_const_int(ev->value)) return;
   const CallNode* op = ev->value.as<CallNode>();
   if (op && op->op.same_as(builtin::tvm_struct_set())) {
-    TVM_ICHECK_EQ(op->args.size(), 4U);
+    ICHECK_EQ(op->args.size(), 4U);
     this->Push(op->args[0]);
     this->Push(op->args[3]);
     const IntImmNode* index = op->args[1].as<IntImmNode>();
-    TVM_ICHECK(index != nullptr);
+    ICHECK(index != nullptr);
     StackVM::Code code;
     code.op_code = StackVM::TVM_STRUCT_SET;
     vm_.code.push_back(code);
@@ -479,10 +479,10 @@ void CodeGenStackVM::VisitStmt_(const LetStmtNode* op) {
   this->Push(op->body);
 }
 
-void CodeGenStackVM::VisitExpr_(const RampNode* op) { TVM_LOG(FATAL) << "Ramp is not supported"; }
+void CodeGenStackVM::VisitExpr_(const RampNode* op) { LOG(FATAL) << "Ramp is not supported"; }
 
 void CodeGenStackVM::VisitExpr_(const BroadcastNode* op) {
-  TVM_LOG(FATAL) << "Broadcast is not supported";
+  LOG(FATAL) << "Broadcast is not supported";
 }
 
 void CodeGenStackVM::VisitExpr_(const SelectNode* op) {
@@ -515,14 +515,14 @@ runtime::Module BuildStackVM(IRModule mod, Target target) {
   std::string entry_func;
 
   for (auto kv : mod->functions) {
-    TVM_ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodeGenStackVM: Can only take PrimFunc";
+    ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodeGenStackVM: Can only take PrimFunc";
     auto f = Downcast<PrimFunc>(kv.second);
     auto global_symbol = f->GetAttr<String>(tvm::attr::kGlobalSymbol);
-    TVM_ICHECK(global_symbol.defined())
+    ICHECK(global_symbol.defined())
         << "CodeGenStackVM: Expect PrimFunc to have the global_symbol attribute";
     std::string f_name = global_symbol.value();
     StackVM vm = codegen::CodeGenStackVM().Compile(f);
-    TVM_ICHECK(!fmap.count(f_name)) << "Function name " << f_name << "already exist in list";
+    ICHECK(!fmap.count(f_name)) << "Function name " << f_name << "already exist in list";
     fmap[f_name] = std::move(vm);
 
     if (f->HasNonzeroAttr(tir::attr::kIsEntryFunc)) {

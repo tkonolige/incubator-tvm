@@ -277,7 +277,7 @@ Instruction::~Instruction() {
       return;
     default:
       std::ostringstream out;
-      TVM_LOG(FATAL) << "Invalid instruction " << static_cast<int>(this->op);
+      LOG(FATAL) << "Invalid instruction " << static_cast<int>(this->op);
   }
 }
 
@@ -627,7 +627,7 @@ void InstructionPrint(std::ostream& os, const Instruction& instr) {
       break;
     }
     default:
-      TVM_LOG(FATAL) << "should never hit this case" << static_cast<int>(instr.op);
+      LOG(FATAL) << "should never hit this case" << static_cast<int>(instr.op);
       break;
   }
 }

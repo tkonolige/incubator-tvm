@@ -91,7 +91,7 @@ inline int OperationToStage(const te::Operation& op, const State& state) {
       return i;
     }
   }
-  TVM_LOG(FATAL) << "Cannot find op: " << op;
+  LOG(FATAL) << "Cannot find op: " << op;
   return -1;
 }
 
@@ -99,29 +99,29 @@ inline int OperationToStage(const te::Operation& op, const State& state) {
 
 /*! \brief Get an integer from a tvm str Map. */
 inline int GetIntParam(const Map<String, ObjectRef>& attr_dict, const std::string& key) {
-  TVM_ICHECK_GT(attr_dict.count(key), 0) << "Cannot find key: \"" << key << "\" in " << attr_dict;
+  ICHECK_GT(attr_dict.count(key), 0) << "Cannot find key: \"" << key << "\" in " << attr_dict;
   auto pint = attr_dict[key].as<IntImmNode>();
-  TVM_ICHECK(pint != nullptr);
+  ICHECK(pint != nullptr);
   return pint->value;
 }
 
 /*! \brief Get a double from a tvm str Map. */
 inline double GetDoubleParam(const Map<String, ObjectRef>& attr_dict, const std::string& key) {
-  TVM_ICHECK_GT(attr_dict.count(key), 0) << "Cannot find key: \"" << key << "\" in " << attr_dict;
+  ICHECK_GT(attr_dict.count(key), 0) << "Cannot find key: \"" << key << "\" in " << attr_dict;
   auto pdouble = attr_dict[key].as<FloatImmNode>();
-  TVM_ICHECK(pdouble != nullptr);
+  ICHECK(pdouble != nullptr);
   return pdouble->value;
 }
 
 /*! \brief Get a string from a tvm str Map. */
 inline std::string GetStringParam(const Map<String, ObjectRef>& attr_dict, const std::string& key) {
-  TVM_ICHECK_GT(attr_dict.count(key), 0) << "Cannot find key: \"" << key << "\" in " << attr_dict;
+  ICHECK_GT(attr_dict.count(key), 0) << "Cannot find key: \"" << key << "\" in " << attr_dict;
   const auto& target = attr_dict[key];
   if (auto pstr = target.as<StringImmNode>()) {
     return pstr->value;
   }
   auto pstr = target.as<StringObj>();
-  TVM_ICHECK(pstr != nullptr);
+  ICHECK(pstr != nullptr);
   return pstr->data;
 }
 
@@ -129,9 +129,9 @@ inline std::string GetStringParam(const Map<String, ObjectRef>& attr_dict, const
 inline std::set<std::string> GetIterNameSetParam(const Map<String, ObjectRef>& attr_dict,
                                                  const std::string& key) {
   std::set<std::string> ret;
-  TVM_ICHECK_GT(attr_dict.count(key), 0) << "Cannot find key: \"" << key << "\" in " << attr_dict;
+  ICHECK_GT(attr_dict.count(key), 0) << "Cannot find key: \"" << key << "\" in " << attr_dict;
   auto names = attr_dict[key].as<ArrayNode>();
-  TVM_ICHECK(names != nullptr);
+  ICHECK(names != nullptr);
   for (const auto& name : *names) {
     ret.insert(name.as<StringObj>()->data);
   }
@@ -209,7 +209,7 @@ inline int GetSingleConsumerId(const SearchTask& task, const State& state, int s
       } else if (state->stages[consumer_stage_id]->compute_at == ComputeAtKind::kIter) {
         root_id = state->attach_map->stage_to_attach_iter.at(consumer_stage_id).first;
       } else {
-        TVM_LOG(FATAL) << "Invalid case";
+        LOG(FATAL) << "Invalid case";
       }
 
       if (common_root_id == -1) {
@@ -477,7 +477,7 @@ inline bool HasCrossThreadReduction(const State& state, int stage_id) {
 /*! \brief Return whether the stage has been tiled already. */
 inline bool IsTiled(const Stage& stage) {
   auto op = stage->op.as<te::ComputeOpNode>();
-  TVM_ICHECK(op != nullptr);
+  ICHECK(op != nullptr);
   return stage->iters.size() != op->axis.size() + op->reduce_axis.size();
 }
 
@@ -502,7 +502,7 @@ inline void ExtractOriginalIterators(const std::string& name, std::set<std::stri
 /*! \brief Get the last reduce iterator in the outermost reduce tile. */
 inline Iterator GetLastReduceIteratorInOutermostReduceTile(const Stage& stage) {
   auto pop = stage->op.as<te::ComputeOpNode>();
-  TVM_ICHECK(pop != nullptr);
+  ICHECK(pop != nullptr);
   std::set<std::string> original_names;
 
   const std::set<std::string>& no_split_at_inner_name_set =
@@ -533,7 +533,7 @@ inline Iterator GetLastReduceIteratorInOutermostReduceTile(const Stage& stage) {
     }
   }
 
-  TVM_LOG(FATAL) << "Cannot find the iterator.";
+  LOG(FATAL) << "Cannot find the iterator.";
   return stage->iters[0];
 }
 
@@ -583,7 +583,7 @@ inline State FuseAllReductionIterators(const State& state, int stage_id, Iterato
     }
   }
 
-  TVM_ICHECK(!reduce_iters->empty());
+  ICHECK(!reduce_iters->empty());
   State tmp_s = state;
   if (reduce_iters->size() > 1) {
     *fused_iter = tmp_s.fuse(stage_id, *reduce_iters);
@@ -609,7 +609,7 @@ inline State FuseAllOuterSpaceIterators(const State& state, int stage_id, Iterat
     to_fuse.push_back(it);
   }
 
-  TVM_ICHECK(!to_fuse.empty());
+  ICHECK(!to_fuse.empty());
   State tmp_s = state;
   if (to_fuse.size() > 1) {
     *fused_iter = tmp_s.fuse(stage_id, to_fuse);
@@ -649,7 +649,7 @@ inline int RandomChoose(const std::vector<double>& prefix_sum_probs, std::mt1993
   std::uniform_real_distribution<> dis(0.0, 1.0);
   double x = dis(*random_gen);
 
-  TVM_ICHECK(!prefix_sum_probs.empty());
+  ICHECK(!prefix_sum_probs.empty());
 
   return std::lower_bound(prefix_sum_probs.begin(), prefix_sum_probs.end(), x) -
          prefix_sum_probs.begin();

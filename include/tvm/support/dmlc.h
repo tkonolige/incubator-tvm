@@ -44,8 +44,14 @@
 #undef CHECK_GE
 #undef CHECK_NOTNULL
 #undef LOG
-#undef TVM_LOG_IF
+#undef LOG_IF
 #undef DLOG
 #undef DLOG_IF
+#undef LOG_FATAL
+#undef LOG_WARNING
+#undef LOG_ERROR
+#undef LOG_INFO
+
+#include <tvm/support/logging.h> // so we don't undef our own logging macros
 
 #endif

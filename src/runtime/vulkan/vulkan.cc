@@ -18,7 +18,6 @@
  */
 
 #include <tvm/support/dmlc.h>
-#include <tvm/support/dmlc.h>
 #include <tvm/runtime/device_api.h>
 #include <tvm/runtime/registry.h>
 #include <vulkan/vulkan.h>
@@ -202,7 +201,7 @@ class VulkanDeviceAPI final : public DeviceAPI {
   void CopyDataFromTo(const void* from, size_t from_offset, void* to, size_t to_offset, size_t size,
                       TVMContext ctx_from, TVMContext ctx_to, DLDataType type_hint,
                       TVMStreamHandle stream) final {
-    TVM_ICHECK(stream == nullptr);
+    ICHECK(stream == nullptr);
     TVMContext ctx = ctx_from;
     if (ctx_from.device_type == kDLCPU) {
       ctx = ctx_to;
@@ -223,7 +222,7 @@ class VulkanDeviceAPI final : public DeviceAPI {
             copy_info.size = size;
             vkCmdCopyBuffer(state->cmd_buffer_, from_buf->buffer, to_buf->buffer, 1, &copy_info);
             // 2: barrier(transfer-> compute|transfer)
-            TVM_ICHECK_EQ(ctx_from.device_id, ctx_to.device_id) << "Vulkan disallow cross device copy.";
+            ICHECK_EQ(ctx_from.device_id, ctx_to.device_id) << "Vulkan disallow cross device copy.";
             VkMemoryBarrier barrier_info;
             barrier_info.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
             barrier_info.pNext = nullptr;
@@ -302,34 +301,34 @@ class VulkanDeviceAPI final : public DeviceAPI {
       // Stream? This would allow us to elide synchronizations here.
       VulkanThreadEntry::ThreadLocal()->Stream(ctx_from.device_id)->Synchronize();
     } else {
-      TVM_LOG(FATAL) << "Expect copy from/to Vulkan or between Vulkan"
+      LOG(FATAL) << "Expect copy from/to Vulkan or between Vulkan"
                  << ", from=" << from_dev_type << ", to=" << to_dev_type;
     }
   }
 
   // Always use the default stream
   TVMStreamHandle CreateStream(TVMContext ctx) {
-    TVM_LOG(FATAL) << "Not implemented";
+    LOG(FATAL) << "Not implemented";
     return nullptr;
   }
 
   void FreeStream(TVMContext ctx, TVMStreamHandle stream) {
-    TVM_LOG(FATAL) << "Not implemented";
+    LOG(FATAL) << "Not implemented";
     return;
   }
 
   void SyncStreamFromTo(TVMContext ctx, TVMStreamHandle event_src, TVMStreamHandle event_dst) {
-    TVM_LOG(FATAL) << "Not implemented";
+    LOG(FATAL) << "Not implemented";
     return;
   }
 
   void StreamSync(TVMContext ctx, TVMStreamHandle stream) final {
-    TVM_ICHECK(stream == nullptr);
+    ICHECK(stream == nullptr);
     VulkanThreadEntry::ThreadLocal()->Stream(ctx.device_id)->Synchronize();
   }
 
   void SetStream(TVMContext ctx, TVMStreamHandle stream) final {
-    TVM_LOG(FATAL) << "Not implemented";
+    LOG(FATAL) << "Not implemented";
     return;
   }
 
@@ -347,7 +346,7 @@ class VulkanDeviceAPI final : public DeviceAPI {
   }
 
   const VulkanContext& context(size_t device_id) const {
-    TVM_ICHECK_LT(device_id, context_.size());
+    ICHECK_LT(device_id, context_.size());
     return context_[device_id];
   }
 
@@ -363,7 +362,7 @@ void VulkanDeviceAPI::GetAttr(TVMContext ctx, DeviceAttrKind kind, TVMRetValue* 
     *rv = static_cast<int>(index < context_.size());
     return;
   }
-  TVM_ICHECK_LT(index, context_.size()) << "Invalid device id " << index;
+  ICHECK_LT(index, context_.size()) << "Invalid device id " << index;
   const auto& vctx = context(index);
   switch (kind) {
     case kMaxThreadsPerBlock: {
@@ -600,7 +599,7 @@ VulkanDeviceAPI::VulkanDeviceAPI() {
         ctx.coherent_staging = ty.propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
       }
     }
-    TVM_ICHECK_GE(win_rank, 0) << "Cannot find suitable staging memory on device.";
+    ICHECK_GE(win_rank, 0) << "Cannot find suitable staging memory on device.";
 
     win_rank = -1;
     for (uint32_t k = 0; k < prop.memoryTypeCount; ++k) {
@@ -619,7 +618,7 @@ VulkanDeviceAPI::VulkanDeviceAPI() {
         ctx.compute_mtype_index = k;
       }
     }
-    TVM_ICHECK_GE(win_rank, 0) << "Cannot find suitable local memory on device.";
+    ICHECK_GE(win_rank, 0) << "Cannot find suitable local memory on device.";
     auto has_extension = [&extensions](const char* query) {
       return std::any_of(extensions.begin(), extensions.end(),
                          [&](const char* extension) { return std::strcmp(query, extension) == 0; });
@@ -631,16 +630,16 @@ VulkanDeviceAPI::VulkanDeviceAPI() {
       ctx.descriptor_template_khr_functions = std::unique_ptr<VulkanDescriptorTemplateKHRFunctions>(
           new VulkanDescriptorTemplateKHRFunctions());
       ctx.descriptor_template_khr_functions->vkCreateDescriptorUpdateTemplateKHR =
-          TVM_CHECK_NOTNULL((PFN_vkCreateDescriptorUpdateTemplateKHR)vkGetDeviceProcAddr(
+          CHECK_NOTNULL((PFN_vkCreateDescriptorUpdateTemplateKHR)vkGetDeviceProcAddr(
               ctx.device, "vkCreateDescriptorUpdateTemplateKHR"));
       ctx.descriptor_template_khr_functions->vkDestroyDescriptorUpdateTemplateKHR =
-          TVM_CHECK_NOTNULL((PFN_vkDestroyDescriptorUpdateTemplateKHR)vkGetDeviceProcAddr(
+          CHECK_NOTNULL((PFN_vkDestroyDescriptorUpdateTemplateKHR)vkGetDeviceProcAddr(
               ctx.device, "vkDestroyDescriptorUpdateTemplateKHR"));
       ctx.descriptor_template_khr_functions->vkUpdateDescriptorSetWithTemplateKHR =
-          TVM_CHECK_NOTNULL((PFN_vkUpdateDescriptorSetWithTemplateKHR)vkGetDeviceProcAddr(
+          CHECK_NOTNULL((PFN_vkUpdateDescriptorSetWithTemplateKHR)vkGetDeviceProcAddr(
               ctx.device, "vkUpdateDescriptorSetWithTemplateKHR"));
       ctx.descriptor_template_khr_functions->vkCmdPushDescriptorSetWithTemplateKHR =
-          TVM_CHECK_NOTNULL((PFN_vkCmdPushDescriptorSetWithTemplateKHR)vkGetDeviceProcAddr(
+          CHECK_NOTNULL((PFN_vkCmdPushDescriptorSetWithTemplateKHR)vkGetDeviceProcAddr(
               ctx.device, "vkCmdPushDescriptorSetWithTemplateKHR"));
     }
 #endif
@@ -652,16 +651,16 @@ VulkanDeviceAPI::VulkanDeviceAPI() {
           std::unique_ptr<VulkanGetBufferMemoryRequirements2Functions>(
               new VulkanGetBufferMemoryRequirements2Functions());
       ctx.get_buffer_memory_requirements_2_functions->vkGetBufferMemoryRequirements2KHR =
-          TVM_CHECK_NOTNULL((PFN_vkGetBufferMemoryRequirements2KHR)vkGetDeviceProcAddr(
+          CHECK_NOTNULL((PFN_vkGetBufferMemoryRequirements2KHR)vkGetDeviceProcAddr(
               ctx.device, "vkGetBufferMemoryRequirements2KHR"));
     }
 #endif
     context_.push_back(std::move(ctx));
   }
 
-  TVM_LOG(INFO) << "Initialize Vulkan with " << context_.size() << " devices..";
+  LOG(INFO) << "Initialize Vulkan with " << context_.size() << " devices..";
   for (size_t i = 0; i < context_.size(); ++i) {
-    TVM_LOG(INFO) << "vulkan(" << i << ")=\'" << context_[i].phy_device_prop.deviceName
+    LOG(INFO) << "vulkan(" << i << ")=\'" << context_[i].phy_device_prop.deviceName
               << "\' phy_dev_id=" << context_[i].phy_device
               << " use_immediate=" << context_[i].UseImmediate();
   }
@@ -740,8 +739,8 @@ class VulkanModuleNode final : public runtime::ModuleNode {
   const char* type_key() const final { return "vulkan"; }
 
   PackedFunc GetFunction(const std::string& name, const ObjectPtr<Object>& sptr_to_self) final {
-    TVM_ICHECK_EQ(sptr_to_self.get(), this);
-    TVM_ICHECK_NE(name, symbol::tvm_module_main) << "Device function do not have main";
+    ICHECK_EQ(sptr_to_self.get(), this);
+    ICHECK_NE(name, symbol::tvm_module_main) << "Device function do not have main";
     auto it = fmap_.find(name);
     if (it == fmap_.end()) return PackedFunc();
     const FunctionInfo& info = it->second;
@@ -757,7 +756,7 @@ class VulkanModuleNode final : public runtime::ModuleNode {
     for (size_t device_id = 0; device_id < ecache_.size(); ++device_id) {
       for (auto& kv : ecache_[device_id]) {
         auto& pe = kv.second;
-        TVM_ICHECK(pe);
+        ICHECK(pe);
         const auto& vctx = VulkanDeviceAPI::Global()->context(device_id);
 
         if (pe->descriptor_update_template != VK_NULL_HANDLE) {
@@ -786,7 +785,7 @@ class VulkanModuleNode final : public runtime::ModuleNode {
     {
       // create shader
       auto sit = smap_.find(func_name);
-      TVM_ICHECK(sit != smap_.end());
+      ICHECK(sit != smap_.end());
       const std::vector<uint32_t>& data = sit->second.data;
       VkShaderModuleCreateInfo shader_cinfo;
       shader_cinfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -802,7 +801,7 @@ class VulkanModuleNode final : public runtime::ModuleNode {
 
     {
       auto fit = fmap_.find(func_name);
-      TVM_ICHECK(fit != fmap_.end());
+      ICHECK(fit != fmap_.end());
       for (DLDataType arg_type : fit->second.arg_types) {
         if (arg_type.code == kTVMOpaqueHandle) {
           {
@@ -885,7 +884,7 @@ class VulkanModuleNode final : public runtime::ModuleNode {
     if (num_pack_args != 0) {
       playout_cinfo.pushConstantRangeCount = 1;
       playout_cinfo.pPushConstantRanges = &crange;
-      TVM_ICHECK_LE(crange.size, vctx.phy_device_prop.limits.maxPushConstantsSize);
+      ICHECK_LE(crange.size, vctx.phy_device_prop.limits.maxPushConstantsSize);
     } else {
       playout_cinfo.pushConstantRangeCount = 0;
       playout_cinfo.pPushConstantRanges = nullptr;
@@ -932,7 +931,7 @@ class VulkanModuleNode final : public runtime::ModuleNode {
 
   void SaveToFile(const std::string& file_name, const std::string& format) final {
     std::string fmt = GetFileFormat(file_name, format);
-    TVM_ICHECK_EQ(fmt, fmt_) << "Can only save to customized format vulkan";
+    ICHECK_EQ(fmt, fmt_) << "Can only save to customized format vulkan";
     std::string meta_file = GetMetaFilePath(file_name);
     SaveMetaDataToFile(meta_file, fmap_);
     std::string data_bin;
@@ -1046,7 +1045,7 @@ VulkanStream* VulkanThreadEntry::Stream(size_t device_id) {
 
 void VulkanWrappedFunc::operator()(TVMArgs args, TVMRetValue* rv, const ArgUnion* pack_args) const {
   int device_id = VulkanThreadEntry::ThreadLocal()->ctx.device_id;
-  TVM_ICHECK_LT(device_id, kVulkanMaxNumDevice);
+  ICHECK_LT(device_id, kVulkanMaxNumDevice);
   const auto& vctx = VulkanDeviceAPI::Global()->context(device_id);
   if (!scache_[device_id]) {
     scache_[device_id] = m_->GetPipeline(device_id, func_name_, num_pack_args_);
@@ -1067,7 +1066,7 @@ void VulkanWrappedFunc::operator()(TVMArgs args, TVMRetValue* rv, const ArgUnion
     // Can safely capture by reference as this lambda is immediately executed on the calling thread.
     VulkanThreadEntry::ThreadLocal()->Stream(device_id)->Launch([&](VulkanStreamState* state) {
       vkCmdBindPipeline(state->cmd_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->pipeline);
-      TVM_ICHECK(pipeline->descriptor_update_template != VK_NULL_HANDLE);
+      ICHECK(pipeline->descriptor_update_template != VK_NULL_HANDLE);
       vctx.descriptor_template_khr_functions->vkCmdPushDescriptorSetWithTemplateKHR(
           state->cmd_buffer_, pipeline->descriptor_update_template, pipeline->pipeline_layout, 0,
           descriptor_buffers.data());
@@ -1152,7 +1151,7 @@ Module VulkanModuleLoadFile(const std::string& file_name, const std::string& for
   dmlc::Stream* stream = &fs;
   uint32_t magic;
   stream->Read(&magic);
-  TVM_ICHECK_EQ(magic, kVulkanModuleMagic) << "VulkanModule Magic mismatch";
+  ICHECK_EQ(magic, kVulkanModuleMagic) << "VulkanModule Magic mismatch";
   stream->Read(&smap);
   return VulkanModuleCreate(smap, fmap, "");
 }

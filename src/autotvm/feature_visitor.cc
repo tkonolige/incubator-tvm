@@ -60,7 +60,7 @@ void FeatureVisitor::VisitStmt_(const AttrStmtNode* op) {
   if (op->attr_key == attr::thread_extent || op->attr_key == attr::virtual_thread) {
     Var var = op->node.as<tir::IterVarNode>()->var;
     const auto* extent = op->value.as<IntImmNode>();
-    TVM_ICHECK(extent);
+    ICHECK(extent);
 
     std::string name = var.get()->name_hint;
     AnnotationType ann = kParallel;
@@ -78,7 +78,7 @@ void FeatureVisitor::VisitStmt_(const AttrStmtNode* op) {
       else if (name == "threadIdx.z")
         ann = kThreadZ;
       else
-        TVM_LOG(FATAL) << "invalid thread itervar " + name;
+        LOG(FATAL) << "invalid thread itervar " + name;
     } else {
       ann = kVirtualThread;
     }

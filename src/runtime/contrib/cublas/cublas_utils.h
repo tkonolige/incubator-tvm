@@ -62,13 +62,13 @@ inline const char* GetCublasErrorString(int error) {
   return "Unrecognized error";
 }
 
-#ifndef TVM_CHECK_CUBLAS_ERROR
-#define TVM_CHECK_CUBLAS_ERROR(fn)                                                            \
+#ifndef CHECK_CUBLAS_ERROR
+#define CHECK_CUBLAS_ERROR(fn)                                                            \
   do {                                                                                    \
     int error = static_cast<int>(fn);                                                     \
-    TVM_ICHECK_EQ(error, CUBLAS_STATUS_SUCCESS) << "CUBLAS: " << GetCublasErrorString(error); \
+    ICHECK_EQ(error, CUBLAS_STATUS_SUCCESS) << "CUBLAS: " << GetCublasErrorString(error); \
   } while (0)  // ; intentionally left off.
-#endif         // TVM_CHECK_CUBLAS_ERROR
+#endif         // CHECK_CUBLAS_ERROR
 
 struct CuBlasThreadEntry {
   CuBlasThreadEntry();
@@ -102,7 +102,7 @@ inline cudaDataType_t GetCudaDataType(DLDataType type) {
         return CUDA_R_64F;
     }
   }
-  TVM_LOG(FATAL) << "Unsupported cuda type";
+  LOG(FATAL) << "Unsupported cuda type";
   return CUDA_R_16F;
 }
 }  // namespace contrib

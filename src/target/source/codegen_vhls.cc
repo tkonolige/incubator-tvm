@@ -146,10 +146,10 @@ runtime::Module BuildSDAccel(IRModule mod, Target target) {
   cg.Init(output_ssa);
 
   for (auto kv : mod->functions) {
-    TVM_ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodeGenVHLS: Can only take PrimFunc";
+    ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodeGenVHLS: Can only take PrimFunc";
     auto f = Downcast<PrimFunc>(kv.second);
     auto calling_conv = f->GetAttr<Integer>(tvm::attr::kCallingConv);
-    TVM_ICHECK(calling_conv == CallingConv::kDeviceKernelLaunch)
+    ICHECK(calling_conv == CallingConv::kDeviceKernelLaunch)
         << "CodeGenVLHS: expect calling_conv equals CallingConv::kDeviceKernelLaunch";
     cg.AddFunction(f);
   }
@@ -160,7 +160,7 @@ runtime::Module BuildSDAccel(IRModule mod, Target target) {
   Array<Array<runtime::String> > kernel_info;
 
   for (auto kv : mod->functions) {
-    TVM_ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodeGenOpenCL: Can only take PrimFunc";
+    ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodeGenOpenCL: Can only take PrimFunc";
     auto f = Downcast<PrimFunc>(kv.second);
     CodeGenVivadoHLS cg;
     cg.Init(output_ssa);
@@ -171,7 +171,7 @@ runtime::Module BuildSDAccel(IRModule mod, Target target) {
     }
 
     auto global_symbol = f->GetAttr<String>(tvm::attr::kGlobalSymbol);
-    TVM_ICHECK(global_symbol.defined())
+    ICHECK(global_symbol.defined())
         << "CodeGenC: Expect PrimFunc to have the global_symbol attribute";
     kernel_info.push_back({global_symbol.value(), code});
   }
@@ -181,7 +181,7 @@ runtime::Module BuildSDAccel(IRModule mod, Target target) {
     String device = target->GetAttr<String>("device", "").value();
     xclbin = (*f)(kernel_info, device).operator std::string();
   } else {
-    TVM_LOG(FATAL) << "Cannot compile Vivado HLS code.";
+    LOG(FATAL) << "Cannot compile Vivado HLS code.";
   }
   return SDAccelModuleCreate(xclbin, "xclbin", ExtractFuncInfo(mod), whole_code);
 }

@@ -59,7 +59,7 @@ inline Schedule schedule_binarize_pack(const Target& target, const Array<Tensor>
     if (op->tag == "binarize_pack") {
       _schedule(op.output(0));
     } else {
-      TVM_LOG(ERROR) << "Unsupported operator " << op->tag;
+      LOG(ERROR) << "Unsupported operator " << op->tag;
     }
   };
 
@@ -117,7 +117,7 @@ inline Schedule schedule_binary_dense(const Target& target, const Array<Tensor>&
       auto weight = op->InputTensors()[1];
       _schedule(data, weight, output);
     } else {
-      TVM_LOG(ERROR) << "Unsupported operator " << op->tag;
+      LOG(ERROR) << "Unsupported operator " << op->tag;
     }
   };
 

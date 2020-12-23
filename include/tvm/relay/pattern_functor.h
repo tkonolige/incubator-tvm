@@ -89,7 +89,7 @@ class PatternFunctor<R(const Pattern& n, Args...)> {
    * \return The result of the call
    */
   virtual R VisitPattern(const Pattern& n, Args... args) {
-    TVM_ICHECK(n.defined());
+    ICHECK(n.defined());
     static FType vtable = InitVTable();
     return vtable(n, this, std::forward<Args>(args)...);
   }
@@ -99,7 +99,7 @@ class PatternFunctor<R(const Pattern& n, Args...)> {
   virtual R VisitPattern_(const PatternConstructorNode* op, Args... args) PATTERN_FUNCTOR_DEFAULT;
   virtual R VisitPattern_(const PatternTupleNode* op, Args... args) PATTERN_FUNCTOR_DEFAULT;
   virtual R VisitPatternDefault_(const Object* op, Args...) {
-    TVM_LOG(FATAL) << "Do not have a default for " << op->GetTypeKey();
+    LOG(FATAL) << "Do not have a default for " << op->GetTypeKey();
     throw;
   }
 

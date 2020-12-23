@@ -71,8 +71,8 @@ class RandomEngine {
    * \brief Fills a tensor with values drawn from Unif(low, high)
    */
   void SampleUniform(DLTensor* data, float low, float high) {
-    TVM_ICHECK_GT(high, low) << "high must be bigger than low";
-    TVM_ICHECK(data->strides == nullptr);
+    ICHECK_GT(high, low) << "high must be bigger than low";
+    ICHECK(data->strides == nullptr);
 
     DLDataType dtype = data->dtype;
     int64_t size = 1;
@@ -80,14 +80,14 @@ class RandomEngine {
       size *= data->shape[i];
     }
 
-    TVM_ICHECK(dtype.code == kDLFloat && dtype.bits == 32 && dtype.lanes == 1);
+    ICHECK(dtype.code == kDLFloat && dtype.bits == 32 && dtype.lanes == 1);
 
     if (data->ctx.device_type == kDLCPU) {
       std::uniform_real_distribution<float> uniform_dist(low, high);
       std::generate_n(static_cast<float*>(data->data), size,
                       [&]() { return uniform_dist(rnd_engine_); });
     } else {
-      TVM_LOG(FATAL) << "Do not support random.uniform on this device yet";
+      LOG(FATAL) << "Do not support random.uniform on this device yet";
     }
   }
 
@@ -95,8 +95,8 @@ class RandomEngine {
    * \brief Fills a tensor with values drawn from Normal(loc, scale**2)
    */
   void SampleNormal(DLTensor* data, float loc, float scale) {
-    TVM_ICHECK_GT(scale, 0) << "standard deviation must be positive";
-    TVM_ICHECK(data->strides == nullptr);
+    ICHECK_GT(scale, 0) << "standard deviation must be positive";
+    ICHECK(data->strides == nullptr);
 
     DLDataType dtype = data->dtype;
     int64_t size = 1;
@@ -104,14 +104,14 @@ class RandomEngine {
       size *= data->shape[i];
     }
 
-    TVM_ICHECK(dtype.code == kDLFloat && dtype.bits == 32 && dtype.lanes == 1);
+    ICHECK(dtype.code == kDLFloat && dtype.bits == 32 && dtype.lanes == 1);
 
     if (data->ctx.device_type == kDLCPU) {
       std::normal_distribution<float> normal_dist(loc, scale);
       std::generate_n(static_cast<float*>(data->data), size,
                       [&]() { return normal_dist(rnd_engine_); });
     } else {
-      TVM_LOG(FATAL) << "Do not support random.normal on this device yet";
+      LOG(FATAL) << "Do not support random.normal on this device yet";
     }
   }
 
@@ -153,7 +153,7 @@ class RandomEngine {
       std::generate_n(static_cast<double*>(tensor->data), size,
                       [&]() { return dist(rnd_engine_); });
     } else {
-      TVM_LOG(FATAL) << "Doesn't support dtype code " << tensor->dtype.code << " dtype bits "
+      LOG(FATAL) << "Doesn't support dtype code " << tensor->dtype.code << " dtype bits "
                  << tensor->dtype.bits;
     }
   }

@@ -76,7 +76,7 @@ class DFPatternFunctor<R(const DFPattern& n, Args...)> {
    * \return The result of the call
    */
   virtual R VisitDFPattern(const DFPattern& n, Args... args) {
-    TVM_ICHECK(n.defined());
+    ICHECK(n.defined());
     static FType vtable = InitVTable();
     return vtable(n, this, std::forward<Args>(args)...);
   }
@@ -96,7 +96,7 @@ class DFPatternFunctor<R(const DFPattern& n, Args...)> {
   virtual R VisitDFPattern_(const ConstantPatternNode* op, Args... args) DFPATTERN_FUNCTOR_DEFAULT;
   virtual R VisitDFPattern_(const WildcardPatternNode* op, Args... args) DFPATTERN_FUNCTOR_DEFAULT;
   virtual R VisitDFPatternDefault_(const Object* op, Args...) {
-    TVM_LOG(FATAL) << "Do not have a default for " << op->GetTypeKey();
+    LOG(FATAL) << "Do not have a default for " << op->GetTypeKey();
     throw;
   }
 

@@ -10,6 +10,10 @@ ExternalProject_Add(project_libbacktrace
   BUILD_BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/libbacktrace/lib/libbacktrace.a" "${CMAKE_CURRENT_BINARY_DIR}/libbacktrace/include/backtrace.h"
   )
 
+# rebuild libbacktrace when its source files change
+file(GLOB libbacktrace_srcs 3rdparty/libbacktrace/*)
+ExternalProject_Add_Step(project_libbacktrace sources DEPENDERS configure DEPENDS "${libbacktrace_srcs}")
+
 ExternalProject_Get_Property(project_libbacktrace install_dir)
 add_library(libbacktrace STATIC IMPORTED)
 add_dependencies(libbacktrace project_libbacktrace)

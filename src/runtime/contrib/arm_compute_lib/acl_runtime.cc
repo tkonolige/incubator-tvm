@@ -75,7 +75,7 @@ class ACLRuntime : public JSONRuntimeBase {
    * \param consts The constant params from compiled model.
    */
   void Init(const Array<NDArray>& consts) override {
-    TVM_ICHECK_EQ(consts.size(), const_idx_.size())
+    ICHECK_EQ(consts.size(), const_idx_.size())
         << "The number of input constants must match the number of required.";
     SetupConstants(consts);
     BuildEngine();
@@ -122,7 +122,7 @@ class ACLRuntime : public JSONRuntimeBase {
     for (size_t nid = 0; nid < nodes_.size(); ++nid) {
       const auto& node = nodes_[nid];
       if (found_kernel_node) {
-        TVM_LOG(FATAL)
+        LOG(FATAL)
             << "Arm Compute Library runtime module only supports one kernel node per function.";
       }
       if (node.GetOpType() == "kernel") {
@@ -146,7 +146,7 @@ class ACLRuntime : public JSONRuntimeBase {
         } else if ("add" == op_name || "qnn.add" == op_name) {
           CreateAddLayer(&layer_, node);
         } else {
-          TVM_LOG(FATAL) << "Unsupported op: " << op_name;
+          LOG(FATAL) << "Unsupported op: " << op_name;
         }
       }
     }
@@ -222,7 +222,7 @@ class ACLRuntime : public JSONRuntimeBase {
     arm_compute::PadStrideInfo pad_stride_info = MakeACLPadStride(padding, strides);
 
     int groups = std::stoi(node.GetAttr<std::vector<std::string>>("groups")[0]);
-    TVM_ICHECK(groups == 1) << "Arm Compute Library NEON convolution only supports group size of 1.";
+    ICHECK(groups == 1) << "Arm Compute Library NEON convolution only supports group size of 1.";
 
     arm_compute::ActivationLayerInfo act_info;
     if (node.HasAttr("activation_type")) {
@@ -231,7 +231,7 @@ class ACLRuntime : public JSONRuntimeBase {
         act_info = arm_compute::ActivationLayerInfo(
             arm_compute::ActivationLayerInfo::ActivationFunction::RELU);
       } else {
-        TVM_LOG(FATAL) << "Unsupported activation function";
+        LOG(FATAL) << "Unsupported activation function";
       }
     }
 
@@ -242,7 +242,7 @@ class ACLRuntime : public JSONRuntimeBase {
     size_t num_inputs = inputs.size();
     bool has_bias;
     if (node.GetOpName() == "qnn.conv2d") {
-      TVM_ICHECK(num_inputs >= 8U && num_inputs <= 9U)
+      ICHECK(num_inputs >= 8U && num_inputs <= 9U)
           << "Quantized convolution requires 9 inputs with a bias, 8 inputs without.";
       has_bias = num_inputs == 9;
       layer->inputs.push_back(MakeACLTensorFromJSONEntry(inputs[0], &inputs[4], &inputs[2]));
@@ -253,7 +253,7 @@ class ACLRuntime : public JSONRuntimeBase {
       layer->outputs.push_back(
           MakeACLTensorFromJSONNode(node, &inputs[6 + has_bias], &inputs[7 + has_bias]));
     } else {
-      TVM_ICHECK(num_inputs >= 2U && num_inputs <= 3U)
+      ICHECK(num_inputs >= 2U && num_inputs <= 3U)
           << "Convolution requires 3 inputs with a bias, 2 inputs without.";
       has_bias = num_inputs == 3;
       for (const auto& i : inputs) {
@@ -286,7 +286,7 @@ class ACLRuntime : public JSONRuntimeBase {
     size_t num_inputs = inputs.size();
     bool has_bias;
     if (node.GetOpName() == "qnn.dense") {
-      TVM_ICHECK(num_inputs >= 8U && num_inputs <= 9U)
+      ICHECK(num_inputs >= 8U && num_inputs <= 9U)
           << "Quantized fully connected (dense) layer requires 9 inputs with a bias, 8 inputs "
              "without.";
       has_bias = num_inputs == 9;
@@ -298,7 +298,7 @@ class ACLRuntime : public JSONRuntimeBase {
       layer->outputs.push_back(
           MakeACLTensorFromJSONNode(node, &inputs[6 + has_bias], &inputs[7 + has_bias]));
     } else {
-      TVM_ICHECK(num_inputs >= 2U && num_inputs <= 3U)
+      ICHECK(num_inputs >= 2U && num_inputs <= 3U)
           << "Fully connected (dense) layer requires 3 inputs with a bias, 2 inputs without.";
       has_bias = num_inputs == 3;
       for (const auto& i : inputs) {
@@ -348,7 +348,7 @@ class ACLRuntime : public JSONRuntimeBase {
     } else if (node.GetOpName() == "nn.l2_pool2d") {
       pool_type = arm_compute::PoolingType::L2;
     } else {
-      TVM_LOG(FATAL) << "Pooling type not supported";
+      LOG(FATAL) << "Pooling type not supported";
     }
 
     arm_compute::PoolingLayerInfo pool_info =
@@ -378,7 +378,7 @@ class ACLRuntime : public JSONRuntimeBase {
     } else if (node.GetOpName() == "nn.global_avg_pool2d") {
       pool_type = arm_compute::PoolingType::AVG;
     } else {
-      TVM_LOG(FATAL) << "Pooling type not supported";
+      LOG(FATAL) << "Pooling type not supported";
     }
 
     arm_compute::PoolingLayerInfo pool_info =
@@ -460,12 +460,12 @@ class ACLRuntime : public JSONRuntimeBase {
   CachedLayer layer_;
 #else
   void Run() override {
-    TVM_LOG(FATAL) << "Cannot call run on Arm Compute Library module without runtime enabled. "
+    LOG(FATAL) << "Cannot call run on Arm Compute Library module without runtime enabled. "
                << "Please build with USE_ARM_COMPUTE_LIB_GRAPH_RUNTIME.";
   }
 
   void BuildEngine() {
-    TVM_LOG(WARNING) << "Arm Compute Library engine is not initialized. "
+    LOG(WARNING) << "Arm Compute Library engine is not initialized. "
                  << "Please build with USE_ARM_COMPUTE_LIB_GRAPH_RUNTIME.";
   }
 #endif

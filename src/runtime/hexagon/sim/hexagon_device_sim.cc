@@ -107,7 +107,7 @@ struct non_const_str {
   }
   size_t size() const { return pointers_.size(); }
   operator char*() {
-    TVM_ICHECK_EQ(pointers_.size(), 1);
+    ICHECK_EQ(pointers_.size(), 1);
     return pointers_[0];
   }
   operator char* *() { return pointers_.data(); }
@@ -394,17 +394,17 @@ decltype(HexagonSimulator::opt_map_) HexagonSimulator::opt_map_ = {
     {"--verbose", &HexagonSimulator::HandleVerbose},
 };
 
-#define TVM_CHECKED_CALL(func, ...)                                                               \
+#define CHECKED_CALL(func, ...)                                                               \
   do {                                                                                        \
     HEXAPI_Status s = sim_->func(__VA_ARGS__);                                                \
-    TVM_ICHECK_EQ(s, HEX_STAT_SUCCESS)                                                            \
+    ICHECK_EQ(s, HEX_STAT_SUCCESS)                                                            \
         << "HexagonSimulator: " #func " failed with code " << HexagonSimulator::to_string(s); \
   } while (false)
 
 inline HEX_VA_t HexagonSimulator::p2va(const void* p) {
   uintptr_t u = reinterpret_cast<uintptr_t>(p);
   HEX_VA_t va = static_cast<HEX_VA_t>(u);
-  TVM_ICHECK_EQ(static_cast<uintptr_t>(va), u);
+  ICHECK_EQ(static_cast<uintptr_t>(va), u);
   return va;
 }
 
@@ -425,13 +425,13 @@ template <unsigned N>
 void HexagonSimulator::CopyNToV(HEX_VA_t dst, const void* host_src) {
   using src_uint_t = typename unalign<typename uint<N>::type>::type;
   auto* ps = reinterpret_cast<const src_uint_t*>(host_src);
-  TVM_ICHECK_EQ(sim_->WriteVirtual(dst, -1u, N, ps->value), HEX_STAT_SUCCESS);
+  ICHECK_EQ(sim_->WriteVirtual(dst, -1u, N, ps->value), HEX_STAT_SUCCESS);
 }
 
 template <unsigned N>
 void HexagonSimulator::CopyNFromV(void* host_dst, HEX_VA_t src) {
   typename uint<N>::type v;
-  TVM_ICHECK_EQ(sim_->ReadVirtual(src, -1u, N, &v), HEX_STAT_SUCCESS);
+  ICHECK_EQ(sim_->ReadVirtual(src, -1u, N, &v), HEX_STAT_SUCCESS);
 
   using dst_uint_t = typename unalign<typename uint<N>::type>::type;
   auto* pd = reinterpret_cast<dst_uint_t*>(host_dst);
@@ -465,7 +465,7 @@ void HexagonSimulator::CopyToV(HEX_VA_t dst, const void* host_src, unsigned len)
     src++;
     len--;
   }
-  TVM_ICHECK_EQ(len, 0);
+  ICHECK_EQ(len, 0);
 }
 
 void HexagonSimulator::CopyFromV(void* host_dst, HEX_VA_t src, unsigned len) {
@@ -495,7 +495,7 @@ void HexagonSimulator::CopyFromV(void* host_dst, HEX_VA_t src, unsigned len) {
     src++;
     len--;
   }
-  TVM_ICHECK_EQ(len, 0);
+  ICHECK_EQ(len, 0);
 }
 
 void HexagonSimulator::SendMsg(Message& m, const void* data, bool show_dbg) {
@@ -504,14 +504,14 @@ void HexagonSimulator::SendMsg(Message& m, const void* data, bool show_dbg) {
     HEX_4u_t result;
     HEX_8u_t cycles0, cycles1;
     if (report_cycles) {
-      TVM_ICHECK_EQ(sim_->GetSimulatedCycleCount(&cycles0), HEX_STAT_SUCCESS);
+      ICHECK_EQ(sim_->GetSimulatedCycleCount(&cycles0), HEX_STAT_SUCCESS);
     }
 
     core = sim_->Run(&result);
-    TVM_ICHECK_EQ(core, HEX_CORE_BREAKPOINT);
+    ICHECK_EQ(core, HEX_CORE_BREAKPOINT);
     if (report_cycles) {
-      TVM_ICHECK_EQ(sim_->GetSimulatedCycleCount(&cycles1), HEX_STAT_SUCCESS);
-      TVM_LOG(INFO) << "host: execution took " << (cycles1 - cycles0) << " cycles";
+      ICHECK_EQ(sim_->GetSimulatedCycleCount(&cycles1), HEX_STAT_SUCCESS);
+      LOG(INFO) << "host: execution took " << (cycles1 - cycles0) << " cycles";
     }
   };
 
@@ -522,8 +522,8 @@ void HexagonSimulator::SendMsg(Message& m, const void* data, bool show_dbg) {
 
   // Receive the acknowledgement with the address for the payload.
   CopyFromV(&r, message_buffer_v_, sizeof(r));
-  TVM_ICHECK_EQ(r.code, kMsgAck);
-  TVM_ICHECK_GE(r.len, m.len);
+  ICHECK_EQ(r.code, kMsgAck);
+  ICHECK_GE(r.len, m.len);
 
   // Send the actual message.
   m.va = r.va;
@@ -533,7 +533,7 @@ void HexagonSimulator::SendMsg(Message& m, const void* data, bool show_dbg) {
 
   // Receive the return data.
   CopyFromV(&m, message_buffer_v_, sizeof(m));
-  TVM_ICHECK_EQ(m.code, kNone);
+  ICHECK_EQ(m.code, kNone);
 }
 
 HexagonSimulator::HexagonSimulator(bool enable_queuing) {
@@ -553,19 +553,19 @@ HexagonSimulator::HexagonSimulator(bool enable_queuing) {
 
   arch_ = target_str;
   sim_ = detail::make_unique<HexagonWrapper>(detail::non_const_str(target_str));
-  TVM_LOG(INFO) << "HexagonSimulator: Core version: " << arch_;
+  LOG(INFO) << "HexagonSimulator: Core version: " << arch_;
 
   // Locate the sim_dev binary in PATH, or in the current working directory.
   llvm::StringRef sim_dev = "sim_dev";
   detail::MaybeString path_sim_dev = llvm::sys::Process::FindInEnvPath("PATH", sim_dev);
   if (!path_sim_dev) {
     if (!llvm::sys::fs::exists(sim_dev)) {
-      TVM_LOG(FATAL) << "Cannot find sim_dev in PATH.";
+      LOG(FATAL) << "Cannot find sim_dev in PATH.";
     }
     path_sim_dev = sim_dev.str();
   }
 
-  TVM_CHECKED_CALL(ConfigureExecutableBinary, path_sim_dev->c_str());
+  CHECKED_CALL(ConfigureExecutableBinary, path_sim_dev->c_str());
 
   std::vector<std::string> app_args = {*path_sim_dev};
   if (char* ev = getenv("ADSP_LIBRARY_PATH")) {
@@ -573,22 +573,22 @@ HexagonSimulator::HexagonSimulator(bool enable_queuing) {
     app_args.push_back(ev);
   }
   sim_dev_args_ = detail::non_const_str(app_args);
-  TVM_CHECKED_CALL(ConfigureAppCommandLine, sim_dev_args_.size(), sim_dev_args_);
+  CHECKED_CALL(ConfigureAppCommandLine, sim_dev_args_.size(), sim_dev_args_);
 
   Configure(sim_args);
 
-  TVM_CHECKED_CALL(EndOfConfiguration);
-  TVM_CHECKED_CALL(LoadExecutableBinary);
-  TVM_CHECKED_CALL(ReadSymbolValue, "dispatch", &dispatch_v_);
-  TVM_CHECKED_CALL(ReadSymbolValue, "message_buffer", &message_buffer_v_);
-  TVM_CHECKED_CALL(SetBreakpoint, dispatch_v_);
+  CHECKED_CALL(EndOfConfiguration);
+  CHECKED_CALL(LoadExecutableBinary);
+  CHECKED_CALL(ReadSymbolValue, "dispatch", &dispatch_v_);
+  CHECKED_CALL(ReadSymbolValue, "message_buffer", &message_buffer_v_);
+  CHECKED_CALL(SetBreakpoint, dispatch_v_);
 
   HEXAPI_CoreState core = HEX_CORE_RESET;
 
   HEX_4u_t result;
   core = sim_->Run(&result);
   if (core != HEX_CORE_BREAKPOINT) {
-    TVM_LOG(FATAL) << "HexagonSimulator: Run not stopped on breakpoint, "
+    LOG(FATAL) << "HexagonSimulator: Run not stopped on breakpoint, "
                   "code="
                << static_cast<int>(core);
   }
@@ -597,30 +597,30 @@ HexagonSimulator::HexagonSimulator(bool enable_queuing) {
   // code that could have written to the SSR register.
   // Enable UPCYCLE register.
   HEX_4u_t thread_num;
-  TVM_CHECKED_CALL(GetCurrentHWThreadNum, &thread_num);
+  CHECKED_CALL(GetCurrentHWThreadNum, &thread_num);
   HEX_4u_t thread_ssr;
-  TVM_CHECKED_CALL(ReadThreadRegister, thread_num, TH_REG_SSR, &thread_ssr);
+  CHECKED_CALL(ReadThreadRegister, thread_num, TH_REG_SSR, &thread_ssr);
   thread_ssr |= (1 << 23);
-  TVM_CHECKED_CALL(WriteThreadRegister, thread_num, TH_REG_SSR, thread_ssr);
+  CHECKED_CALL(WriteThreadRegister, thread_num, TH_REG_SSR, thread_ssr);
 }
 
 void* HexagonSimulator::Alloc(unsigned size, unsigned align) {
-  TVM_LOG(INFO) << "HexagonSimulator::Alloc(size=" << size << ", align=" << align << ')';
+  LOG(INFO) << "HexagonSimulator::Alloc(size=" << size << ", align=" << align << ')';
   Message m = {kAlloc, sizeof(MsgAlloc), 0u};
   MsgAlloc ma = {size, align};
   SendMsg(m, &ma, true);
 
-  TVM_ICHECK_EQ(sizeof(MsgPointer), m.len);
+  ICHECK_EQ(sizeof(MsgPointer), m.len);
   MsgPointer mp;
   CopyFromV(&mp, m.va, m.len);
 
-  TVM_LOG(INFO) << "HexagonSimulator::Alloc -> " << std::hex << mp.va << std::dec;
-  TVM_ICHECK_NE(mp.va, 0);
+  LOG(INFO) << "HexagonSimulator::Alloc -> " << std::hex << mp.va << std::dec;
+  ICHECK_NE(mp.va, 0);
   return va2p(mp.va);
 }
 
 void HexagonSimulator::Free(void* ptr) {
-  TVM_LOG(INFO) << "HexagonSimulator::Free(ptr=" << std::hex << ptr << std::dec << ')';
+  LOG(INFO) << "HexagonSimulator::Free(ptr=" << std::hex << ptr << std::dec << ')';
   if (task_queuing_) {
     Message mf = {kFlush, 0, 0};
     SendMsg(mf, nullptr, true);
@@ -631,33 +631,33 @@ void HexagonSimulator::Free(void* ptr) {
 }
 
 void* HexagonSimulator::AllocVtcm(unsigned size, unsigned align) {
-  TVM_LOG(INFO) << "HexagonSimulator::AllocVtcm(size=" << size << ", align=" << align << ')';
+  LOG(INFO) << "HexagonSimulator::AllocVtcm(size=" << size << ", align=" << align << ')';
   Message m = {kAllocVtcm, sizeof(MsgAlloc), 0u};
   MsgAlloc ma = {size, align};
   SendMsg(m, &ma, true);
 
-  TVM_ICHECK_EQ(sizeof(MsgPointer), m.len);
+  ICHECK_EQ(sizeof(MsgPointer), m.len);
   MsgPointer mp;
   CopyFromV(&mp, m.va, m.len);
 
-  TVM_LOG(INFO) << "HexagonSimulator::AllocVtcm -> " << std::hex << mp.va << std::dec;
-  TVM_ICHECK_NE(mp.va, 0);
+  LOG(INFO) << "HexagonSimulator::AllocVtcm -> " << std::hex << mp.va << std::dec;
+  ICHECK_NE(mp.va, 0);
   return va2p(mp.va);
 }
 
 void HexagonSimulator::FreeVtcm(void* ptr) {}
 
 void HexagonSimulator::CopyDeviceToDevice(void* dst, const void* src, unsigned len) {
-  TVM_LOG(INFO) << "HexagonSimulator::CopyDeviceToDevice(dst=" << std::hex << dst << ", src=" << src
+  LOG(INFO) << "HexagonSimulator::CopyDeviceToDevice(dst=" << std::hex << dst << ", src=" << src
             << ", len=" << std::dec << len << ')';
-  TVM_ICHECK(dst != nullptr && src != nullptr);
+  ICHECK(dst != nullptr && src != nullptr);
   Message m = {kCopy, sizeof(MsgCopy), 0u};
   MsgCopy mc = {p2va(dst), p2va(src), len};
   SendMsg(m, &mc, true);
 }
 
 void HexagonSimulator::CopyDeviceToHost(void* host_dst, const void* src, unsigned len) {
-  TVM_LOG(INFO) << "HexagonSimulator::CopyDeviceToHost(host_dst=" << host_dst << ", src=" << src
+  LOG(INFO) << "HexagonSimulator::CopyDeviceToHost(host_dst=" << host_dst << ", src=" << src
             << ", len=" << len << ')';
   if (task_queuing_) {
     Message mf = {kFlush, 0, 0};
@@ -667,7 +667,7 @@ void HexagonSimulator::CopyDeviceToHost(void* host_dst, const void* src, unsigne
 }
 
 void HexagonSimulator::CopyHostToDevice(void* dst, const void* host_src, unsigned len) {
-  TVM_LOG(INFO) << "HexagonSimulator::CopyHostToDevice(dst=" << dst << ", host_src=" << host_src
+  LOG(INFO) << "HexagonSimulator::CopyHostToDevice(dst=" << dst << ", host_src=" << host_src
             << ", len=" << len << ')';
   CopyToV(p2va(dst), host_src, len);
 }
@@ -677,7 +677,7 @@ void* HexagonSimulator::Load(const std::string& data, const std::string& fmt) {
   Message m = {kLoad, static_cast<uint32_t>(data.size() + 1), 0u};
   SendMsg(m, data.c_str(), false);
 
-  TVM_ICHECK_EQ(sizeof(MsgPointer), m.len);
+  ICHECK_EQ(sizeof(MsgPointer), m.len);
   MsgPointer mp;
   CopyFromV(&mp, m.va, sizeof(mp));
 
@@ -685,28 +685,28 @@ void* HexagonSimulator::Load(const std::string& data, const std::string& fmt) {
 }
 
 void HexagonSimulator::Unload(void* mod) {
-  TVM_ICHECK(mod);
+  ICHECK(mod);
   Message m = {kUnload, sizeof(MsgPointer), 0u};
   MsgPointer mp = {p2va(mod)};
   SendMsg(m, &mp, false);
 }
 
 void* HexagonSimulator::Resolve(const std::string& sym) {
-  TVM_LOG(INFO) << "HexagonSimulator::Resolve(sym=" << sym << ')';
+  LOG(INFO) << "HexagonSimulator::Resolve(sym=" << sym << ')';
   Message m = {kResolve, static_cast<uint32_t>(sym.size() + 1), 0u};
   SendMsg(m, sym.c_str(), true);
 
-  TVM_ICHECK_EQ(sizeof(MsgPointer), m.len);
+  ICHECK_EQ(sizeof(MsgPointer), m.len);
   MsgPointer mp;
   CopyFromV(&mp, m.va, sizeof(mp));
 
-  TVM_LOG(INFO) << "HexagonSimulator::Resolve -> " << std::hex << mp.va << std::dec;
+  LOG(INFO) << "HexagonSimulator::Resolve -> " << std::hex << mp.va << std::dec;
   return va2p(mp.va);
 }
 
 void HexagonSimulator::Call(void* func, uint32_t* scalar, unsigned sc_num, uint32_t* stack,
                             unsigned st_num) {
-  TVM_LOG(INFO) << "HexagonSimulator::Call(func=" << std::hex << func << ", scalar=" << scalar
+  LOG(INFO) << "HexagonSimulator::Call(func=" << std::hex << func << ", scalar=" << scalar
             << ", sc_num=" << std::dec
             << sc_num
             // NOLINTNEXTLINE(build/include_what_you_use)
@@ -717,7 +717,7 @@ void HexagonSimulator::Call(void* func, uint32_t* scalar, unsigned sc_num, uint3
   // Copy the MsgCall contents into the data vector as a sequence of uints.
   MsgCall me = {p2va(func), sc_num, st_num};
 
-  TVM_ICHECK((is_multiple_of<sizeof(MsgCall), sizeof(uint32_t)>()));
+  ICHECK((is_multiple_of<sizeof(MsgCall), sizeof(uint32_t)>()));
   for (unsigned i = 0, e = sizeof(me) / sizeof(uint32_t); i != e; ++i)
     data.push_back(reinterpret_cast<uint32_t*>(&me)[i]);
 
@@ -732,7 +732,7 @@ void HexagonSimulator::Call(void* func, uint32_t* scalar, unsigned sc_num, uint3
     log_data << ' ' << reinterpret_cast<uint32_t*>(data.data())[i];
   }
   log_data << std::dec << " }" << std::flush;
-  TVM_LOG(INFO) << log_data.str();
+  LOG(INFO) << log_data.str();
 
   Message m = {kCall, static_cast<uint32_t>(data.size() * sizeof(uint32_t)), 0u};
   SendMsg(m, data.data(), true);
@@ -752,7 +752,7 @@ void HexagonSimulator::Call(void* func, uint32_t* scalar, unsigned sc_num, uint3
   }
   if (rv.size() > 4) log_rv << "...";
   log_rv << std::dec << " }";
-  TVM_LOG(INFO) << log_rv.str();
+  LOG(INFO) << log_rv.str();
 }
 
 bool HexagonSimulator::Configure(string_list& opts) {
@@ -760,26 +760,26 @@ bool HexagonSimulator::Configure(string_list& opts) {
     std::string key = *detail::pop_front(opts);
     auto f = opt_map_.find(key);
     if (f == opt_map_.end()) {
-      TVM_LOG(FATAL) << "Unrecognized simulator option: " << key;
+      LOG(FATAL) << "Unrecognized simulator option: " << key;
       // unreachable
     }
-    TVM_ICHECK((this->*f->second)(opts)) << "error handling option: " << key;
+    ICHECK((this->*f->second)(opts)) << "error handling option: " << key;
   }
 
   // Check AHB.
   if (ahb_.first.hasValue() && ahb_.second.hasValue()) {
-    TVM_CHECKED_CALL(ConfigureAHB, *ahb_.first, *ahb_.second);
+    CHECKED_CALL(ConfigureAHB, *ahb_.first, *ahb_.second);
   } else {
-    TVM_ICHECK(!ahb_.first.hasValue() && !ahb_.second.hasValue())
+    ICHECK(!ahb_.first.hasValue() && !ahb_.second.hasValue())
         << "HexagonSimulator: please specify both low and high addresses "
            "for AHB";
   }
 
   // Check AXI2.
   if (axi2_.first.hasValue() && axi2_.second.hasValue()) {
-    TVM_CHECKED_CALL(ConfigureAXI2, *axi2_.first, *axi2_.second);
+    CHECKED_CALL(ConfigureAXI2, *axi2_.first, *axi2_.second);
   } else {
-    TVM_ICHECK(!axi2_.first.hasValue() && !axi2_.second.hasValue())
+    ICHECK(!axi2_.first.hasValue() && !axi2_.second.hasValue())
         << "HexagonSimulator: please specify both low and high addresses "
            "for AXI2";
   }
@@ -791,7 +791,7 @@ bool HexagonSimulator::HandleAHBBusPenalty(string_list& rest) {
   auto penalty = detail::to_uint(detail::pop_front(rest));
   auto interval = to_interval(detail::pop_front(rest));
   if (penalty && interval) {
-    TVM_CHECKED_CALL(ConfigureAHBBusPenalty, *penalty, *interval);
+    CHECKED_CALL(ConfigureAHBBusPenalty, *penalty, *interval);
   }
   return static_cast<bool>(penalty) && static_cast<bool>(interval);
 }
@@ -799,14 +799,14 @@ bool HexagonSimulator::HandleAHBBusPenalty(string_list& rest) {
 bool HexagonSimulator::HandleAHBBusRatio(string_list& rest) {
   auto ratio = detail::to_float(detail::pop_front(rest));
   if (ratio) {
-    TVM_CHECKED_CALL(ConfigureAHBBusRatio, *ratio);
+    CHECKED_CALL(ConfigureAHBBusRatio, *ratio);
   }
   return static_cast<bool>(ratio);
 }
 
 bool HexagonSimulator::HandleAHBHighAddr(string_list& rest) {
   auto addr = detail::to_uint(detail::pop_front(rest));
-  TVM_ICHECK(addr) << "HexagonSimulator: invalid value for AHB high adddress";
+  ICHECK(addr) << "HexagonSimulator: invalid value for AHB high adddress";
   if (addr) {
     ahb_.second = *addr;
   }
@@ -815,7 +815,7 @@ bool HexagonSimulator::HandleAHBHighAddr(string_list& rest) {
 
 bool HexagonSimulator::HandleAHBLowAddr(string_list& rest) {
   auto addr = detail::to_uint(detail::pop_front(rest));
-  TVM_ICHECK(addr) << "HexagonSimulator: invalid value for AHB low adddress";
+  ICHECK(addr) << "HexagonSimulator: invalid value for AHB low adddress";
   if (addr) {
     ahb_.first = *addr;
   }
@@ -826,7 +826,7 @@ bool HexagonSimulator::HandleAXI2BusPenalty(string_list& rest) {
   auto penalty = detail::to_uint(detail::pop_front(rest));
   auto interval = to_interval(detail::pop_front(rest));
   if (penalty && interval) {
-    TVM_CHECKED_CALL(ConfigureAXI2BusPenalty, *penalty, *interval);
+    CHECKED_CALL(ConfigureAXI2BusPenalty, *penalty, *interval);
   }
   return static_cast<bool>(penalty) && static_cast<bool>(interval);
 }
@@ -834,14 +834,14 @@ bool HexagonSimulator::HandleAXI2BusPenalty(string_list& rest) {
 bool HexagonSimulator::HandleAXI2BusRatio(string_list& rest) {
   auto ratio = detail::to_float(detail::pop_front(rest));
   if (ratio) {
-    TVM_CHECKED_CALL(ConfigureAXI2BusRatio, *ratio);
+    CHECKED_CALL(ConfigureAXI2BusRatio, *ratio);
   }
   return static_cast<bool>(ratio);
 }
 
 bool HexagonSimulator::HandleAXI2HighAddr(string_list& rest) {
   auto addr = detail::to_uint(detail::pop_front(rest));
-  TVM_ICHECK(addr) << "HexagonSimulator: invalid value for AXI2 high adddress";
+  ICHECK(addr) << "HexagonSimulator: invalid value for AXI2 high adddress";
   if (addr) {
     axi2_.second = *addr;
   }
@@ -850,7 +850,7 @@ bool HexagonSimulator::HandleAXI2HighAddr(string_list& rest) {
 
 bool HexagonSimulator::HandleAXI2LowAddr(string_list& rest) {
   auto addr = detail::to_uint(detail::pop_front(rest));
-  TVM_ICHECK(addr) << "HexagonSimulator: invalid value for AXI2 low adddress";
+  ICHECK(addr) << "HexagonSimulator: invalid value for AXI2 low adddress";
   if (addr) {
     axi2_.first = *addr;
   }
@@ -866,7 +866,7 @@ bool HexagonSimulator::HandleBusPenalty(string_list& rest) {
   auto penalty = detail::to_uint(detail::pop_front(rest));
   auto interval = to_interval(detail::pop_front(rest));
   if (penalty && interval) {
-    TVM_CHECKED_CALL(ConfigureBusPenalty, *penalty, *interval);
+    CHECKED_CALL(ConfigureBusPenalty, *penalty, *interval);
   }
   return static_cast<bool>(penalty) && static_cast<bool>(interval);
 }
@@ -874,7 +874,7 @@ bool HexagonSimulator::HandleBusPenalty(string_list& rest) {
 bool HexagonSimulator::HandleBusRatio(string_list& rest) {
   auto ratio = detail::to_float(detail::pop_front(rest));
   if (ratio) {
-    TVM_CHECKED_CALL(ConfigureBusRatio, *ratio);
+    CHECKED_CALL(ConfigureBusRatio, *ratio);
   }
   return static_cast<bool>(ratio);
 }
@@ -882,20 +882,20 @@ bool HexagonSimulator::HandleBusRatio(string_list& rest) {
 bool HexagonSimulator::HandleBusTrace(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(SetTracing, HEX_TRACE_BUS, file->c_str());
+    CHECKED_CALL(SetTracing, HEX_TRACE_BUS, file->c_str());
   }
   return static_cast<bool>(file);
 }
 
 bool HexagonSimulator::HandleBypassIdle(string_list& rest) {
-  TVM_CHECKED_CALL(ConfigureBypassIdle, true);
+  CHECKED_CALL(ConfigureBypassIdle, true);
   return true;
 }
 
 bool HexagonSimulator::HandleConnectionTimeout(string_list& rest) {
   auto time = detail::to_int(detail::pop_front(rest));
   if (time) {
-    TVM_CHECKED_CALL(ConfigureConnectionTimeout, *time);
+    CHECKED_CALL(ConfigureConnectionTimeout, *time);
   }
   return static_cast<bool>(time);
 }
@@ -903,7 +903,7 @@ bool HexagonSimulator::HandleConnectionTimeout(string_list& rest) {
 bool HexagonSimulator::HandleCoprocTrace(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(SetTracing, HEX_TRACE_COPROC, file->c_str());
+    CHECKED_CALL(SetTracing, HEX_TRACE_COPROC, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -911,7 +911,7 @@ bool HexagonSimulator::HandleCoprocTrace(string_list& rest) {
 bool HexagonSimulator::HandleCoreDump(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(ConfigureCoreDump, file->c_str());
+    CHECKED_CALL(ConfigureCoreDump, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -919,7 +919,7 @@ bool HexagonSimulator::HandleCoreDump(string_list& rest) {
 bool HexagonSimulator::HandleCosimFile(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(ConfigureCosim, file->c_str());
+    CHECKED_CALL(ConfigureCosim, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -927,7 +927,7 @@ bool HexagonSimulator::HandleCosimFile(string_list& rest) {
 bool HexagonSimulator::HandleDCacheTrace(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(SetTracing, HEX_TRACE_DCACHE, file->c_str());
+    CHECKED_CALL(SetTracing, HEX_TRACE_DCACHE, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -935,7 +935,7 @@ bool HexagonSimulator::HandleDCacheTrace(string_list& rest) {
 bool HexagonSimulator::HandleDSPClock(string_list& rest) {
   auto freq = detail::to_uint(detail::pop_front(rest));
   if (freq) {
-    TVM_CHECKED_CALL(ConfigureCoreFrequency, *freq);
+    CHECKED_CALL(ConfigureCoreFrequency, *freq);
   }
   return static_cast<bool>(freq);
 }
@@ -943,7 +943,7 @@ bool HexagonSimulator::HandleDSPClock(string_list& rest) {
 bool HexagonSimulator::HandleETMCFGBase(string_list& rest) {
   auto base = detail::to_uint(detail::pop_front(rest));
   if (base) {
-    TVM_CHECKED_CALL(ConfigureEtmcfgBase, *base);
+    CHECKED_CALL(ConfigureEtmcfgBase, *base);
   }
   return static_cast<bool>(base);
 }
@@ -951,7 +951,7 @@ bool HexagonSimulator::HandleETMCFGBase(string_list& rest) {
 bool HexagonSimulator::HandleGDBServ(string_list& rest) {
   auto port = detail::to_uint(detail::pop_front(rest));
   if (port) {
-    TVM_CHECKED_CALL(ConfigureRemoteDebug, *port);
+    CHECKED_CALL(ConfigureRemoteDebug, *port);
     debug_port_ = *port;
   }
   return static_cast<bool>(port);
@@ -960,7 +960,7 @@ bool HexagonSimulator::HandleGDBServ(string_list& rest) {
 bool HexagonSimulator::HandleHVXLength(string_list& rest) {
   auto len = detail::to_int(detail::pop_front(rest));
   if (len) {
-    TVM_CHECKED_CALL(ConfigureHVXLength, *len);
+    CHECKED_CALL(ConfigureHVXLength, *len);
   }
   return static_cast<bool>(len);
 }
@@ -968,7 +968,7 @@ bool HexagonSimulator::HandleHVXLength(string_list& rest) {
 bool HexagonSimulator::HandleICacheTrace(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(SetTracing, HEX_TRACE_ICACHE, file->c_str());
+    CHECKED_CALL(SetTracing, HEX_TRACE_ICACHE, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -976,7 +976,7 @@ bool HexagonSimulator::HandleICacheTrace(string_list& rest) {
 bool HexagonSimulator::HandleL2CacheTrace(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(SetTracing, HEX_TRACE_L2CACHE, file->c_str());
+    CHECKED_CALL(SetTracing, HEX_TRACE_L2CACHE, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -984,7 +984,7 @@ bool HexagonSimulator::HandleL2CacheTrace(string_list& rest) {
 bool HexagonSimulator::HandleL2CFGBase(string_list& rest) {
   auto base = detail::to_uint(detail::pop_front(rest));
   if (base) {
-    TVM_CHECKED_CALL(ConfigureL2cfgBase, *base);
+    CHECKED_CALL(ConfigureL2cfgBase, *base);
   }
   return static_cast<bool>(base);
 }
@@ -992,7 +992,7 @@ bool HexagonSimulator::HandleL2CFGBase(string_list& rest) {
 bool HexagonSimulator::HandleL2TCMBase(string_list& rest) {
   auto base = detail::to_uint(detail::pop_front(rest));
   if (base) {
-    TVM_CHECKED_CALL(ConfigureL2tcmBase, *base);
+    CHECKED_CALL(ConfigureL2tcmBase, *base);
   }
   return static_cast<bool>(base);
 }
@@ -1000,7 +1000,7 @@ bool HexagonSimulator::HandleL2TCMBase(string_list& rest) {
 bool HexagonSimulator::HandleMemFillRand(string_list& rest) {
   auto seed = detail::to_uint(detail::pop_front(rest));
   if (seed) {
-    TVM_CHECKED_CALL(ConfigureMemFillRandom, *seed);
+    CHECKED_CALL(ConfigureMemFillRandom, *seed);
   }
   return static_cast<bool>(seed);
 }
@@ -1008,7 +1008,7 @@ bool HexagonSimulator::HandleMemFillRand(string_list& rest) {
 bool HexagonSimulator::HandleMemFill(string_list& rest) {
   auto val = detail::to_uint(detail::pop_front(rest));
   if (val) {
-    TVM_CHECKED_CALL(ConfigureMemFill, *val);
+    CHECKED_CALL(ConfigureMemFill, *val);
   }
   return static_cast<bool>(val);
 }
@@ -1016,7 +1016,7 @@ bool HexagonSimulator::HandleMemFill(string_list& rest) {
 bool HexagonSimulator::HandleMemTrace(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(SetTracing, HEX_TRACE_MEM, file->c_str());
+    CHECKED_CALL(SetTracing, HEX_TRACE_MEM, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1024,7 +1024,7 @@ bool HexagonSimulator::HandleMemTrace(string_list& rest) {
 bool HexagonSimulator::HandleNullPtr(string_list& rest) {
   auto behavior = to_nullptr(detail::pop_front(rest));
   if (behavior) {
-    TVM_CHECKED_CALL(ConfigureNULLPointerBehavior, *behavior);
+    CHECKED_CALL(ConfigureNULLPointerBehavior, *behavior);
   }
   return static_cast<bool>(behavior);
 }
@@ -1032,7 +1032,7 @@ bool HexagonSimulator::HandleNullPtr(string_list& rest) {
 bool HexagonSimulator::HandlePacketAnalyze(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(ConfigurePacketAnalysis, file->c_str());
+    CHECKED_CALL(ConfigurePacketAnalysis, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1040,7 +1040,7 @@ bool HexagonSimulator::HandlePacketAnalyze(string_list& rest) {
 bool HexagonSimulator::HandlePCFilter(string_list& rest) {
   auto range = detail::to_range<uint64_t, detail::to_uint>(detail::pop_front(rest));
   if (range) {
-    TVM_CHECKED_CALL(ConfigurePCRangeFilter, range->first, range->second);
+    CHECKED_CALL(ConfigurePCRangeFilter, range->first, range->second);
   }
   return static_cast<bool>(range);
 }
@@ -1048,7 +1048,7 @@ bool HexagonSimulator::HandlePCFilter(string_list& rest) {
 bool HexagonSimulator::HandlePCTraceMin(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(SetTracing, HEX_TRACE_PC_MIN, file->c_str());
+    CHECKED_CALL(SetTracing, HEX_TRACE_PC_MIN, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1056,7 +1056,7 @@ bool HexagonSimulator::HandlePCTraceMin(string_list& rest) {
 bool HexagonSimulator::HandlePCTraceNano(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(SetTracing, HEX_TRACE_PC_NANO, file->c_str());
+    CHECKED_CALL(SetTracing, HEX_TRACE_PC_NANO, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1064,7 +1064,7 @@ bool HexagonSimulator::HandlePCTraceNano(string_list& rest) {
 bool HexagonSimulator::HandlePCTrace(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(SetTracing, HEX_TRACE_PC, file->c_str());
+    CHECKED_CALL(SetTracing, HEX_TRACE_PC, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1072,7 +1072,7 @@ bool HexagonSimulator::HandlePCTrace(string_list& rest) {
 bool HexagonSimulator::HandlePMUStatsFile(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(ConfigurePmuStatisticsFile, file->c_str());
+    CHECKED_CALL(ConfigurePmuStatisticsFile, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1080,7 +1080,7 @@ bool HexagonSimulator::HandlePMUStatsFile(string_list& rest) {
 bool HexagonSimulator::HandleProfile(string_list& rest) {
   auto path = detail::pop_front(rest);
   if (path) {
-    TVM_CHECKED_CALL(ConfigureGProf, path->c_str());
+    CHECKED_CALL(ConfigureGProf, path->c_str());
   }
   return static_cast<bool>(path);
 }
@@ -1088,7 +1088,7 @@ bool HexagonSimulator::HandleProfile(string_list& rest) {
 bool HexagonSimulator::HandleProfileTimeZero(string_list& rest) {
   auto timezero = detail::to_bool(detail::pop_front(rest));
   if (timezero) {
-    TVM_CHECKED_CALL(ConfigureProfileMode, *timezero);
+    CHECKED_CALL(ConfigureProfileMode, *timezero);
   }
   return static_cast<bool>(timezero);
 }
@@ -1100,17 +1100,17 @@ bool HexagonSimulator::HandleQuiet(string_list& rest) {
 
 bool HexagonSimulator::HandleReconnect(string_list& rest) {
   if (!debug_port_) {
-    TVM_LOG(FATAL) << "Reconnect error: --reconnect must be specified "
+    LOG(FATAL) << "Reconnect error: --reconnect must be specified "
                   "AFTER --gdbserv <port_num>";
   }
-  TVM_CHECKED_CALL(ConfigureRemoteDebug, *debug_port_, true);
+  CHECKED_CALL(ConfigureRemoteDebug, *debug_port_, true);
   return true;
 }
 
 bool HexagonSimulator::HandleRTOS(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(ConfigureOSAwareness, file->c_str());
+    CHECKED_CALL(ConfigureOSAwareness, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1118,7 +1118,7 @@ bool HexagonSimulator::HandleRTOS(string_list& rest) {
 bool HexagonSimulator::HandleSimErr(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(ConfigureSimStderr, file->c_str());
+    CHECKED_CALL(ConfigureSimStderr, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1126,7 +1126,7 @@ bool HexagonSimulator::HandleSimErr(string_list& rest) {
 bool HexagonSimulator::HandleSimIn(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(ConfigureSimStdin, file->c_str());
+    CHECKED_CALL(ConfigureSimStdin, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1134,7 +1134,7 @@ bool HexagonSimulator::HandleSimIn(string_list& rest) {
 bool HexagonSimulator::HandleSimOut(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(ConfigureSimStdout, file->c_str());
+    CHECKED_CALL(ConfigureSimStdout, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1143,7 +1143,7 @@ bool HexagonSimulator::HandleStackStart(string_list& rest) {
   auto base = detail::to_uint(detail::pop_front(rest));
   auto size = detail::to_uint(detail::pop_front(rest));
   if (base && size) {
-    TVM_CHECKED_CALL(ConfigureStackInfo, *base, *size);
+    CHECKED_CALL(ConfigureStackInfo, *base, *size);
   }
   return static_cast<bool>(base) && static_cast<bool>(size);
 }
@@ -1151,7 +1151,7 @@ bool HexagonSimulator::HandleStackStart(string_list& rest) {
 bool HexagonSimulator::HandleStallTrace(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(SetTracing, HEX_TRACE_STALL, file->c_str());
+    CHECKED_CALL(SetTracing, HEX_TRACE_STALL, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1159,7 +1159,7 @@ bool HexagonSimulator::HandleStallTrace(string_list& rest) {
 bool HexagonSimulator::HandleStatsFile(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(ConfigureStatisticsFile, file->c_str());
+    CHECKED_CALL(ConfigureStatisticsFile, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1167,7 +1167,7 @@ bool HexagonSimulator::HandleStatsFile(string_list& rest) {
 bool HexagonSimulator::HandleSubsystemBase(string_list& rest) {
   auto base = detail::to_uint(detail::pop_front(rest));
   if (base) {
-    TVM_CHECKED_CALL(ConfigureSubsystemBase, *base);
+    CHECKED_CALL(ConfigureSubsystemBase, *base);
   }
   return static_cast<bool>(base);
 }
@@ -1175,13 +1175,13 @@ bool HexagonSimulator::HandleSubsystemBase(string_list& rest) {
 bool HexagonSimulator::HandleSymFile(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(AddSymbolFile, file->c_str());
+    CHECKED_CALL(AddSymbolFile, file->c_str());
   }
   return static_cast<bool>(file);
 }
 
 bool HexagonSimulator::HandleTCM(string_list& rest) {
-  TVM_CHECKED_CALL(ConfigureTimingMode, HEX_TIMING);
+  CHECKED_CALL(ConfigureTimingMode, HEX_TIMING);
   return true;
 }
 
@@ -1194,7 +1194,7 @@ bool HexagonSimulator::HandleTCMHighAddr(string_list& rest) {
 bool HexagonSimulator::HandleTCMLowAddr(string_list& rest) {
   auto addr = detail::to_uint(detail::pop_front(rest));
   if (addr) {
-    TVM_CHECKED_CALL(ConfigureTCM, *addr);
+    CHECKED_CALL(ConfigureTCM, *addr);
   }
   return static_cast<bool>(addr);
 }
@@ -1202,7 +1202,7 @@ bool HexagonSimulator::HandleTCMLowAddr(string_list& rest) {
 bool HexagonSimulator::HandleTimeFilterNS(string_list& rest) {
   auto range = detail::to_range<uint64_t, detail::to_uint>(detail::pop_front(rest));
   if (range) {
-    TVM_CHECKED_CALL(ConfigureTimeRangeFilter, range->first, HEX_NANOSEC, range->second, HEX_NANOSEC);
+    CHECKED_CALL(ConfigureTimeRangeFilter, range->first, HEX_NANOSEC, range->second, HEX_NANOSEC);
   }
   return static_cast<bool>(range);
 }
@@ -1217,14 +1217,14 @@ bool HexagonSimulator::HandleTiming(string_list& rest) {
       return false;
     }
   }
-  TVM_CHECKED_CALL(ConfigureTimingMode, timing_mode);
+  CHECKED_CALL(ConfigureTimingMode, timing_mode);
   return true;
 }
 
 bool HexagonSimulator::HandleUArchTrace(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(SetTracing, HEX_TRACE_UARCH, file->c_str());
+    CHECKED_CALL(SetTracing, HEX_TRACE_UARCH, file->c_str());
   }
   return static_cast<bool>(file);
 }
@@ -1232,7 +1232,7 @@ bool HexagonSimulator::HandleUArchTrace(string_list& rest) {
 bool HexagonSimulator::HandleUseFS(string_list& rest) {
   auto file = detail::pop_front(rest);
   if (file) {
-    TVM_CHECKED_CALL(ConfigureARFilesystem, detail::non_const_str(*file));
+    CHECKED_CALL(ConfigureARFilesystem, detail::non_const_str(*file));
   }
   return static_cast<bool>(file);
 }
@@ -1240,7 +1240,7 @@ bool HexagonSimulator::HandleUseFS(string_list& rest) {
 bool HexagonSimulator::HandleV2PTranslation(string_list& rest) {
   auto enable = detail::to_bool(detail::pop_front(rest));
   if (enable) {
-    TVM_CHECKED_CALL(EnableVirtualToPhysicalTranslation, *enable);
+    CHECKED_CALL(EnableVirtualToPhysicalTranslation, *enable);
   }
   return static_cast<bool>(enable);
 }

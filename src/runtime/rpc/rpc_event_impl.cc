@@ -33,7 +33,7 @@ namespace runtime {
 
 PackedFunc CreateEventDrivenServer(PackedFunc fsend, std::string name, std::string remote_key) {
   static PackedFunc frecv([](TVMArgs args, TVMRetValue* rv) {
-    TVM_LOG(FATAL) << "Do not allow explicit receive";
+    LOG(FATAL) << "Do not allow explicit receive";
     return 0;
   });
 

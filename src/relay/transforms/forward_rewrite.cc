@@ -89,7 +89,7 @@ class ForwardRewriter : private MixedModeMutator {
     if (fmulti_ref_trigger_ != nullptr) {
       Expr ret = post;
       auto it = ref_counter_.find(expr.get());
-      TVM_ICHECK(it != ref_counter_.end());
+      ICHECK(it != ref_counter_.end());
       if (it->second > 1) {
         ret = fmulti_ref_trigger_(ret);
       }
@@ -136,7 +136,7 @@ class ForwardRewriter : private MixedModeMutator {
     if (rewrite_func_) {
       frewrite = *rewrite_func_;
     } else {
-      TVM_ICHECK(rewrite_map_);
+      ICHECK(rewrite_map_);
       frewrite = rewrite_map_->get(call_node->op, nullptr);
     }
     const auto* post_node = post.as<CallNode>();

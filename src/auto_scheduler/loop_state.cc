@@ -72,7 +72,7 @@ Stage::Stage(te::Operation op) {
   } else if (op->IsInstance<te::PlaceholderOpNode>()) {
     node->op_type = StageKind::kPlaceholder;
   } else {
-    TVM_LOG(FATAL) << "Unsupported operator type" << op->_type_key;
+    LOG(FATAL) << "Unsupported operator type" << op->_type_key;
   }
 
   node->compute_at = ComputeAtKind::kRoot;
@@ -114,7 +114,7 @@ void AttachMap::DeleteStage(int stage_id) {
 
 void AttachMap::UpdateIters(const std::vector<IterKey>& original_iters,
                             const std::vector<IterKey>& new_iters) {
-  TVM_ICHECK_EQ(original_iters.size(), new_iters.size());
+  ICHECK_EQ(original_iters.size(), new_iters.size());
   AttachMapNode* pnode = CopyOnWrite();
   std::unordered_map<IterKey, std::vector<StageKey>> new_iter_to_attached_stages;
   for (size_t i = 0; i < original_iters.size(); ++i) {
@@ -205,7 +205,7 @@ State::State(const Array<te::Operation>& ops) {
 Iterator State::bind(int stage_id, const Iterator& it, IteratorAnnotation thread_type) {
   const Stage& stage = operator->()->stages[stage_id];
   if (thread_type < IteratorAnnotation::kVThread || thread_type > IteratorAnnotation::kThreadZ) {
-    TVM_LOG(FATAL) << "thread_type error, valid: kVThread, kBlockX, kBlockY, "
+    LOG(FATAL) << "thread_type error, valid: kVThread, kBlockX, kBlockY, "
                << "kThreadX, kThreadY, kBlockZ, kThreadZ";
   }
   AnnotationStep step = AnnotationStep(stage_id, GetIndex(stage->iters, it), thread_type);
@@ -265,7 +265,7 @@ void State::pragma(int stage_id, const Iterator& it, const String& pragma_type) 
 
 void State::reorder(int stage_id, const Array<Iterator>& order) {
   const Stage& stage = operator->()->stages[stage_id];
-  TVM_ICHECK_EQ(order.size(), stage->iters.size()) << "The order of all iterators "
+  ICHECK_EQ(order.size(), stage->iters.size()) << "The order of all iterators "
                                                << "should be specified";
   Array<Integer> after_ids;
   GetIndices(stage->iters, order, &after_ids);
@@ -434,7 +434,7 @@ void PrintState(std::ostream* os, const State& state, bool delete_trivial_loop) 
         PrintStage(os, i, state, 0, delete_trivial_loop);
       }
     } else {
-      TVM_LOG(FATAL) << "Invalid op type";
+      LOG(FATAL) << "Invalid op type";
     }
   }
 }

@@ -347,7 +347,7 @@ class IterMapRewriter : public ExprMutator {
     } else if (const auto* op = expr.as<IterSplitExprNode>()) {
       return IterSumExpr({GetRef<IterSplitExpr>(op)}, make_zero(expr->dtype));
     } else {
-      TVM_ICHECK(!expr->IsInstance<IterMapExprNode>());
+      ICHECK(!expr->IsInstance<IterMapExprNode>());
       return IterSumExpr({}, expr);
     }
   }
@@ -596,7 +596,7 @@ PrimExpr IterMapRewriter::VisitExpr_(const MulNode* op) {
     MulToLhs(ret.CopyOnWrite(), b);
     return std::move(ret);
   } else {
-    TVM_ICHECK(a->IsInstance<IterSplitExprNode>());
+    ICHECK(a->IsInstance<IterSplitExprNode>());
     IterSplitExpr ret = Downcast<IterSplitExpr>(std::move(a));
     ret.CopyOnWrite()->scale *= b;
     return std::move(ret);
@@ -681,7 +681,7 @@ PrimExpr IterMapRewriter::VisitExpr_(const FloorDivNode* op) {
       return FloorDiv(a, b);
     }
   } else {
-    TVM_ICHECK(a->IsInstance<IterSplitExprNode>());
+    ICHECK(a->IsInstance<IterSplitExprNode>());
     IterSplitExpr ret = Downcast<IterSplitExpr>(std::move(a));
     return SplitFloorDivConst(ret, b);
   }
@@ -755,7 +755,7 @@ PrimExpr IterMapRewriter::VisitExpr_(const FloorModNode* op) {
       return FloorMod(a, b);
     }
   } else {
-    TVM_ICHECK(a->IsInstance<IterSplitExprNode>());
+    ICHECK(a->IsInstance<IterSplitExprNode>());
     IterSplitExpr ret = Downcast<IterSplitExpr>(std::move(a));
     return SplitFloorModConst(ret, b);
   }

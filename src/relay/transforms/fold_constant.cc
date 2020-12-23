@@ -110,7 +110,7 @@ class ConstantFolder : public MixedModeMutator {
   bool inside_primitive = false;
   Expr VisitExpr_(const FunctionNode* op) final {
     if (op->HasNonzeroAttr(attr::kPrimitive)) {
-      TVM_ICHECK_EQ(inside_primitive, false);
+      ICHECK_EQ(inside_primitive, false);
       inside_primitive = true;
       auto ret = ExprMutator::VisitExpr_(op);
       inside_primitive = false;
@@ -211,7 +211,7 @@ class ConstantFolder : public MixedModeMutator {
       }
       return Tuple(fields);
     } else {
-      TVM_LOG(FATAL) << "Cannot handle " << value->GetTypeKey();
+      LOG(FATAL) << "Cannot handle " << value->GetTypeKey();
       return Expr();
     }
   }
@@ -253,7 +253,7 @@ class ConstantFolder : public MixedModeMutator {
   Expr EvaluateShapeOf(Expr expr, Array<Expr> args, Attrs attrs) {
     Expr input = args[0];
     const auto* param = attrs.as<ShapeOfAttrs>();
-    TVM_ICHECK(param != nullptr);
+    ICHECK(param != nullptr);
 
     tvm::Array<IndexExpr> ishape;
     if (auto opt = GetConstantShape(input)) {
@@ -271,7 +271,7 @@ class ConstantFolder : public MixedModeMutator {
     if (ishape.size() == 0) {
       value = runtime::NDArray::Empty({}, cdtype, ctx);
     } else {
-      TVM_ICHECK_NE(ishape.size(), 0);
+      ICHECK_NE(ishape.size(), 0);
       std::vector<int64_t> cshape = {static_cast<int64_t>(ishape.size())};
       value = runtime::NDArray::Empty(cshape, cdtype, ctx);
       int32_t* dims = static_cast<int32_t*>(value->data);
@@ -300,7 +300,7 @@ class ConstantFolder : public MixedModeMutator {
   Expr EvaluateNdarraySize(Expr expr, Array<Expr> args, Attrs attrs) {
     Expr input = args[0];
     const auto* param = attrs.as<NdarraySizeAttrs>();
-    TVM_ICHECK(param != nullptr);
+    ICHECK(param != nullptr);
 
     tvm::Array<IndexExpr> ishape;
     if (auto opt = GetConstantShape(input)) {

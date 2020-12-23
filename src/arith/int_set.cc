@@ -188,7 +188,7 @@ inline IntervalSet Combine<tir::Div>(Analyzer* analyzer, IntervalSet a, Interval
   if (b->IsEmpty()) return b;
   if (b->IsSinglePoint()) {
     if (is_zero(b->min_value)) {
-      TVM_LOG(FATAL) << "Divide by zero in CombineInterval Div";
+      LOG(FATAL) << "Divide by zero in CombineInterval Div";
     }
     if (is_one(b->min_value)) return a;
     // no relaxation is needed in here due to set is inclusive
@@ -223,7 +223,7 @@ inline IntervalSet Combine<tir::Mod>(Analyzer* analyzer, IntervalSet a, Interval
   if (b->IsSinglePoint()) {
     const PrimExpr& divisor = b->min_value;
     if (is_zero(divisor)) {
-      TVM_LOG(FATAL) << "Modular by zero in CombineInterval Mod";
+      LOG(FATAL) << "Modular by zero in CombineInterval Mod";
     }
     // We need to add more bound constraints throughout the code.
     // The logic below assumes a is non-negative, which usually
@@ -249,7 +249,7 @@ inline IntervalSet Combine<tir::FloorDiv>(Analyzer* analyzer, IntervalSet a, Int
   if (b->IsEmpty()) return b;
   if (b->IsSinglePoint()) {
     if (is_zero(b->min_value)) {
-      TVM_LOG(FATAL) << "Divide by zero in CombineInterval Div";
+      LOG(FATAL) << "Divide by zero in CombineInterval Div";
     }
     if (is_one(b->min_value)) return a;
     // no relaxation is needed in here due to set is inclusive
@@ -284,7 +284,7 @@ inline IntervalSet Combine<tir::FloorMod>(Analyzer* analyzer, IntervalSet a, Int
   if (b->IsSinglePoint()) {
     const PrimExpr& divisor = b->min_value;
     if (is_zero(divisor)) {
-      TVM_LOG(FATAL) << "Modular by zero in CombineInterval Mod";
+      LOG(FATAL) << "Modular by zero in CombineInterval Mod";
     }
     if (analyzer->CanProveGreaterEqual(divisor, 0)) {
       if (divisor.as<tir::IntImmNode>()) {
@@ -412,7 +412,7 @@ class IntervalSetEvaluator : public ExprFunctor<IntervalSet(const PrimExpr&)> {
   IntervalSet VisitExpr_(const OrNode* op) final { return VisitBinaryExpr_<Or>(op); }
 
   IntervalSet VisitExpr_(const RampNode* op) final {
-    TVM_ICHECK(eval_vec_);
+    ICHECK(eval_vec_);
     IntervalSet base = Eval(op->base);
     PVar<IntImm> stride;
     if (stride.Match(op->stride)) {
@@ -431,7 +431,7 @@ class IntervalSetEvaluator : public ExprFunctor<IntervalSet(const PrimExpr&)> {
   }
 
   IntervalSet VisitExpr_(const BroadcastNode* op) final {
-    TVM_ICHECK(eval_vec_);
+    ICHECK(eval_vec_);
     return VisitExpr(op->value);
   }
 
@@ -506,7 +506,7 @@ Range IntSet::CoverRange(Range max_range) const {
   IntSet temp;
   Analyzer analyzer;
   const IntervalSetNode* s_int = (*this).as<IntervalSetNode>();
-  TVM_ICHECK(s_int != nullptr);
+  ICHECK(s_int != nullptr);
   if (s_int->HasUpperBound() && s_int->HasLowerBound()) {
     return Range::FromMinExtent(s_int->min_value,
                                 analyzer.Simplify(s_int->max_value + 1 - s_int->min_value));
@@ -516,13 +516,13 @@ Range IntSet::CoverRange(Range max_range) const {
 
 PrimExpr IntSet::min() const {
   const IntervalSetNode* s_int = (*this).as<IntervalSetNode>();
-  TVM_ICHECK(s_int);
+  ICHECK(s_int);
   return s_int->min_value;
 }
 
 PrimExpr IntSet::max() const {
   const IntervalSetNode* s_int = (*this).as<IntervalSetNode>();
-  TVM_ICHECK(s_int);
+  ICHECK(s_int);
   return s_int->max_value;
 }
 
@@ -584,7 +584,7 @@ SignType IntSet::GetSignType() const {
 }
 PrimExpr IntSet::PointValue() const {
   const IntervalSetNode* s_int = (*this).as<IntervalSetNode>();
-  TVM_ICHECK(s_int && s_int->IsSinglePoint());
+  ICHECK(s_int && s_int->IsSinglePoint());
   return s_int->min_value;
 }
 

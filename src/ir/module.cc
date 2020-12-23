@@ -55,14 +55,14 @@ IRModule::IRModule(tvm::Map<GlobalVar, BaseFunc> functions,
 
   for (const auto& kv : n->functions) {
     // set global var map
-    TVM_ICHECK(n->global_var_map_.count(kv.first->name_hint) == 0)
+    ICHECK(n->global_var_map_.count(kv.first->name_hint) == 0)
         << "Duplicate global function name " << kv.first->name_hint;
     n->global_var_map_.Set(kv.first->name_hint, kv.first);
   }
 
   for (const auto& kv : n->type_definitions) {
     // set global typevar map
-    TVM_ICHECK(n->global_type_var_map_.count(kv.first->name_hint) == 0)
+    ICHECK(n->global_type_var_map_.count(kv.first->name_hint) == 0)
         << "Duplicate global type definition name " << kv.first->name_hint;
     n->global_type_var_map_.Set(kv.first->name_hint, kv.first);
     n->RegisterConstructors(kv.first, kv.second);
@@ -136,7 +136,7 @@ GlobalVar IRModuleNode::GetGlobalVar(const String& name) const {
       msg << "\"" << kv.first << "\"";
     }
     msg << "]";
-    TVM_LOG(FATAL) << msg.str();
+    LOG(FATAL) << msg.str();
   }
   return (*it).second;
 }
@@ -150,9 +150,9 @@ tvm::Array<GlobalVar> IRModuleNode::GetGlobalVars() const {
 }
 
 GlobalTypeVar IRModuleNode::GetGlobalTypeVar(const String& name) const {
-  TVM_ICHECK(global_type_var_map_.defined());
+  ICHECK(global_type_var_map_.defined());
   auto it = global_type_var_map_.find(name);
-  TVM_ICHECK(it != global_type_var_map_.end())
+  ICHECK(it != global_type_var_map_.end())
       << "Cannot find global type var " << name << " in the Module";
   return (*it).second;
 }
@@ -165,7 +165,7 @@ Constructor IRModuleNode::GetConstructor(const String& adt, const String& cons) 
     }
   }
 
-  TVM_LOG(FATAL) << adt << " does not contain constructor " << cons;
+  LOG(FATAL) << adt << " does not contain constructor " << cons;
   throw std::runtime_error("Constructor Not Found.");
 }
 
@@ -183,8 +183,8 @@ void WarnIfMalformed(const IRModule& mod, relay::Function func) {
   auto fv = relay::FreeVars(func);
   auto ftv = relay::FreeTypeVars(func, mod);
   // TODO(@jroesch): refactor to use diagnostic context
-  TVM_ICHECK_EQ(fv.size(), 0) << "There are free variables: " << fv << std::endl;
-  TVM_ICHECK_EQ(ftv.size(), 0) << "There are free type variables: " << fv
+  ICHECK_EQ(fv.size(), 0) << "There are free variables: " << fv << std::endl;
+  ICHECK_EQ(ftv.size(), 0) << "There are free type variables: " << fv
                            << " in function: " << AsText(func, false);
 }
 
@@ -202,9 +202,9 @@ void IRModuleNode::AddUnchecked(const GlobalVar& var, const BaseFunc& func) {
 
   auto it = global_var_map_.find(var->name_hint);
   if (it != global_var_map_.end()) {
-    TVM_ICHECK_EQ((*it).second, var);
+    ICHECK_EQ((*it).second, var);
   } else {
-    TVM_ICHECK(global_var_map_.count(var->name_hint) == 0)
+    ICHECK(global_var_map_.count(var->name_hint) == 0)
         << "Duplicate global function name " << var->name_hint;
   }
 
@@ -234,7 +234,7 @@ void IRModuleNode::AddTypeDefUnchecked(const GlobalTypeVar& var, const TypeData&
   this->type_definitions.Set(var, type);
   if (!update) {
     // set global type var map
-    TVM_ICHECK(global_type_var_map_.count(var->name_hint) == 0)
+    ICHECK(global_type_var_map_.count(var->name_hint) == 0)
         << "Duplicate global type definition name " << var->name_hint;
   }
   global_type_var_map_.Set(var->name_hint, var);
@@ -258,7 +258,7 @@ void IRModuleNode::Remove(const GlobalVar& var) {
 
 BaseFunc IRModuleNode::Lookup(const GlobalVar& var) const {
   auto it = functions.find(var);
-  TVM_ICHECK(it != functions.end()) << "There is no definition of " << var->name_hint;
+  ICHECK(it != functions.end()) << "There is no definition of " << var->name_hint;
   return (*it).second;
 }
 
@@ -269,7 +269,7 @@ BaseFunc IRModuleNode::Lookup(const String& name) const {
 
 TypeData IRModuleNode::LookupTypeDef(const GlobalTypeVar& var) const {
   auto it = type_definitions.find(var);
-  TVM_ICHECK(it != type_definitions.end()) << "There is no definition of " << var->name_hint;
+  ICHECK(it != type_definitions.end()) << "There is no definition of " << var->name_hint;
   return (*it).second;
 }
 
@@ -280,7 +280,7 @@ TypeData IRModuleNode::LookupTypeDef(const String& name) const {
 
 Constructor IRModuleNode::LookupTag(const int32_t tag) {
   auto it = constructor_tag_map_.find(tag);
-  TVM_ICHECK(it != constructor_tag_map_.end()) << "There is no constructor with the tag " << tag;
+  ICHECK(it != constructor_tag_map_.end()) << "There is no constructor with the tag " << tag;
   return (*it).second;
 }
 
@@ -382,7 +382,7 @@ void IRModuleNode::Import(const String& path) {
 
 void IRModuleNode::ImportFromStd(const String& path) {
   auto* f = tvm::runtime::Registry::Get("tvm.relay.std_path");
-  TVM_ICHECK(f != nullptr) << "The Relay std_path is not set, please register tvm.relay.std_path.";
+  ICHECK(f != nullptr) << "The Relay std_path is not set, please register tvm.relay.std_path.";
   std::string std_path = (*f)();
   this->Import(std_path + "/" + path);
 }
@@ -406,7 +406,7 @@ TVM_REGISTER_GLOBAL("ir.Module_Add").set_body([](TVMArgs args, TVMRetValue* ret)
   GlobalVar var = args[1];
   ObjectRef val = args[2];
   bool update = args[3];
-  TVM_ICHECK(val->IsInstance<RelayExprNode>());
+  ICHECK(val->IsInstance<RelayExprNode>());
 
   if (val->IsInstance<BaseFuncNode>()) {
     mod->Add(var, Downcast<BaseFunc>(val), update);

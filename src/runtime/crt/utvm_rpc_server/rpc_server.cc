@@ -67,7 +67,7 @@ class MicroIOHandler {
     return buf_size_bytes;
   }
 
-  void MessageDone() { TVM_CHECK_EQ(session_->FinishMessage(), kTvmErrorNoError, "FinishMessage"); }
+  void MessageDone() { CHECK_EQ(session_->FinishMessage(), kTvmErrorNoError, "FinishMessage"); }
 
   ssize_t PosixRead(uint8_t* buf, size_t buf_size_bytes) {
     return receive_buffer_->Read(buf, buf_size_bytes);
@@ -120,7 +120,7 @@ class MicroRPCServer {
 
   void* operator new(size_t count, void* ptr) { return ptr; }
 
-  void Initialize() { TVM_CHECK_EQ(kTvmErrorNoError, session_.Initialize(), "rpc server init"); }
+  void Initialize() { CHECK_EQ(kTvmErrorNoError, session_.Initialize(), "rpc server init"); }
 
   /*! \brief Process one message from the receive buffer, if possible.
    *

@@ -74,7 +74,7 @@ class DataType {
     data_.bits = static_cast<uint8_t>(bits);
     data_.lanes = static_cast<uint16_t>(lanes);
     if (code == kBFloat) {
-      TVM_ICHECK_EQ(bits, 16);
+      ICHECK_EQ(bits, 16);
     }
   }
   /*! \return The type code. */
@@ -212,7 +212,7 @@ inline int GetVectorBytes(DataType dtype) {
       dtype == DataType::Int(1)) {
     return 1;
   }
-  TVM_ICHECK_EQ(data_bits % 8, 0U) << "Need to load/store by multiple of bytes";
+  ICHECK_EQ(data_bits % 8, 0U) << "Need to load/store by multiple of bytes";
   return data_bits / 8;
 }
 
@@ -292,7 +292,7 @@ inline const char* DLDataTypeCode2Str(DLDataTypeCode type_code) {
     case kDLBfloat:
       return "bfloat";
     default:
-      TVM_LOG(FATAL) << "unknown type_code=" << static_cast<int>(type_code);
+      LOG(FATAL) << "unknown type_code=" << static_cast<int>(type_code);
       return "";
   }
 }
@@ -364,7 +364,7 @@ inline DLDataType String2DLDataType(std::string s) {
     t.code = ParseCustomDatatype(s, &scan);
   } else {
     scan = s.c_str();
-    TVM_LOG(FATAL) << "unknown type " << s;
+    LOG(FATAL) << "unknown type " << s;
   }
   char* xdelim;  // emulate sscanf("%ux%u", bits, lanes)
   uint8_t bits = static_cast<uint8_t>(strtoul(scan, &xdelim, 10));
@@ -373,7 +373,7 @@ inline DLDataType String2DLDataType(std::string s) {
   if (*xdelim == 'x') {
     t.lanes = static_cast<uint16_t>(strtoul(xdelim + 1, &endpt, 10));
   }
-  TVM_ICHECK(endpt == s.c_str() + s.length()) << "unknown type " << s;
+  ICHECK(endpt == s.c_str() + s.length()) << "unknown type " << s;
   return t;
 }
 

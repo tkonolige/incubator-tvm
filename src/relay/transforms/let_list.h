@@ -51,7 +51,7 @@ class LetList {
  public:
   ~LetList() {
     if (lets_.size() > 0 && !used_) {
-      TVM_LOG(WARNING) << "letlist not used";
+      LOG(WARNING) << "letlist not used";
     }
   }
   /*!
@@ -64,8 +64,8 @@ class LetList {
    * \return a Var that hold the inserted expr.
    */
   Var Push(Var pv, Expr expr) {
-    TVM_ICHECK(!used_);
-    TVM_ICHECK(WellFormed(expr));
+    ICHECK(!used_);
+    ICHECK(WellFormed(expr));
     lets_.emplace_back(std::make_pair(pv, expr));
     return pv;
   }
@@ -98,7 +98,7 @@ class LetList {
    *  \return the wrapped expr.
    */
   Expr Get(const Expr& body) {
-    TVM_ICHECK(!used_);
+    ICHECK(!used_);
     Expr ret = body;
     for (auto rit = lets_.rbegin(); rit != lets_.rend(); ++rit) {
       ret = Let(std::get<0>(*rit), std::get<1>(*rit), ret);

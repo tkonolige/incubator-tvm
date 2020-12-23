@@ -30,7 +30,7 @@
 namespace tvm {
 namespace contrib {
 
-CuBlasThreadEntry::CuBlasThreadEntry() { TVM_CHECK_CUBLAS_ERROR(cublasCreate(&handle)); }
+CuBlasThreadEntry::CuBlasThreadEntry() { CHECK_CUBLAS_ERROR(cublasCreate(&handle)); }
 
 CuBlasThreadEntry::~CuBlasThreadEntry() {
   if (handle) {
@@ -44,7 +44,7 @@ typedef dmlc::ThreadLocalStore<CuBlasThreadEntry> CuBlasThreadStore;
 CuBlasThreadEntry* CuBlasThreadEntry::ThreadLocal() {
   auto stream = runtime::CUDAThreadEntry::ThreadLocal()->stream;
   CuBlasThreadEntry* retval = CuBlasThreadStore::Get();
-  TVM_CHECK_CUBLAS_ERROR(cublasSetStream(retval->handle, static_cast<cudaStream_t>(stream)));
+  CHECK_CUBLAS_ERROR(cublasSetStream(retval->handle, static_cast<cudaStream_t>(stream)));
   return retval;
 }
 

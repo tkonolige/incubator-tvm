@@ -88,13 +88,13 @@ void ParseLLVMTargetOptions(const Target& target, std::string* triple, std::stri
     String value = v.value();
     if (value == "hard") {
 #if TVM_LLVM_VERSION < 60
-      TVM_LOG(FATAL) << "-mfloat-abi hard is only supported for LLVM > 6.0";
+      LOG(FATAL) << "-mfloat-abi hard is only supported for LLVM > 6.0";
 #endif
       soft_float_abi = false;
     } else if (value == "soft") {
       soft_float_abi = true;
     } else {
-      TVM_LOG(FATAL) << "invalid -mfloat-abi option " << value;
+      LOG(FATAL) << "invalid -mfloat-abi option " << value;
     }
   }
   if (triple->length() == 0 || *triple == "default") {
@@ -133,7 +133,7 @@ std::unique_ptr<llvm::TargetMachine> GetLLVMTargetMachine(const Target& target, 
   std::string err;
   const llvm::Target* llvm_target = llvm::TargetRegistry::lookupTarget(target_triple, err);
   if (llvm_target == nullptr) {
-    TVM_ICHECK(allow_null) << err << " target_triple=" << target_triple;
+    ICHECK(allow_null) << err << " target_triple=" << target_triple;
     return nullptr;
   }
   llvm::TargetMachine* tm =

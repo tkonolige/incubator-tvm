@@ -60,7 +60,7 @@ HardwareParams HardwareParamsNode::GetDefaultHardwareParams(const Target& target
     auto ctx = TVMContext{static_cast<DLDeviceType>(device_type), 0};
     auto device_name = device_type == kDLGPU ? "device_api.gpu" : "device_api.rocm";
     auto func = tvm::runtime::Registry::Get(device_name);
-    TVM_ICHECK(func != nullptr) << "Cannot find GPU device_api in registry";
+    ICHECK(func != nullptr) << "Cannot find GPU device_api in registry";
     auto device_api = static_cast<tvm::runtime::DeviceAPI*>(((*func)()).operator void*());
 
     tvm::runtime::TVMRetValue ret;
@@ -91,7 +91,7 @@ HardwareParams HardwareParamsNode::GetDefaultHardwareParams(const Target& target
     return HardwareParams(-1, 16, 64, max_shared_memory_per_block, max_local_memory_per_block,
                           max_threads_per_block, max_vthread_extent, warp_size);
   } else {
-    TVM_LOG(FATAL) << "No default hardware parameters for target: " << target;
+    LOG(FATAL) << "No default hardware parameters for target: " << target;
   }
   return HardwareParams();
 }

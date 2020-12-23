@@ -44,7 +44,7 @@ namespace runtime {
 namespace vm {
 
 #define STREAM_CHECK(val, section)                                          \
-  TVM_ICHECK(val) << "Invalid VM file format in the " << section << " section." \
+  ICHECK(val) << "Invalid VM file format in the " << section << " section." \
               << "\n";
 
 // Helper to serialize a vm instruction.
@@ -75,7 +75,7 @@ PackedFunc Executable::GetFunction(const std::string& name, const ObjectPtr<Obje
       *rv = this->GetFunctionParameterName(func_name, index);
     });
   } else {
-    TVM_LOG(FATAL) << "Unknown packed function: " << name;
+    LOG(FATAL) << "Unknown packed function: " << name;
     return PackedFunc(nullptr);
   }
 }
@@ -83,7 +83,7 @@ PackedFunc Executable::GetFunction(const std::string& name, const ObjectPtr<Obje
 int Executable::GetFunctionArity(std::string func_name) const {
   auto it = global_map.find(func_name);
   if (it == global_map.end()) {
-    TVM_LOG(ERROR) << "Cannot find function " << func_name << " in executable";
+    LOG(ERROR) << "Cannot find function " << func_name << " in executable";
     return -1;
   }
   const auto& func = functions[it->second];
@@ -93,12 +93,12 @@ int Executable::GetFunctionArity(std::string func_name) const {
 std::string Executable::GetFunctionParameterName(std::string func_name, uint32_t index) const {
   auto it = global_map.find(func_name);
   if (it == global_map.end()) {
-    TVM_LOG(ERROR) << "Cannot find function " << func_name << " in executable";
+    LOG(ERROR) << "Cannot find function " << func_name << " in executable";
     return "";
   }
   const auto& func = functions[it->second];
   if (index > func.params.size()) {
-    TVM_LOG(ERROR) << "Invalid parameter index";
+    LOG(ERROR) << "Invalid parameter index";
     return "";
   }
   return func.params[index];
@@ -443,7 +443,7 @@ VMInstructionSerializer SerializeInstruction(const Instruction& instr) {
       break;
     }
     default:
-      TVM_LOG(FATAL) << "Invalid opcode" << static_cast<int>(instr.op);
+      LOG(FATAL) << "Invalid opcode" << static_cast<int>(instr.op);
       break;
   }
 
@@ -527,7 +527,7 @@ void Executable::LoadConstantSection(dmlc::Stream* strm) {
   // Load the const to device mapping.
   std::vector<size_t> const_device_type;
   STREAM_CHECK(strm->Read(&const_device_type), "constant");
-  TVM_ICHECK_EQ(size, const_device_type.size());
+  ICHECK_EQ(size, const_device_type.size());
   for (auto dev : const_device_type) {
     this->const_device_type.push_back(static_cast<Index>(dev));
   }
@@ -545,7 +545,7 @@ void Executable::LoadPrimitiveOpNames(dmlc::Stream* strm) {
 // `instr_fields`.
 inline std::vector<Index> ExtractFields(const std::vector<Index>& instr_fields, Index start,
                                         Index cnt) {
-  TVM_ICHECK_LE(static_cast<size_t>(start + cnt), instr_fields.size());
+  ICHECK_LE(static_cast<size_t>(start + cnt), instr_fields.size());
   std::vector<Index> ret;
   for (auto i = start; i < start + cnt; i++) {
     ret.push_back(instr_fields[i]);
@@ -558,23 +558,23 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
   switch (opcode) {
     case Opcode::Move: {
       // Number of fields = 2
-      TVM_DCHECK_EQ(instr.fields.size(), 2U);
+      DCHECK_EQ(instr.fields.size(), 2U);
       return Instruction::Move(instr.fields[0], instr.fields[1]);
     }
     case Opcode::Ret: {
       // Number of fields = 1
-      TVM_DCHECK_EQ(instr.fields.size(), 1U);
+      DCHECK_EQ(instr.fields.size(), 1U);
       return Instruction::Ret(instr.fields[0]);
     }
     case Opcode::Fatal: {
       // Number of fields = 0
-      TVM_DCHECK(instr.fields.empty());
+      DCHECK(instr.fields.empty());
       return Instruction::Fatal();
     }
     case Opcode::InvokePacked: {
       // Number of fields = 3 + instr.arity
-      TVM_DCHECK_GE(instr.fields.size(), 3U);
-      TVM_DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
+      DCHECK_GE(instr.fields.size(), 3U);
+      DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
 
       Index packed_index = instr.fields[0];
       Index arity = instr.fields[1];
@@ -584,8 +584,8 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::AllocTensor: {
       // Number of fields = 7 + instr.alloc_tensor.ndim
-      TVM_DCHECK_GE(instr.fields.size(), 7U);
-      TVM_DCHECK_EQ(instr.fields.size(), 7U + static_cast<size_t>(instr.fields[5]));
+      DCHECK_GE(instr.fields.size(), 7U);
+      DCHECK_EQ(instr.fields.size(), 7U + static_cast<size_t>(instr.fields[5]));
 
       RegName storage_reg = instr.fields[0];
       RegName offset = instr.fields[1];
@@ -604,7 +604,7 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::AllocTensorReg: {
       // Number of fields = 7
-      TVM_DCHECK_EQ(instr.fields.size(), 7U);
+      DCHECK_EQ(instr.fields.size(), 7U);
 
       RegName storage_reg = instr.fields[0];
       RegName offset = instr.fields[1];
@@ -621,8 +621,8 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::AllocADT: {
       // Number of fields = 3 + instr.num_fields
-      TVM_DCHECK_GE(instr.fields.size(), 3U);
-      TVM_DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
+      DCHECK_GE(instr.fields.size(), 3U);
+      DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
 
       Index constructor_tag = instr.fields[0];
       Index num_fields = instr.fields[1];
@@ -633,8 +633,8 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::AllocClosure: {
       // Number of fields = 3 + instr.num_freevar
-      TVM_DCHECK_GE(instr.fields.size(), 3U);
-      TVM_DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
+      DCHECK_GE(instr.fields.size(), 3U);
+      DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
 
       Index clo_index = instr.fields[0];
       Index num_freevar = instr.fields[1];
@@ -645,7 +645,7 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::AllocStorage: {
       // Number of fields = 7
-      TVM_DCHECK_GE(instr.fields.size(), 7U);
+      DCHECK_GE(instr.fields.size(), 7U);
       Index allocation_size = instr.fields[0];
       Index alignment = instr.fields[1];
 
@@ -661,7 +661,7 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::If: {
       // Number of fields = 4
-      TVM_DCHECK_EQ(instr.fields.size(), 4U);
+      DCHECK_EQ(instr.fields.size(), 4U);
       Index test = instr.fields[0];
       Index target = instr.fields[1];
       Index true_offset = instr.fields[2];
@@ -671,8 +671,8 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::Invoke: {
       // Number of fields = 3 + instr.num_args
-      TVM_DCHECK_GE(instr.fields.size(), 3U);
-      TVM_DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
+      DCHECK_GE(instr.fields.size(), 3U);
+      DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
 
       Index func_index = instr.fields[0];
       Index num_args = instr.fields[1];
@@ -683,8 +683,8 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::InvokeClosure: {
       // Number of fields = 3 + instr.num_closure_args
-      TVM_DCHECK_GE(instr.fields.size(), 3U);
-      TVM_DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
+      DCHECK_GE(instr.fields.size(), 3U);
+      DCHECK_EQ(instr.fields.size(), 3U + static_cast<size_t>(instr.fields[1]));
 
       Index closure = instr.fields[0];
       Index num_closure_args = instr.fields[1];
@@ -695,47 +695,47 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
     }
     case Opcode::LoadConst: {
       // Number of fields = 2
-      TVM_DCHECK_EQ(instr.fields.size(), 2U);
+      DCHECK_EQ(instr.fields.size(), 2U);
       return Instruction::LoadConst(instr.fields[0], instr.fields[1]);
     }
     case Opcode::LoadConsti: {
       // Number of fields = 2
-      TVM_DCHECK_EQ(instr.fields.size(), 2U);
+      DCHECK_EQ(instr.fields.size(), 2U);
       return Instruction::LoadConsti(instr.fields[0], instr.fields[1]);
     }
     case Opcode::GetField: {
       // Number of fields = 3
-      TVM_DCHECK_EQ(instr.fields.size(), 3U);
+      DCHECK_EQ(instr.fields.size(), 3U);
       return Instruction::GetField(instr.fields[0], instr.fields[1], instr.fields[2]);
     }
     case Opcode::GetTag: {
       // Number of fields = 2
-      TVM_DCHECK_EQ(instr.fields.size(), 2U);
+      DCHECK_EQ(instr.fields.size(), 2U);
       return Instruction::GetTag(instr.fields[0], instr.fields[1]);
     }
     case Opcode::Goto: {
       // Number of fields = 1
-      TVM_DCHECK_EQ(instr.fields.size(), 1U);
+      DCHECK_EQ(instr.fields.size(), 1U);
       return Instruction::Goto(instr.fields[0]);
     }
     case Opcode::ShapeOf: {
       // Number of fields = 2
-      TVM_DCHECK_EQ(instr.fields.size(), 2U);
+      DCHECK_EQ(instr.fields.size(), 2U);
       return Instruction::ShapeOf(instr.fields[0], instr.fields[1]);
     }
     case Opcode::ReshapeTensor: {
       // Number of fields = 3
-      TVM_DCHECK_EQ(instr.fields.size(), 3U);
+      DCHECK_EQ(instr.fields.size(), 3U);
       return Instruction::ReshapeTensor(instr.fields[0], instr.fields[1], instr.fields[2]);
     }
     case Opcode::DeviceCopy: {
       // Number of fields = 4
-      TVM_DCHECK_EQ(instr.fields.size(), 4U);
+      DCHECK_EQ(instr.fields.size(), 4U);
       return Instruction::DeviceCopy(instr.fields[0], instr.fields[1], instr.fields[2],
                                      instr.fields[3]);
     }
     default:
-      TVM_LOG(FATAL) << "Invalid opcode" << instr.opcode;
+      LOG(FATAL) << "Invalid opcode" << instr.opcode;
       return Instruction();
   }
 }
@@ -765,8 +765,8 @@ void Executable::LoadCodeSection(dmlc::Stream* strm) {
     VMFunction vm_func = VMFunction(loaded_func.name, loaded_func.params, instructions,
                                     loaded_func.register_file_size, loaded_func.params_device_type);
     auto it = this->global_map.find(loaded_func.name);
-    TVM_ICHECK(it != this->global_map.end());
-    TVM_ICHECK_LE(it->second, this->global_map.size());
+    ICHECK(it != this->global_map.end());
+    ICHECK_LE(it->second, this->global_map.size());
     this->functions[it->second] = vm_func;
   }
 }
@@ -774,14 +774,14 @@ void Executable::LoadCodeSection(dmlc::Stream* strm) {
 TVM_REGISTER_GLOBAL("runtime.GetNumOfGlobals").set_body([](TVMArgs args, TVMRetValue* rv) {
   runtime::Module mod = args[0];
   const auto* exec = dynamic_cast<Executable*>(mod.operator->());
-  TVM_ICHECK(exec);
+  ICHECK(exec);
   *rv = static_cast<int>(exec->global_map.size());
 });
 
 TVM_REGISTER_GLOBAL("runtime.GetGlobalFields").set_body([](TVMArgs args, TVMRetValue* rv) {
   runtime::Module mod = args[0];
   const auto* exec = dynamic_cast<Executable*>(mod.operator->());
-  TVM_ICHECK(exec);
+  ICHECK(exec);
   int idx = args[1];
   std::vector<std::pair<std::string, Index> > globals(exec->global_map.begin(),
                                                       exec->global_map.end());
@@ -789,24 +789,24 @@ TVM_REGISTER_GLOBAL("runtime.GetGlobalFields").set_body([](TVMArgs args, TVMRetV
     return a.second < b.second;
   };
   std::sort(globals.begin(), globals.end(), comp);
-  TVM_ICHECK_LT(idx, globals.size());
+  ICHECK_LT(idx, globals.size());
   *rv = globals[idx].first;
 });
 
 TVM_REGISTER_GLOBAL("runtime.GetNumOfPrimitives").set_body([](TVMArgs args, TVMRetValue* rv) {
   runtime::Module mod = args[0];
   const auto* exec = dynamic_cast<Executable*>(mod.operator->());
-  TVM_ICHECK(exec);
+  ICHECK(exec);
   *rv = static_cast<int>(exec->primitive_map.size());
 });
 
 TVM_REGISTER_GLOBAL("runtime.GetPrimitiveFields").set_body([](TVMArgs args, TVMRetValue* rv) {
   runtime::Module mod = args[0];
   const auto* exec = dynamic_cast<Executable*>(mod.operator->());
-  TVM_ICHECK(exec);
+  ICHECK(exec);
   int idx = args[1];
-  TVM_ICHECK_GE(idx, 0);
-  TVM_ICHECK_LT(idx, exec->primitive_map.size());
+  ICHECK_GE(idx, 0);
+  ICHECK_LT(idx, exec->primitive_map.size());
 
   for (const auto& it : exec->primitive_map) {
     if (idx == static_cast<int>(it.second)) {

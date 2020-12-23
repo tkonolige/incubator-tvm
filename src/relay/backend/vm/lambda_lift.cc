@@ -82,7 +82,7 @@ class LambdaLifter : public ExprMutator {
       auto var = GetRef<Var>(var_node);
       if (!letrec_.empty() && var == letrec_.back()) {
         auto it = lambda_map_.find(var);
-        TVM_ICHECK(it != lambda_map_.end());
+        ICHECK(it != lambda_map_.end());
         return Call(it->second, call->args, call_node->attrs, call_node->type_args);
       }
     }
@@ -176,17 +176,17 @@ class LambdaLifter : public ExprMutator {
       auto rebound_body = Function(func->params, Bind(body->body, rebinding_map), func->ret_type,
                                    func->type_params, func->attrs, func->span);
       auto after = Downcast<Function>(rebound_body)->params.size();
-      TVM_CHECK_EQ(before, after);
+      CHECK_EQ(before, after);
       lifted_func =
           Function(typed_captured_vars, rebound_body, func->func_type_annotation(), free_type_vars);
       lifted_func = MarkClosure(lifted_func);
     }
 
-    TVM_ICHECK(lifted_func.defined());
+    ICHECK(lifted_func.defined());
 
     if (module_->ContainGlobalVar(name)) {
       const auto existing_func = module_->Lookup(name);
-      TVM_ICHECK(tvm::StructuralEqual()(lifted_func, existing_func))
+      ICHECK(tvm::StructuralEqual()(lifted_func, existing_func))
           << "lifted function hash collision";
       // If an identical function already exists, use its global var.
       global = module_->GetGlobalVar(name);

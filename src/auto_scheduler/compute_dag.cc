@@ -93,7 +93,7 @@ Array<te::Operation> TopoSortOps(const Array<te::Tensor>& tensors) {
         stack.push_back(ten->op.operator->());
       }
     } else {
-      TVM_LOG(FATAL) << "Unsupported op " << GetRef<te::Operation>(op);
+      LOG(FATAL) << "Unsupported op " << GetRef<te::Operation>(op);
     }
   }
 
@@ -305,7 +305,7 @@ AccessAnalyzer::AccessAnalyzer(const Array<te::Tensor>& tensors) {
         node->num_common_outer_iterators[producer][op] = n_common;
       }
     } else {
-      TVM_LOG(FATAL) << "Invalid op: " << op;
+      LOG(FATAL) << "Invalid op: " << op;
     }
   }
 
@@ -394,7 +394,7 @@ AccessAnalyzer::AccessAnalyzer(const Array<te::Tensor>& tensors) {
       // check whether the op is output
       node->is_output[op] = node->read_by[op].empty();
     } else {
-      TVM_LOG(FATAL) << "Invalid op" << op;
+      LOG(FATAL) << "Invalid op" << op;
     }
   }
 
@@ -554,7 +554,7 @@ class FlopEstimator : public ExprFunctor<double(const PrimExpr& n)> {
         if (pop->attrs.count("FLOP")) {
           // Use user-provided FLOP
           auto pint = pop->attrs["FLOP"].as<IntImmNode>();
-          TVM_ICHECK(pint != nullptr);
+          ICHECK(pint != nullptr);
           ret += pint->value;
         } else {
           // Estimate by parsing the compute body
@@ -573,7 +573,7 @@ class FlopEstimator : public ExprFunctor<double(const PrimExpr& n)> {
       } else if (op->IsInstance<te::PlaceholderOpNode>()) {
         {}  // do nothing
       } else {
-        TVM_LOG(FATAL) << "Invalid op type " << op;
+        LOG(FATAL) << "Invalid op type " << op;
       }
     }
 
@@ -666,7 +666,7 @@ void CheckComputeValidity(const te::Schedule& sch) {
     if (stage->op->IsInstance<te::ComputeOpNode>()) {
       std::unordered_set<std::string> names;
       for (const auto& x : stage->leaf_iter_vars) {
-        TVM_ICHECK(!names.count(x->var->name_hint))
+        ICHECK(!names.count(x->var->name_hint))
             << "Find duplicated iterator names in the compute definition: " << x->var->name_hint
             << ". Please use different names for different iterators.";
         names.insert(x->var->name_hint);
@@ -742,11 +742,11 @@ class IndexRewriter : public StmtExprMutator {
       for (const auto& arg : op->indices) {
         std::string axis_name;
         if (const auto* int_imm = arg.as<IntImmNode>()) {
-          TVM_ICHECK_EQ(int_imm->value, 0);
+          ICHECK_EQ(int_imm->value, 0);
           axis_name = "IntImm";
         } else {
           axis_name = AxisBaseName(CleanName(Downcast<Var>(arg)->name_hint));
-          TVM_ICHECK_EQ(name_to_arg.count(axis_name), 0);
+          ICHECK_EQ(name_to_arg.count(axis_name), 0);
           name_to_arg[axis_name] = arg;
         }
       }
@@ -756,7 +756,7 @@ class IndexRewriter : public StmtExprMutator {
       for (int i = new_names_.size() - 1; i >= 0; --i) {
         auto ori_iter_name = new_names_[i];
         auto name_it = name_to_arg.find(ori_iter_name);
-        TVM_ICHECK(name_it != name_to_arg.end());
+        ICHECK(name_it != name_to_arg.end());
         PrimExpr ori_arg = name_it->second;
 
         PrimExpr mod_factor = new_shape_[i];
@@ -795,12 +795,12 @@ std::string GetOrigLayout(std::set<std::string>* placeholder_axis_names, const t
   std::ostringstream os;
   uint32_t i = 0;
   const auto& placeholder_op = placeholder->op;
-  TVM_ICHECK_GT(extractor.read_access.count(placeholder_op), 0);
+  ICHECK_GT(extractor.read_access.count(placeholder_op), 0);
   for (const auto& ev : extractor.read_access[placeholder_op]) {
     for (const auto& e : ev) {
       std::string axis_name;
       if (const auto* int_imm = e.as<IntImmNode>()) {
-        TVM_ICHECK_EQ(int_imm->value, 0);
+        ICHECK_EQ(int_imm->value, 0);
         axis_name = "IntImm";
       } else {
         axis_name = AxisBaseName(CleanName(Downcast<Var>(e)->name_hint));
@@ -811,7 +811,7 @@ std::string GetOrigLayout(std::set<std::string>* placeholder_axis_names, const t
     }
   }
 
-  TVM_ICHECK_EQ(placeholder_axis_names->size(), placeholder->shape.size());
+  ICHECK_EQ(placeholder_axis_names->size(), placeholder->shape.size());
   std::string orig_layout = os.str();
   os.str("");
   ::tvm::relay::AutoSchedulerLayoutRewriter::global_ori_layouts_queue.push_back(orig_layout);
@@ -859,7 +859,7 @@ std::string GetNewLayout(const State& state, const int stage_id, const Stage& st
     ExtractOriginalIterators(iter->name, &ori_iter_names);
     // fused iters have been replaced with iter->orig_iters.
     // So there should be only one ori iter name extracted from iter->name.
-    TVM_ICHECK_EQ(ori_iter_names.size(), 1);
+    ICHECK_EQ(ori_iter_names.size(), 1);
     auto ori_iter_name = AxisBaseName(*ori_iter_names.begin());
     new_axis_names.push_back(ori_iter_name);
   }
@@ -884,7 +884,7 @@ std::string GetNewLayout(const State& state, const int stage_id, const Stage& st
 
 ComputeDAG ComputeDAG::RewriteLayout(Array<Step>* transform_steps,
                                      LayoutRewriteOption layout_rewrite) const {
-  TVM_CHECK(layout_rewrite != LayoutRewriteOption::NoRewrite)
+  CHECK(layout_rewrite != LayoutRewriteOption::NoRewrite)
       << "Call ComputeDAG::RewriteLayout with NoRewrite.";
   ComputeDAG new_dag = *this;
   ComputeDAGNode* p_dag = new_dag.CopyOnWrite();
@@ -1022,7 +1022,7 @@ ComputeDAG ComputeDAG::RewriteLayout(Array<Step>* transform_steps,
               new_body.push_back(index_rewriter.Rewrite(body));
             }
             original_compute_op = op;
-            TVM_CHECK(!new_compute_op.defined());
+            CHECK(!new_compute_op.defined());
             new_compute_op = te::ComputeOp(pop->name, pop->tag, pop->attrs, pop->axis, new_body);
           }
         }
@@ -1224,7 +1224,7 @@ String ComputeDAG::PrintStepsAsPython(const Array<Step>& transform_steps) const 
 }
 
 State ComputeDAG::InferBound(const State& state) const {
-  TVM_ICHECK(state->concrete) << "Only concrete state can be processed to get bound info.";
+  ICHECK(state->concrete) << "Only concrete state can be processed to get bound info.";
 
   State ret_state;
   StateNode* pstate;
@@ -1274,7 +1274,7 @@ State ComputeDAG::InferBound(const State& state) const {
         new_iters.push_back(Iterator(iter->name, (*find_res).second, iter->iter_kind,
                                      iter->annotation, &iter->orig_iters));
       } else {
-        TVM_LOG(FATAL) << "Infer bound fails";
+        LOG(FATAL) << "Infer bound fails";
       }
     }
 
@@ -1292,7 +1292,7 @@ Array<State> ComputeDAG::InferBound(const Array<State>& states) const {
     try {
       out_states.Set(i, (states[i].defined()) ? this->InferBound(states[i]) : states[i]);
     } catch (Error& e) {
-      TVM_LOG(WARNING) << "InferBound fails on the state:\n"
+      LOG(WARNING) << "InferBound fails on the state:\n"
                    << states[i] << "\n"
                    << "with: " << e.what() << std::endl;
     }
@@ -1382,7 +1382,7 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
               ss << ".v" << k;
             }
             if (auto preduce = pop->body[k].as<ReduceNode>()) {
-              TVM_ICHECK_LT(k, preduce->combiner->result.size());
+              ICHECK_LT(k, preduce->combiner->result.size());
               PrimExpr combiner = preduce->combiner->result[k];
               if (combiner->IsInstance<AddNode>()) {
                 ss << " += " << preduce->source[0] << "\n";
@@ -1396,14 +1396,14 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
                    << select->false_value << ")= " << '(' << preduce->source[0] << ','
                    << preduce->source[1] << ")\n";
               } else {
-                TVM_LOG(FATAL) << "Unsupported reduction operator" << combiner;
+                LOG(FATAL) << "Unsupported reduction operator" << combiner;
               }
             } else {
               ss << " = " << pop->body[k] << "\n";
             }
           }
         } else {
-          TVM_LOG(FATAL) << "Invalid op";
+          LOG(FATAL) << "Invalid op";
         }
       }
 
@@ -1415,7 +1415,7 @@ TVM_REGISTER_GLOBAL("auto_scheduler.ComputeDAG")
       if (tensors) {
         return ComputeDAG(tensors.value());
       }
-      TVM_ICHECK(sch) << "Both tensors and schedule are null";
+      ICHECK(sch) << "Both tensors and schedule are null";
       return ComputeDAG(sch.value());
     });
 

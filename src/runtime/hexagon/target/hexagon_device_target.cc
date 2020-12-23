@@ -45,8 +45,8 @@
 // The downside is that the format string must be given as a string literal,
 // but it seems to be a minor issue.
 #define VA_EXPANDER(...) , ##__VA_ARGS__
-#define TVM_LOGD_HT(fmt, ...) TVM_LOGD("HexagonTarget::%s: " fmt, __func__ VA_EXPANDER(__VA_ARGS__))
-#define TVM_LOGE_HT(fmt, ...) TVM_LOGE("HexagonTarget::%s: " fmt, __func__ VA_EXPANDER(__VA_ARGS__))
+#define LOGD_HT(fmt, ...) LOGD("HexagonTarget::%s: " fmt, __func__ VA_EXPANDER(__VA_ARGS__))
+#define LOGE_HT(fmt, ...) LOGE("HexagonTarget::%s: " fmt, __func__ VA_EXPANDER(__VA_ARGS__))
 
 namespace tvm {
 namespace runtime {
@@ -107,11 +107,11 @@ std::pair<void*, size_t> HexagonTarget::AddAddrMapping(const void* dsp_addr, voi
   auto p = dsp_to_apps_.insert({dsp_addr, {apps_addr, size}});
   crit_section_.unlock();
   if (!p.second) {
-    TVM_LOGE_HT("failed to insert address mapping: dsp:%p -> apps:%p, size:%zu", dsp_addr,
+    LOGE_HT("failed to insert address mapping: dsp:%p -> apps:%p, size:%zu", dsp_addr,
                 apps_addr, size);
     return std::make_pair(nullptr, 0);
   }
-  TVM_LOGD_HT("added address mapping: dsp:%p -> apps:%p, size:%zu", dsp_addr, apps_addr, size);
+  LOGD_HT("added address mapping: dsp:%p -> apps:%p, size:%zu", dsp_addr, apps_addr, size);
   return p.first->second;
 }
 
@@ -119,7 +119,7 @@ void HexagonTarget::RemoveAddrMapping(const void* dsp_addr) {
   crit_section_.lock();
   auto f = dsp_to_apps_.find(dsp_addr);
   if (f == dsp_to_apps_.end()) {
-    TVM_LOGE_HT("failed to remove address mapping for dsp:%p", dsp_addr);
+    LOGE_HT("failed to remove address mapping for dsp:%p", dsp_addr);
     crit_section_.unlock();
     return;
   }
@@ -156,7 +156,7 @@ std::pair<void*, size_t> HexagonTarget::GetAppsAddr(const void* dsp_addr, bool e
       return std::make_pair(reinterpret_cast<void*>(apps_v), size - offset);
     }
   }
-  TVM_LOGE_HT("failed to locate apps address for dsp:%p", dsp_addr);
+  LOGE_HT("failed to locate apps address for dsp:%p", dsp_addr);
   return std::make_pair(nullptr, 0);
 }
 
@@ -175,7 +175,7 @@ int HexagonTarget::OpenDomainChannel(bool use_unsigned_pd) {
     th_data.prio = -1;  // Default priority.
     int rc = rsc_ptr(FASTRPC_THREAD_PARAMS, &th_data, sizeof(th_data));
     if (rc != AEE_SUCCESS) {
-      TVM_LOGE_HT("remote_session_control failed rc=%08x for stack size", rc);
+      LOGE_HT("remote_session_control failed rc=%08x for stack size", rc);
     }
     if (use_unsigned_pd) {
       remote_rpc_control_unsigned_module data;
@@ -183,19 +183,19 @@ int HexagonTarget::OpenDomainChannel(bool use_unsigned_pd) {
       data.domain = CDSP_DOMAIN_ID;
       int rc = rsc_ptr(DSPRPC_CONTROL_UNSIGNED_MODULE, &data, sizeof(data));
       if (rc != AEE_SUCCESS) {
-        TVM_LOGE_HT("remote_session_control failed rc=%08x for unsigned PD", rc);
+        LOGE_HT("remote_session_control failed rc=%08x for unsigned PD", rc);
       }
     }
   } else {
-    TVM_LOGD_HT("remote_session_control not available");
+    LOGD_HT("remote_session_control not available");
   }
 
   int rc = stub_api->tvm_remote_open(tvm_remote_URI "&_dom=cdsp", &domain_channel_handle_);
   if (rc != AEE_SUCCESS) {
-    TVM_LOGE_HT("failed to open channel rc=0x%x", rc);
+    LOGE_HT("failed to open channel rc=0x%x", rc);
   } else {
     count_channel_open_++;
-    TVM_LOGD_HT("channel open success and rpcmem_init done");
+    LOGD_HT("channel open success and rpcmem_init done");
   }
   return rc;
 }
@@ -209,9 +209,9 @@ int HexagonTarget::CloseDomainChannel() {
   if (rc == AEE_SUCCESS) {
     domain_channel_handle_ = AEE_EUNKNOWN;
     stub_api->rpcmem_deinit_ptr()();
-    TVM_LOGD_HT("channel close success and rpcmem_deinit done");
+    LOGD_HT("channel close success and rpcmem_deinit done");
   } else {
-    TVM_LOGE_HT("failed to close domain channel rc=0x%x", rc);
+    LOGE_HT("failed to close domain channel rc=0x%x", rc);
   }
   return rc;
 }
@@ -222,7 +222,7 @@ void HexagonTarget::ReleaseLibrary() {
     const StubAPI* stub_api = StubAPI::Global();
     int rc = stub_api->tvm_remote_release_library(domain_channel_handle_, module_pointer_);
     if (rc != AEE_SUCCESS) {
-      TVM_LOGE_HT("failed to unload device library rc=0x%x", rc);
+      LOGE_HT("failed to unload device library rc=0x%x", rc);
     } else {
       module_pointer_ = AEE_EUNKNOWN;
     }
@@ -233,7 +233,7 @@ void HexagonTarget::ReleaseLibrary() {
 void HexagonTarget::FreeMemoryBeforeChannelClose() {
   while (!dsp_to_apps_.empty()) {
     void* dsp_addr = const_cast<void*>((dsp_to_apps_.begin()->first));
-    TVM_LOGD_HT("Freeing up dsp_addr %p", dsp_addr);
+    LOGD_HT("Freeing up dsp_addr %p", dsp_addr);
     HexagonTarget::Free(dsp_addr);
   }
 }
@@ -247,7 +247,7 @@ void* HexagonTarget::Alloc(unsigned size, unsigned align) {
   int rc_oc = OpenDomainChannel(/*use_unsigned_pd*/ unsigned_pd);
   crit_section_.unlock();
   if (rc_oc != AEE_SUCCESS) {
-    TVM_LOGE_HT("mem alloc failed: unable to open domain channel");
+    LOGE_HT("mem alloc failed: unable to open domain channel");
     return nullptr;
   }
 
@@ -257,20 +257,20 @@ void* HexagonTarget::Alloc(unsigned size, unsigned align) {
   // FastRPC comes up with a fix.
   int rc_call_mmap_64 = stub_api->tvm_remote_call_mmap64(domain_channel_handle_);
   if (rc_call_mmap_64 != AEE_SUCCESS) {
-    TVM_LOGE_HT("mmap64 failed for domain channel %lu", domain_channel_handle_);
+    LOGE_HT("mmap64 failed for domain channel %lu", domain_channel_handle_);
     return nullptr;
   }
 
   void* mem = stub_api->rpcmem_alloc_ptr()(RPCMEM_HEAP, RPCMEM_DEFAULT_FLAGS, size);
   if (mem == nullptr) {
-    TVM_LOGE_HT("mem alloc failed for size=0x%x alignment=0x%x", size, align);
+    LOGE_HT("mem alloc failed for size=0x%x alignment=0x%x", size, align);
     return nullptr;
   }
   int mem_fd = stub_api->rpcmem_to_fd_ptr()(mem);
   uintptr_t dsp_va = 0;
   int rc = dsp_api->remote_mmap64_ptr()(mem_fd, 0, reinterpret_cast<uintptr_t>(mem), size, &dsp_va);
   if (rc != AEE_SUCCESS) {
-    TVM_LOGE_HT(
+    LOGE_HT(
         "buffer mapping failed for remote_map64 fd=0x%x rc=0x%x "
         "apps_addr=0x%lx",
         mem_fd, rc, reinterpret_cast<uintptr_t>(mem));
@@ -287,19 +287,19 @@ void HexagonTarget::Free(void* ptr) {
   const StubAPI* stub_api = StubAPI::Global();
   auto bb = GetAppsAddr(ptr, true);
   if (bb.first == vtcm_mark_) {
-    TVM_LOGD_HT("VTCM mapping found. dsp_addr=0x%p", ptr);
+    LOGD_HT("VTCM mapping found. dsp_addr=0x%p", ptr);
     RemoveAddrMapping(ptr);
     FreeVtcm(ptr);
     return;
   }
 
-  TVM_LOGD_HT("VTCM mapping not found. dsp_addr=0x%p", ptr);
+  LOGD_HT("VTCM mapping not found. dsp_addr=0x%p", ptr);
   auto aa = GetAppsAddr(ptr, true);
   if (aa.first == nullptr) return;
 
   int rc = dsp_api->remote_munmap64_ptr()(reinterpret_cast<uintptr_t>(ptr), aa.second);
   if (rc != AEE_SUCCESS) {
-    TVM_LOGE_HT("buffer unmapping failed rc=0x%x", rc);
+    LOGE_HT("buffer unmapping failed rc=0x%x", rc);
   }
   RemoveAddrMapping(ptr);
   stub_api->rpcmem_free_ptr()(aa.first);
@@ -311,11 +311,11 @@ void* HexagonTarget::AllocVtcm(unsigned size, unsigned align) {
   unsigned int dsp_va = 0;
   int rc = stub_api->tvm_remote_alloc_vtcm(domain_channel_handle_, size, align, &dsp_va);
   if (rc != AEE_SUCCESS) {
-    TVM_LOGE_HT("VTCM allocation failed size=%u, align=%u", size, align);
+    LOGE_HT("VTCM allocation failed size=%u, align=%u", size, align);
     return nullptr;
   }
   void* dsp_addr = reinterpret_cast<void*>(dsp_va);
-  TVM_LOGD_HT("Done vtcm alloc dsp:%p", dsp_addr);
+  LOGD_HT("Done vtcm alloc dsp:%p", dsp_addr);
   AddAddrMapping(dsp_addr, vtcm_mark_, size);
   return dsp_addr;
 }
@@ -323,40 +323,40 @@ void* HexagonTarget::AllocVtcm(unsigned size, unsigned align) {
 void HexagonTarget::FreeVtcm(void* ptr) {
   const StubAPI* stub_api = StubAPI::Global();
 
-  TVM_LOGD_HT("%s:Calling vtcm free. ptr=%p", __func__, ptr);
+  LOGD_HT("%s:Calling vtcm free. ptr=%p", __func__, ptr);
   uintptr_t dsp_va = reinterpret_cast<uintptr_t>(ptr);
   int rc = stub_api->tvm_remote_free_vtcm(domain_channel_handle_, dsp_va);
   if (rc != AEE_SUCCESS) {
-    TVM_LOGE_HT("VTCM deallocation failed");
+    LOGE_HT("VTCM deallocation failed");
   }
-  TVM_LOGD_HT("Done VTCM free from HexagonTarget::FreeVtcm");
+  LOGD_HT("Done VTCM free from HexagonTarget::FreeVtcm");
 }
 
 void HexagonTarget::CopyDeviceToDevice(void* dst, const void* src, unsigned len) {
   auto aa_src = GetAppsAddr(src, false);
   auto aa_dst = GetAppsAddr(dst, false);
   if (aa_src.first == vtcm_mark_ || aa_dst.first == vtcm_mark_) {
-    TVM_LOGE_HT("VTCM address. Copy operation not supported");
+    LOGE_HT("VTCM address. Copy operation not supported");
     return;
   }
   if (!aa_src.first || !aa_dst.first) {
-    TVM_LOGE_HT("copy failed, dsp:%p -> dsp:%p, len:%u", src, dst, len);
+    LOGE_HT("copy failed, dsp:%p -> dsp:%p, len:%u", src, dst, len);
     return;
   }
   if (aa_src.second < len) {
-    TVM_LOGD_HT(
+    LOGD_HT(
         "specified length:%u larger than source buffer size:%zu, copy "
         "truncated",
         len, aa_src.second);
   }
   if (aa_dst.second < len) {
-    TVM_LOGD_HT(
+    LOGD_HT(
         "specified length:%u larger than dest buffer size:%zu, copy "
         "truncated",
         len, aa_dst.second);
   }
   len = std::min({size_t(len), aa_src.second, aa_dst.second});
-  TVM_LOGD_HT("copy, dsp:%p(apps:%p) -> dsp:%p(apps:%p), len:%u", src, aa_src.first, dst,
+  LOGD_HT("copy, dsp:%p(apps:%p) -> dsp:%p(apps:%p), len:%u", src, aa_src.first, dst,
               aa_dst.first, len);
   std::memcpy(aa_dst.first, aa_src.first, len);
 }
@@ -364,36 +364,36 @@ void HexagonTarget::CopyDeviceToDevice(void* dst, const void* src, unsigned len)
 void HexagonTarget::CopyDeviceToHost(void* host_dst, const void* src, unsigned len) {
   auto aa = GetAppsAddr(src, false);
   if (aa.first == vtcm_mark_) {
-    TVM_LOGE_HT("VTCM address. Copy operation not supported");
+    LOGE_HT("VTCM address. Copy operation not supported");
     return;
   }
   if (!aa.first) {
-    TVM_LOGE_HT("copy failed, dsp:%p -> apps:%p, len:%u", src, host_dst, len);
+    LOGE_HT("copy failed, dsp:%p -> apps:%p, len:%u", src, host_dst, len);
     return;
   }
   if (aa.second < len) {
-    TVM_LOGD_HT("specified length:%u larger than buffer size:%zu, copy truncated", len, aa.second);
+    LOGD_HT("specified length:%u larger than buffer size:%zu, copy truncated", len, aa.second);
     len = aa.second;
   }
-  TVM_LOGD_HT("copy, dsp:%p(apps:%p) -> apps:%p, len:%u", src, aa.first, host_dst, len);
+  LOGD_HT("copy, dsp:%p(apps:%p) -> apps:%p, len:%u", src, aa.first, host_dst, len);
   std::memcpy(host_dst, aa.first, len);
 }
 
 void HexagonTarget::CopyHostToDevice(void* dst, const void* host_src, unsigned len) {
   auto aa = GetAppsAddr(dst, false);
   if (aa.first == vtcm_mark_) {
-    TVM_LOGE_HT("VTCM address. Copy operation not supported");
+    LOGE_HT("VTCM address. Copy operation not supported");
     return;
   }
   if (!aa.first) {
-    TVM_LOGE_HT("copy failed, dsp:%p <- apps:%p, len:%u", dst, host_src, len);
+    LOGE_HT("copy failed, dsp:%p <- apps:%p, len:%u", dst, host_src, len);
     return;
   }
   if (aa.second < len) {
-    TVM_LOGD_HT("specified length:%u larger than buffer size:%zu, copy truncated", len, aa.second);
+    LOGD_HT("specified length:%u larger than buffer size:%zu, copy truncated", len, aa.second);
     len = aa.second;
   }
-  TVM_LOGD_HT("copy, dsp:%p(apps:%p) <- apps:%p, len:%u", dst, aa.first, host_src, len);
+  LOGD_HT("copy, dsp:%p(apps:%p) <- apps:%p, len:%u", dst, aa.first, host_src, len);
   std::memcpy(aa.first, host_src, len);
 }
 
@@ -402,7 +402,7 @@ void* HexagonTarget::Load(const std::string& data, const std::string& fmt) {
   int rc_oc = OpenDomainChannel(/*use_unsigned_pd*/ unsigned_pd);
   crit_section_.unlock();
   if (rc_oc != AEE_SUCCESS) {
-    TVM_LOGE_HT("loading of %s failed: unable to open domain channel", data.c_str());
+    LOGE_HT("loading of %s failed: unable to open domain channel", data.c_str());
     return nullptr;
   }
 
@@ -410,12 +410,12 @@ void* HexagonTarget::Load(const std::string& data, const std::string& fmt) {
   ReleaseLibrary();
 
   crit_section_.lock();
-  TVM_LOGD_HT("loading library %s ", data.c_str());
+  LOGD_HT("loading library %s ", data.c_str());
   const StubAPI* stub_api = StubAPI::Global();
   int rc = stub_api->tvm_remote_load_library(domain_channel_handle_, data.c_str(), data.size() + 1,
                                              &module_pointer_);
   if (rc != AEE_SUCCESS) {
-    TVM_LOGE_HT("failed to load device library rc=0x%x", rc);
+    LOGE_HT("failed to load device library rc=0x%x", rc);
   }
   crit_section_.unlock();
 
@@ -444,15 +444,15 @@ void* HexagonTarget::Resolve(const std::string& sym) {
   const StubAPI* stub_api = StubAPI::Global();
 
   tvm_remote_handle_t pf;
-  TVM_LOGD_HT("resolving symbol %s", sym.c_str());
+  LOGD_HT("resolving symbol %s", sym.c_str());
   int rc = stub_api->tvm_remote_get_symbol(domain_channel_handle_, module_pointer_, sym.c_str(),
                                            sym.size() + 1, &pf);
   if (rc != AEE_SUCCESS) {
-    TVM_LOGE_HT("failed to get symbol from CDSP rc=0x%x", rc);
+    LOGE_HT("failed to get symbol from CDSP rc=0x%x", rc);
     return nullptr;
   }
   void* addr = reinterpret_cast<void*>(pf);
-  TVM_LOGD_HT("resolved %s -> %p", sym.c_str(), addr);
+  LOGD_HT("resolved %s -> %p", sym.c_str(), addr);
   return addr;
 }
 
@@ -461,10 +461,10 @@ void HexagonTarget::Call(void* func, uint32_t* scalar, unsigned scalar_num, uint
   uint64 pcycles = 0, execution_time_usec = 0;
   auto scalar_octet = std::unique_ptr<tvm_remote_buffer[]>(new tvm_remote_buffer[scalar_num]);
   auto stack_octet = std::unique_ptr<tvm_remote_buffer[]>(new tvm_remote_buffer[stack_num]);
-  TVM_LOGD_HT("scalars=%p, stack=%p", scalar, stack);
+  LOGD_HT("scalars=%p, stack=%p", scalar, stack);
 
   if (scalar_octet == nullptr || stack_octet == nullptr) {
-    TVM_LOGE_HT("mem alloc failed for scalar/stack octets");
+    LOGE_HT("mem alloc failed for scalar/stack octets");
     return;
   }
   std::memset(scalar_octet.get(), 0, scalar_num * sizeof(tvm_remote_buffer));
@@ -495,8 +495,8 @@ void HexagonTarget::Call(void* func, uint32_t* scalar, unsigned scalar_num, uint
     return log.str();
   };
 
-  TVM_LOGD_HT("%s", ToString("scalars", scalar, scalar_num).c_str());
-  TVM_LOGD_HT("%s", ToString("  stack", stack, stack_num).c_str());
+  LOGD_HT("%s", ToString("scalars", scalar, scalar_num).c_str());
+  LOGD_HT("%s", ToString("  stack", stack, stack_num).c_str());
 
   const StubAPI* stub_api = StubAPI::Global();
   int rc = stub_api->tvm_remote_kernel(
@@ -507,9 +507,9 @@ void HexagonTarget::Call(void* func, uint32_t* scalar, unsigned scalar_num, uint
       stack_octet.get(), stack_num, &pcycles, &execution_time_usec);
 
   if (rc != AEE_SUCCESS) {
-    TVM_LOGE_HT("failed to run kernel on CDSP rc=0x%x", rc);
+    LOGE_HT("failed to run kernel on CDSP rc=0x%x", rc);
   } else {
-    TVM_LOGD_HT("kernel execution: %llu pcycles, %llu usec, scalar_num=%d", pcycles,
+    LOGD_HT("kernel execution: %llu pcycles, %llu usec, scalar_num=%d", pcycles,
                 execution_time_usec, scalar_num);
   }
 }

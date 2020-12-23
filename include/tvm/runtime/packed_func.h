@@ -30,6 +30,7 @@
 #include <tvm/runtime/module.h>
 #include <tvm/runtime/ndarray.h>
 #include <tvm/runtime/object.h>
+#include <tvm/support/logging.h>
 
 #include <functional>
 #include <limits>
@@ -194,7 +195,7 @@ class TypedPackedFunc<R(Args...)> {
    * // construct from packed function
    * TypedPackedFunc<int(int)> ftyped(packed);
    * // call the typed version.
-   * TVM_ICHECK_EQ(ftyped(1), 2);
+   * ICHECK_EQ(ftyped(1), 2);
    * \endcode
    *
    * \param packed The packed function
@@ -224,7 +225,7 @@ class TypedPackedFunc<R(Args...)> {
    * // construct from packed function
    * TypedPackedFunc<int(int)> ftyped(typed_lambda);
    * // call the typed version.
-   * TVM_ICHECK_EQ(ftyped(1), 2);
+   * ICHECK_EQ(ftyped(1), 2);
    * \endcode
    *
    * \param typed_lambda typed lambda function.
@@ -245,7 +246,7 @@ class TypedPackedFunc<R(Args...)> {
    * TypedPackedFunc<int(int)> ftyped;
    * ftyped = [](int x) { return x + 1; }
    * // call the typed version.
-   * TVM_ICHECK_EQ(ftyped(1), 2);
+   * ICHECK_EQ(ftyped(1), 2);
    * \endcode
    *
    * \param typed_lambda typed lambda function.
@@ -335,8 +336,8 @@ class TVMArgs {
 inline const char* ArgTypeCode2Str(int type_code);
 
 // macro to check type code.
-#define TVM_CHECK_TYPE_CODE(CODE, T) \
-  TVM_ICHECK_EQ(CODE, T) << " expected " << ArgTypeCode2Str(T) << " but get " << ArgTypeCode2Str(CODE)
+#define CHECK_TYPE_CODE(CODE, T) \
+  ICHECK_EQ(CODE, T) << " expected " << ArgTypeCode2Str(T) << " but get " << ArgTypeCode2Str(CODE)
 
 /*!
  * \brief Type traits for runtime type check during FFI conversion.
@@ -368,31 +369,31 @@ class TVMPODValue_ {
     if (type_code_ == kDLInt) {
       return static_cast<double>(value_.v_int64);
     }
-    TVM_CHECK_TYPE_CODE(type_code_, kDLFloat);
+    CHECK_TYPE_CODE(type_code_, kDLFloat);
     return value_.v_float64;
   }
   operator int64_t() const {
-    TVM_CHECK_TYPE_CODE(type_code_, kDLInt);
+    CHECK_TYPE_CODE(type_code_, kDLInt);
     return value_.v_int64;
   }
   operator uint64_t() const {
-    TVM_CHECK_TYPE_CODE(type_code_, kDLInt);
+    CHECK_TYPE_CODE(type_code_, kDLInt);
     return value_.v_int64;
   }
   operator int() const {
-    TVM_CHECK_TYPE_CODE(type_code_, kDLInt);
-    TVM_ICHECK_LE(value_.v_int64, std::numeric_limits<int>::max());
-    TVM_ICHECK_GE(value_.v_int64, std::numeric_limits<int>::min());
+    CHECK_TYPE_CODE(type_code_, kDLInt);
+    ICHECK_LE(value_.v_int64, std::numeric_limits<int>::max());
+    ICHECK_GE(value_.v_int64, std::numeric_limits<int>::min());
     return static_cast<int>(value_.v_int64);
   }
   operator bool() const {
-    TVM_CHECK_TYPE_CODE(type_code_, kDLInt);
+    CHECK_TYPE_CODE(type_code_, kDLInt);
     return value_.v_int64 != 0;
   }
   operator void*() const {
     if (type_code_ == kTVMNullptr) return nullptr;
     if (type_code_ == kTVMDLTensorHandle) return value_.v_handle;
-    TVM_CHECK_TYPE_CODE(type_code_, kTVMOpaqueHandle);
+    CHECK_TYPE_CODE(type_code_, kTVMOpaqueHandle);
     return value_.v_handle;
   }
   operator DLTensor*() const {
@@ -400,25 +401,25 @@ class TVMPODValue_ {
       return static_cast<DLTensor*>(value_.v_handle);
     } else {
       if (type_code_ == kTVMNullptr) return nullptr;
-      TVM_LOG(FATAL) << "Expect "
+      LOG(FATAL) << "Expect "
                  << "DLTensor* or NDArray but get " << ArgTypeCode2Str(type_code_);
       return nullptr;
     }
   }
   operator NDArray() const {
     if (type_code_ == kTVMNullptr) return NDArray(ObjectPtr<Object>(nullptr));
-    TVM_CHECK_TYPE_CODE(type_code_, kTVMNDArrayHandle);
+    CHECK_TYPE_CODE(type_code_, kTVMNDArrayHandle);
     return NDArray(NDArray::FFIDataFromHandle(static_cast<TVMArrayHandle>(value_.v_handle)));
   }
   operator Module() const {
     if (type_code_ == kTVMNullptr) {
       return Module(ObjectPtr<Object>(nullptr));
     }
-    TVM_CHECK_TYPE_CODE(type_code_, kTVMModuleHandle);
+    CHECK_TYPE_CODE(type_code_, kTVMModuleHandle);
     return Module(ObjectPtr<Object>(static_cast<Object*>(value_.v_handle)));
   }
   operator TVMContext() const {
-    TVM_CHECK_TYPE_CODE(type_code_, kTVMContext);
+    CHECK_TYPE_CODE(type_code_, kTVMContext);
     return value_.v_ctx;
   }
   int type_code() const { return type_code_; }
@@ -490,7 +491,7 @@ class TVMArgValue : public TVMPODValue_ {
     } else if (type_code_ == kTVMStr) {
       return std::string(value_.v_str);
     } else {
-      TVM_ICHECK(IsObjectRef<tvm::runtime::String>())
+      ICHECK(IsObjectRef<tvm::runtime::String>())
           << "Could not convert TVM object of type " << runtime::Object::TypeIndex2Key(type_code_)
           << " to a string.";
       return AsObjectRef<tvm::runtime::String>().operator std::string();
@@ -498,7 +499,7 @@ class TVMArgValue : public TVMPODValue_ {
   }
   operator PackedFunc() const {
     if (type_code_ == kTVMNullptr) return PackedFunc();
-    TVM_CHECK_TYPE_CODE(type_code_, kTVMPackedFuncHandle);
+    CHECK_TYPE_CODE(type_code_, kTVMPackedFuncHandle);
     return *ptr<PackedFunc>();
   }
   template <typename FType>
@@ -605,20 +606,20 @@ class TVMRetValue : public TVMPODValue_ {
     } else if (type_code_ == kTVMBytes) {
       return *ptr<std::string>();
     }
-    TVM_CHECK_TYPE_CODE(type_code_, kTVMStr);
+    CHECK_TYPE_CODE(type_code_, kTVMStr);
     return *ptr<std::string>();
   }
   operator DLDataType() const {
     if (type_code_ == kTVMStr) {
       return String2DLDataType(operator std::string());
     }
-    TVM_CHECK_TYPE_CODE(type_code_, kTVMDataType);
+    CHECK_TYPE_CODE(type_code_, kTVMDataType);
     return value_.v_type;
   }
   operator DataType() const { return DataType(operator DLDataType()); }
   operator PackedFunc() const {
     if (type_code_ == kTVMNullptr) return PackedFunc();
-    TVM_CHECK_TYPE_CODE(type_code_, kTVMPackedFuncHandle);
+    CHECK_TYPE_CODE(type_code_, kTVMPackedFuncHandle);
     return *ptr<PackedFunc>();
   }
   template <typename FType>
@@ -732,7 +733,7 @@ class TVMRetValue : public TVMPODValue_ {
    */
   void MoveToCHost(TVMValue* ret_value, int* ret_type_code) {
     // cannot move str; need specially handle.
-    TVM_ICHECK(type_code_ != kTVMStr && type_code_ != kTVMBytes);
+    ICHECK(type_code_ != kTVMStr && type_code_ != kTVMBytes);
     *ret_value = value_;
     *ret_type_code = type_code_;
     type_code_ = kTVMNullptr;
@@ -746,7 +747,7 @@ class TVMRetValue : public TVMPODValue_ {
    */
   static TVMRetValue MoveFromCHost(TVMValue value, int type_code) {
     // Can move POD and everything under the object system.
-    TVM_ICHECK(type_code <= kTVMPackedFuncHandle || type_code == kTVMNDArrayHandle);
+    ICHECK(type_code <= kTVMPackedFuncHandle || type_code == kTVMNDArrayHandle);
     TVMRetValue ret;
     ret.value_ = value;
     ret.type_code_ = type_code;
@@ -754,7 +755,7 @@ class TVMRetValue : public TVMPODValue_ {
   }
   /*! \return The value field, if the data is POD */
   const TVMValue& value() const {
-    TVM_ICHECK(type_code_ != kTVMObjectHandle && type_code_ != kTVMPackedFuncHandle &&
+    ICHECK(type_code_ != kTVMObjectHandle && type_code_ != kTVMPackedFuncHandle &&
            type_code_ != kTVMModuleHandle && type_code_ != kTVMStr)
         << "TVMRetValue.value can only be used for POD data";
     return value_;
@@ -979,7 +980,7 @@ struct PackedFuncValueConverter {
   }
 
 inline TVMArgValue TVMArgs::operator[](int i) const {
-  TVM_ICHECK_LT(i, num_args) << "not enough argument passed, " << num_args << " passed"
+  ICHECK_LT(i, num_args) << "not enough argument passed, " << num_args << " passed"
                          << " but request arg[" << i << "].";
   return TVMArgValue(values[i], type_codes[i]);
 }
@@ -1024,7 +1025,7 @@ inline const char* ArgTypeCode2Str(int type_code) {
     case kTVMObjectRValueRefArg:
       return "ObjectRValueRefArg";
     default:
-      TVM_LOG(FATAL) << "unknown type_code=" << static_cast<int>(type_code);
+      LOG(FATAL) << "unknown type_code=" << static_cast<int>(type_code);
       return "";
   }
 }
@@ -1103,7 +1104,7 @@ class TVMArgsSetter {
   }
   TVM_ALWAYS_INLINE void operator()(size_t i, uint64_t value) const {
     values_[i].v_int64 = static_cast<int64_t>(value);
-    TVM_ICHECK_LE(value, static_cast<uint64_t>(std::numeric_limits<int64_t>::max()));
+    ICHECK_LE(value, static_cast<uint64_t>(std::numeric_limits<int64_t>::max()));
     type_codes_[i] = kDLInt;
   }
   TVM_ALWAYS_INLINE void operator()(size_t i, double value) const {
@@ -1168,7 +1169,7 @@ class TVMArgsSetter {
       values_[i].v_str = value.ptr<std::string>()->c_str();
       type_codes_[i] = kTVMStr;
     } else {
-      TVM_ICHECK_NE(value.type_code(), kTVMBytes) << "not handled.";
+      ICHECK_NE(value.type_code(), kTVMBytes) << "not handled.";
       values_[i] = value.value_;
       type_codes_[i] = value.type_code();
     }
@@ -1247,7 +1248,7 @@ struct unpack_call_dispatcher<void, 0, index, F> {
 
 template <typename R, int nargs, typename F>
 TVM_ALWAYS_INLINE void unpack_call(const F& f, const TVMArgs& args, TVMRetValue* rv) {
-  TVM_ICHECK_EQ(nargs, args.size()) << "Expect " << nargs << " arguments but get " << args.size();
+  ICHECK_EQ(nargs, args.size()) << "Expect " << nargs << " arguments but get " << args.size();
   unpack_call_dispatcher<R, nargs, 0, F>::run(f, args, rv);
 }
 
@@ -1376,38 +1377,38 @@ inline TObjectRef TVMPODValue_::AsObjectRef() const {
   using ContainerType = typename TObjectRef::ContainerType;
 
   if (type_code_ == kTVMNullptr) {
-    TVM_ICHECK(TObjectRef::_type_is_nullable)
+    ICHECK(TObjectRef::_type_is_nullable)
         << "Expect a not null value of " << ContainerType::_type_key;
     return TObjectRef(ObjectPtr<Object>(nullptr));
   }
   // NOTE: the following code can be optimized by constant folding.
   if (std::is_base_of<NDArray::ContainerType, ContainerType>::value) {
     // Casting to a sub-class of NDArray
-    TVM_CHECK_TYPE_CODE(type_code_, kTVMNDArrayHandle);
+    CHECK_TYPE_CODE(type_code_, kTVMNDArrayHandle);
     ObjectPtr<Object> data =
         NDArray::FFIDataFromHandle(static_cast<TVMArrayHandle>(value_.v_handle));
-    TVM_ICHECK(data->IsInstance<ContainerType>())
+    ICHECK(data->IsInstance<ContainerType>())
         << "Expect " << ContainerType::_type_key << " but get " << data->GetTypeKey();
     return TObjectRef(data);
   }
   if (std::is_base_of<Module::ContainerType, ContainerType>::value) {
     // Casting to a sub-class of Module
-    TVM_CHECK_TYPE_CODE(type_code_, kTVMModuleHandle);
+    CHECK_TYPE_CODE(type_code_, kTVMModuleHandle);
     ObjectPtr<Object> data = GetObjectPtr<Object>(static_cast<Object*>(value_.v_handle));
-    TVM_ICHECK(data->IsInstance<ContainerType>())
+    ICHECK(data->IsInstance<ContainerType>())
         << "Expect " << ContainerType::_type_key << " but get " << data->GetTypeKey();
     return TObjectRef(data);
   }
   if (type_code_ == kTVMObjectHandle) {
     // normal object type check.
     Object* ptr = static_cast<Object*>(value_.v_handle);
-    TVM_ICHECK(ObjectTypeChecker<TObjectRef>::Check(ptr))
+    ICHECK(ObjectTypeChecker<TObjectRef>::Check(ptr))
         << "Expect " << ObjectTypeChecker<TObjectRef>::TypeName() << " but get "
         << ptr->GetTypeKey();
     return TObjectRef(GetObjectPtr<Object>(ptr));
   } else if (type_code_ == kTVMObjectRValueRefArg) {
     Object* ptr = *static_cast<Object**>(value_.v_handle);
-    TVM_ICHECK(ObjectTypeChecker<TObjectRef>::Check(ptr))
+    ICHECK(ObjectTypeChecker<TObjectRef>::Check(ptr))
         << "Expect " << ObjectTypeChecker<TObjectRef>::TypeName() << " but get "
         << ptr->GetTypeKey();
     return TObjectRef(GetObjectPtr<Object>(ptr));
@@ -1422,7 +1423,7 @@ inline TObjectRef TVMPODValue_::AsObjectRef() const {
     // Casting to a base class that Module can sub-class
     return TObjectRef(GetObjectPtr<Object>(static_cast<Object*>(value_.v_handle)));
   } else {
-    TVM_CHECK_TYPE_CODE(type_code_, kTVMObjectHandle);
+    CHECK_TYPE_CODE(type_code_, kTVMObjectHandle);
     return TObjectRef(ObjectPtr<Object>(nullptr));
   }
 }
@@ -1523,7 +1524,7 @@ inline TVMArgValue::operator DLDataType() const {
     t.lanes = 0;
     return t;
   }
-  TVM_CHECK_TYPE_CODE(type_code_, kTVMDataType);
+  CHECK_TYPE_CODE(type_code_, kTVMDataType);
   return value_.v_type;
 }
 

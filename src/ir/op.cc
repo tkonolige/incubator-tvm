@@ -42,7 +42,7 @@ using OpRegistry = AttrRegistry<OpRegEntry, Op>;
 // find operator by name
 const Op& Op::Get(const String& name) {
   const OpRegEntry* reg = OpRegistry::Global()->Get(name);
-  TVM_ICHECK(reg != nullptr) << "AttributeError: Operator " << name << " is not registered";
+  ICHECK(reg != nullptr) << "AttributeError: Operator " << name << " is not registered";
   return reg->op();
 }
 
@@ -107,7 +107,7 @@ TVM_REGISTER_GLOBAL("ir.RegisterOpAttr")
       if (attr_key == "num_inputs" && plevel > 128) {
         reg.set_num_inputs(value);
       } else if (attr_key == "attrs_type_key" && plevel > 128) {
-        TVM_LOG(FATAL) << "attrs type key no longer supported";
+        LOG(FATAL) << "attrs type key no longer supported";
       } else {
         // normal attr table override.
         if (value.type_code() == kTVMPackedFuncHandle) {
@@ -130,7 +130,7 @@ struct Op2ObjectPtr : public ObjectRef {
 ObjectPtr<Object> CreateOp(const std::string& name) {
   // Hack use TVMRetValue as exchange
   auto op = Op::Get(name);
-  TVM_ICHECK(op.defined()) << "Cannot find op \'" << name << '\'';
+  ICHECK(op.defined()) << "Cannot find op \'" << name << '\'';
   return Op2ObjectPtr::Get(op);
 }
 

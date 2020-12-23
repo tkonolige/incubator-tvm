@@ -242,10 +242,10 @@ void FindAlgo(int format, int dims, int groups, const int pad[], const int strid
                                                 "CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED"};
 
   auto best_algo = perf_results[0].algo;
-  TVM_LOG(INFO) << "\tCUDNN Found " << returned_algo_count << " fwd algorithms, choosing "
+  LOG(INFO) << "\tCUDNN Found " << returned_algo_count << " fwd algorithms, choosing "
             << fwd_algo_names[best_algo];
   for (int i = 0; i < returned_algo_count; ++i) {
-    TVM_LOG(INFO) << "\t\t" << i << ") " << fwd_algo_names[perf_results[i].algo]
+    LOG(INFO) << "\t\t" << i << ") " << fwd_algo_names[perf_results[i].algo]
               << " - time: " << perf_results[i].time << " ms"
               << ", Memory: " << perf_results[i].memory;
   }

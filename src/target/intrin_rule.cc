@@ -81,7 +81,7 @@ TVM_REGISTER_GLOBAL("tvm.intrin.rule.default.rsqrt")
     .set_body([](const TVMArgs& args, TVMRetValue* rv) {
       PrimExpr e = args[0];
       const CallNode* call = e.as<CallNode>();
-      TVM_ICHECK(call != nullptr);
+      ICHECK(call != nullptr);
 
       auto one = make_const(call->args[0].dtype(), 1);
       *rv = one / sqrt(call->args[0]);
@@ -93,7 +93,7 @@ TVM_REGISTER_GLOBAL("tvm.intrin.rule.default.sigmoid")
     .set_body([](const TVMArgs& args, TVMRetValue* rv) {
       PrimExpr e = args[0];
       const CallNode* call = e.as<CallNode>();
-      TVM_ICHECK(call != nullptr);
+      ICHECK(call != nullptr);
 
       auto one = make_const(call->args[0].dtype(), 1);
       *rv = one / (one + exp(-call->args[0]));
@@ -103,7 +103,7 @@ TVM_REGISTER_GLOBAL("tvm.intrin.rule.default.isfinite")
     .set_body([](const TVMArgs& args, TVMRetValue* rv) {
       PrimExpr e = args[0];
       const CallNode* call = e.as<CallNode>();
-      TVM_ICHECK(call != nullptr);
+      ICHECK(call != nullptr);
       *rv = isfinite(call->args[0]);
     });
 
@@ -111,7 +111,7 @@ TVM_REGISTER_GLOBAL("tvm.intrin.rule.default.isinf")
     .set_body([](const TVMArgs& args, TVMRetValue* rv) {
       PrimExpr e = args[0];
       const CallNode* call = e.as<CallNode>();
-      TVM_ICHECK(call != nullptr);
+      ICHECK(call != nullptr);
       *rv = isinf(call->args[0]);
     });
 
@@ -121,7 +121,7 @@ TVM_REGISTER_GLOBAL("tvm.intrin.rule.default.q_multiply_shift")
 
       PrimExpr e = args[0];
       const tir::CallNode* call = e.as<tir::CallNode>();
-      TVM_ICHECK(call != nullptr);
+      ICHECK(call != nullptr);
 
       PrimExpr x = call->args[0];
       PrimExpr y = call->args[1];
@@ -134,9 +134,9 @@ TVM_REGISTER_GLOBAL("tvm.intrin.rule.default.q_multiply_shift")
           return int_node->value;
         }
         auto broadcast_node = node.as<BroadcastNode>();
-        TVM_CHECK(broadcast_node != nullptr);
+        CHECK(broadcast_node != nullptr);
         auto int_node = broadcast_node->value.as<IntImmNode>();
-        TVM_CHECK(int_node != nullptr);
+        CHECK(int_node != nullptr);
         return int_node->value;
       };
       // Power of 2 is determined by the fixed_point_multiplier == 1 << 30. In case of power of 2,
@@ -159,8 +159,8 @@ TVM_REGISTER_GLOBAL("tvm.intrin.rule.default.q_multiply_shift")
         }
       } else {
         // Only int32 types are supported (any number of lanes is allowed)
-        TVM_ICHECK(y.dtype().code() == DLDataTypeCode::kDLInt && y.dtype().bits() == 32);
-        TVM_ICHECK(s.dtype().code() == DLDataTypeCode::kDLInt && s.dtype().bits() == 32);
+        ICHECK(y.dtype().code() == DLDataTypeCode::kDLInt && y.dtype().bits() == 32);
+        ICHECK(s.dtype().code() == DLDataTypeCode::kDLInt && s.dtype().bits() == 32);
 
         DataType hp_dtype = DataType::Int(64, x.dtype().lanes());
         DataType lp_dtype = DataType::Int(32, x.dtype().lanes());

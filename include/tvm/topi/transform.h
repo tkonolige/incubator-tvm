@@ -62,10 +62,10 @@ using namespace topi::detail;
 inline Tensor expand_dims(const Tensor& x, int axis, int num_newaxis = 1,
                           std::string name = "T_expand_dims", std::string tag = kBroadcast) {
   int ndim = static_cast<int>(x->shape.size());
-  TVM_ICHECK(-ndim - 1 <= axis && axis <= ndim)
+  ICHECK(-ndim - 1 <= axis && axis <= ndim)
       << "expand_dims only accepts `axis` in [-data.ndim - 1, data.ndim]"
       << ", but got axis = " << axis << ", and data.ndim = " << ndim;
-  TVM_ICHECK(num_newaxis >= 0) << "expand_dims only accepts `num_newaxis >= 0`"
+  ICHECK(num_newaxis >= 0) << "expand_dims only accepts `num_newaxis >= 0`"
                            << ", but got num_newaxis = " << num_newaxis;
   if (axis < 0) {
     // Calculate offset from last dimension
@@ -125,13 +125,13 @@ inline Tensor transpose(const Tensor& x, Array<Integer> axes, std::string name =
       new_axis = static_cast<int>(x->shape.size()) + axis;
       axes.Set(i, new_axis);
     }
-    TVM_ICHECK((new_axis >= 0) && (new_axis < static_cast<int>(x->shape.size())))
+    ICHECK((new_axis >= 0) && (new_axis < static_cast<int>(x->shape.size())))
         << "axis=" << axis << " is invalid for the " << static_cast<int>(x->shape.size())
         << "-dimensional input tensor";
 
     for (size_t j = 0; j < axes.size(); ++j) {
       if (i != j) {
-        TVM_ICHECK(new_axis != static_cast<int>(axes[j]->value)) << "repeated axis in transpose";
+        ICHECK(new_axis != static_cast<int>(axes[j]->value)) << "repeated axis in transpose";
       }
     }
     new_shape.push_back(x->shape[new_axis]);
@@ -180,14 +180,14 @@ inline Tensor reverse_sequence(const Tensor& x, const Tensor& seq_lengths, int s
       batch_axis = static_cast<int>(x->shape.size()) + batch_axis;
     }
 
-    TVM_ICHECK(seq_lengths_dim == 1) << "seq_lengths should be 1D vector";
+    ICHECK(seq_lengths_dim == 1) << "seq_lengths should be 1D vector";
 
-    TVM_ICHECK(GetConstInt(seq_lengths->shape[0]) == GetConstInt(x->shape[batch_axis]))
+    ICHECK(GetConstInt(seq_lengths->shape[0]) == GetConstInt(x->shape[batch_axis]))
         << "For reverse_sequnece seq_lengths size should match with dimension of batch axis"
         << ", but got dimension of batch_axis = " << GetConstInt(x->shape[batch_axis])
         << ", and seq_length size = " << GetConstInt(seq_lengths->shape[0]);
 
-    TVM_ICHECK((0 <= batch_axis) && (batch_axis < static_cast<int>(x->shape.size())))
+    ICHECK((0 <= batch_axis) && (batch_axis < static_cast<int>(x->shape.size())))
         << "batch_axis=" << batch_axis_inp << " is invalid for the "
         << static_cast<int>(x->shape.size()) << "-dimensional input tensor";
   }
@@ -195,7 +195,7 @@ inline Tensor reverse_sequence(const Tensor& x, const Tensor& seq_lengths, int s
   if (seq_axis < 0) {
     seq_axis = static_cast<int>(x->shape.size()) + seq_axis;
   }
-  TVM_ICHECK((0 <= seq_axis) && (seq_axis < static_cast<int>(x->shape.size())))
+  ICHECK((0 <= seq_axis) && (seq_axis < static_cast<int>(x->shape.size())))
       << "seq_axis=" << seq_axis_inp << " is invalid for the " << static_cast<int>(x->shape.size())
       << "-dimensional input tensor";
 
@@ -335,7 +335,7 @@ inline Tensor squeeze(const Tensor& x, Array<Integer> axis, bool atleast1d = fal
         val += static_cast<int>(x->shape.size());
       }
       if (IsConstInt(x->shape[val])) {
-        TVM_ICHECK_EQ(GetConstInt(x->shape[val]), 1) << "Dimension " << val << " must have size 1";
+        ICHECK_EQ(GetConstInt(x->shape[val]), 1) << "Dimension " << val << " must have size 1";
       }
       axis_val.push_back(val);
     }
@@ -384,12 +384,12 @@ inline Tensor squeeze(const Tensor& x, Array<Integer> axis, bool atleast1d = fal
 inline Tensor concatenate(const Array<Tensor>& inputs, int axis = 0, std::string name = "T_concat",
                           std::string tag = kInjective) {
   int ndim = static_cast<int>(inputs[0]->shape.size());
-  TVM_ICHECK(-ndim <= axis && axis < ndim) << "concatenate only accepts `axis` in [-ndim, ndim)"
+  ICHECK(-ndim <= axis && axis < ndim) << "concatenate only accepts `axis` in [-ndim, ndim)"
                                        << ", but got axis = " << axis << ", and ndim = " << ndim;
   if (axis < 0) {
     axis += ndim;
   }
-  TVM_ICHECK_LT(axis, inputs[0]->shape.size()) << "axis out of bounds";
+  ICHECK_LT(axis, inputs[0]->shape.size()) << "axis out of bounds";
 
   Array<PrimExpr> axis_sizes;
   for (auto t : inputs) {
@@ -443,13 +443,13 @@ inline Tensor concatenate(const Array<Tensor>& inputs, int axis = 0, std::string
 inline Tensor stack(const Array<Tensor>& inputs, int axis = 0, std::string name = "T_stack",
                     std::string tag = kInjective) {
   int ndim = static_cast<int>(inputs[0]->shape.size());
-  TVM_ICHECK(-ndim - 1 <= axis && axis <= ndim)
+  ICHECK(-ndim - 1 <= axis && axis <= ndim)
       << "stack only accepts `axis` in [-ndim, ndim)"
       << ", but got axis = " << axis << ", and ndim = " << ndim;
   if (axis < 0) {
     axis += ndim + 1;
   }
-  TVM_ICHECK_LT(axis, inputs[0]->shape.size() + 1) << "axis out of bounds";
+  ICHECK_LT(axis, inputs[0]->shape.size() + 1) << "axis out of bounds";
 
   const int stack_size = static_cast<int>(inputs.size());
   Array<PrimExpr> out_shape;
@@ -491,7 +491,7 @@ inline Array<Tensor> split(const Tensor& x, Array<PrimExpr> split_indices, int a
   if (axis < 0) {
     axis += static_cast<int>(x->shape.size());
   }
-  TVM_ICHECK_LT(axis, x->shape.size()) << "axis out of bounds";
+  ICHECK_LT(axis, x->shape.size()) << "axis out of bounds";
 
   auto src_axis_size = x->shape[axis];
   std::vector<PrimExpr> begin_ids;
@@ -501,7 +501,7 @@ inline Array<Tensor> split(const Tensor& x, Array<PrimExpr> split_indices, int a
     auto idx_node = idx.as<IntImmNode>();
     auto back_node = begin_ids.back().as<IntImmNode>();
     if (idx_node && back_node) {
-      TVM_ICHECK_GT(idx_node->value, back_node->value) << "split_indices must be sorted";
+      ICHECK_GT(idx_node->value, back_node->value) << "split_indices must be sorted";
     }
     begin_ids.push_back(idx);
   }
@@ -632,7 +632,7 @@ inline Tensor strided_slice(const Tensor& x, const Array<PrimExpr>& begin,
   // Consider to refactor in the future.
   std::vector<int64_t> stride_vec(src_tensor_dim, 1);
   for (size_t i = 0; i < strides.size(); ++i) {
-    TVM_ICHECK(strides[i].defined());
+    ICHECK(strides[i].defined());
     stride_vec[i] = GetConstInt(strides[i]);
   }
 
@@ -693,7 +693,7 @@ inline Tensor strided_slice(const Tensor& x, const Array<PrimExpr>& begin,
     int interval = std::abs(end_i - begin_i);
     int slice_size =
         static_cast<int>((interval + std::abs(stride_vec[i]) - 1) / std::abs(stride_vec[i]));
-    TVM_ICHECK(stride_vec[i] < 0 ? (end_i <= begin_i) : (begin_i <= end_i))
+    ICHECK(stride_vec[i] < 0 ? (end_i <= begin_i) : (begin_i <= end_i))
         << ": Input [Begin=" << begin_vec[i] << ", End=" << end_vec[i]
         << "] is invalid for axis=" << i;
 
@@ -733,14 +733,14 @@ inline Array<Tensor> split_sections(const Tensor& x, int num_sections, int axis,
   if (axis < 0) {
     axis += static_cast<int>(x->shape.size());
   }
-  TVM_ICHECK_LT(axis, x->shape.size()) << "axis out of bounds";
+  ICHECK_LT(axis, x->shape.size()) << "axis out of bounds";
 
   auto src_axis_size = x->shape[axis];
 
-  TVM_ICHECK_GT(num_sections, 0) << "Slice count must be > 0";
+  ICHECK_GT(num_sections, 0) << "Slice count must be > 0";
 
   if (auto node = src_axis_size.as<IntImmNode>()) {
-    TVM_ICHECK_EQ(node->value % num_sections, 0)
+    ICHECK_EQ(node->value % num_sections, 0)
         << "num_sections must be an integer factor of the size of axis " << axis << " ("
         << node->value << ")";
   }
@@ -787,7 +787,7 @@ inline Tensor take(const Tensor& a, const Tensor& indices, std::string mode = "c
         },
         name, tag);
   } else if (mode == "fast") {
-    TVM_LOG(WARNING) << "Fast mode segfaults when there are out-of-bounds indices. "
+    LOG(WARNING) << "Fast mode segfaults when there are out-of-bounds indices. "
                     "Make sure input indices are in bound";
     return compute(
         out_shape,
@@ -819,8 +819,8 @@ inline Tensor take(const Tensor& a, const Tensor& indices, std::string mode = "c
 inline Tensor sequence_mask(const Tensor& data, const Tensor& valid_length, double mask_value,
                             int axis, std::string name = "T_sequence_mask",
                             std::string tag = kInjective) {
-  TVM_ICHECK(axis == 0 || axis == 1) << "axis must be either 0 or 1";
-  TVM_ICHECK_EQ(valid_length->shape.size(), 1) << "valid_length must have ndim=1, i.e., (batch_size,).";
+  ICHECK(axis == 0 || axis == 1) << "axis must be either 0 or 1";
+  ICHECK_EQ(valid_length->shape.size(), 1) << "valid_length must have ndim=1, i.e., (batch_size,).";
   auto length_dim = data->shape[axis];
   auto batch_dim = data->shape[1 - axis];
   Array<PrimExpr> out_shape = data->shape;
@@ -858,8 +858,8 @@ inline Tensor take(const Tensor& a, const Tensor& indices, int axis, std::string
   if (axis < 0) {
     axis += static_cast<int>(a->shape.size());
   }
-  TVM_ICHECK_GE(axis, 0) << "axis out of bounds";
-  TVM_ICHECK_LT(axis, a->shape.size()) << "axis out of bounds";
+  ICHECK_GE(axis, 0) << "axis out of bounds";
+  ICHECK_LT(axis, a->shape.size()) << "axis out of bounds";
   auto axis_dim = a->shape[axis];
 
   int indices_len = static_cast<int>(indices->shape.size());
@@ -894,7 +894,7 @@ inline Tensor take(const Tensor& a, const Tensor& indices, int axis, std::string
         },
         name, tag);
   } else if (mode == "fast") {
-    TVM_LOG(WARNING) << "Fast mode segfaults when there are out-of-bounds indices. "
+    LOG(WARNING) << "Fast mode segfaults when there are out-of-bounds indices. "
                     "Make sure input indices are in bound";
     return compute(
         out_shape,
@@ -950,7 +950,7 @@ inline Tensor take(const Tensor& a, const Tensor& indices, int axis, std::string
  */
 inline Tensor where(const Tensor& condition, const Tensor& x, const Tensor& y,
                     std::string name = "T_where", std::string tag = kBroadcast) {
-  TVM_ICHECK_EQ(x->dtype, y->dtype) << "x and y must have the same dtype: " << x->dtype << " vs "
+  ICHECK_EQ(x->dtype, y->dtype) << "x and y must have the same dtype: " << x->dtype << " vs "
                                 << y->dtype;
   auto get_out_shape = [&]() {
     auto bh1 = detail::BroadcastShape(x->shape, y->shape);
@@ -991,10 +991,10 @@ inline Tensor where(const Tensor& condition, const Tensor& x, const Tensor& y,
 inline Tensor repeat(const Tensor& x, int repeats, int axis, std::string name = "T_repeat",
                      std::string tag = kBroadcast) {
   int ndim = static_cast<int>(x->shape.size());
-  TVM_ICHECK(-ndim - 1 <= axis && axis <= ndim)
+  ICHECK(-ndim - 1 <= axis && axis <= ndim)
       << "repeat only accepts `axis` in [-data.ndim - 1, data.ndim]"
       << ", but got axis = " << axis << ", and data.ndim = " << ndim;
-  TVM_ICHECK(repeats >= 1) << "repeat only accepts `repeats >= 1`"
+  ICHECK(repeats >= 1) << "repeat only accepts `repeats >= 1`"
                        << ", but got repeats = " << repeats;
   if (axis < 0) {
     // Calculate offset from last dimension
@@ -1131,13 +1131,13 @@ inline Tensor gather(const Tensor& data, int axis, const Tensor& indices,
                      std::string name = "T_gather", std::string tag = kInjective) {
   size_t ndim_d = data->shape.size();
   size_t ndim_i = indices->shape.size();
-  TVM_ICHECK_GE(ndim_d, 1) << "Cannot gather from a scalar.";
-  TVM_ICHECK_EQ(ndim_d, ndim_i);
-  TVM_ICHECK_GE(axis, 0);
-  TVM_ICHECK_LT(axis, ndim_d);
+  ICHECK_GE(ndim_d, 1) << "Cannot gather from a scalar.";
+  ICHECK_EQ(ndim_d, ndim_i);
+  ICHECK_GE(axis, 0);
+  ICHECK_LT(axis, ndim_d);
   size_t indices_dim_i = static_cast<size_t>(GetConstInt(indices->shape[axis]));
-  TVM_ICHECK_GE(indices_dim_i, 1);
-  TVM_ICHECK(indices->dtype.is_int());
+  ICHECK_GE(indices_dim_i, 1);
+  ICHECK(indices->dtype.is_int());
 
   Array<PrimExpr> out_shape;
   for (size_t i = 0; i < ndim_i; ++i) {
@@ -1178,9 +1178,9 @@ inline Tensor gather_nd(const Tensor& data, const Tensor& indices, std::string n
                         std::string tag = kInjective) {
   size_t ndim_d = data->shape.size();
   size_t ndim_i = indices->shape.size();
-  TVM_ICHECK_GE(ndim_i, 1) << "indices tensor must have at least 1 dimensions";
+  ICHECK_GE(ndim_i, 1) << "indices tensor must have at least 1 dimensions";
   size_t indices_dim0 = static_cast<size_t>(GetConstInt(indices->shape[0]));
-  TVM_ICHECK_LE(indices_dim0, ndim_d) << "dim 0 of indices tensor must be no more "
+  ICHECK_LE(indices_dim0, ndim_d) << "dim 0 of indices tensor must be no more "
                                   << "than dimensions of data tensor";
   Array<PrimExpr> out_shape;
   for (size_t i = 1; i < ndim_i; ++i) {
@@ -1256,8 +1256,8 @@ inline tvm::te::Tensor matmul(const tvm::te::Tensor& A, const tvm::te::Tensor& B
  */
 inline Tensor tensordot(const Tensor& A, const tvm::te::Tensor& B, int axes = 2,
                         std::string name = "T_tensordot", std::string tag = kMatMul) {
-  TVM_ICHECK_GE(A->shape.size(), axes);
-  TVM_ICHECK_GE(B->shape.size(), axes);
+  ICHECK_GE(A->shape.size(), axes);
+  ICHECK_GE(B->shape.size(), axes);
 
   Array<PrimExpr> output_shape(A->shape.begin(), A->shape.end() + (-axes));
   for (auto it = B->shape.begin() + axes; it != B->shape.end(); ++it) output_shape.push_back(*it);
@@ -1302,7 +1302,7 @@ inline Tensor tensordot(const Tensor& A, const tvm::te::Tensor& B, int axes = 2,
 inline Tensor tensordot(const Tensor& A, const tvm::te::Tensor& B, Array<PrimExpr> A_axes,
                         Array<PrimExpr> B_axes, std::string name = "T_tensordot",
                         std::string tag = kMatMul) {
-  TVM_ICHECK_EQ(A_axes.size(), B_axes.size());
+  ICHECK_EQ(A_axes.size(), B_axes.size());
 
   auto A_axes_val = GetConstIntValues(A_axes, "A_axes");
   auto B_axes_val = GetConstIntValues(B_axes, "B_axes");
@@ -1406,11 +1406,11 @@ inline Tensor layout_transform(const Tensor& src, const std::string& src_layout,
     return src;
   }
 
-  TVM_ICHECK(src_layout_struct.defined() && dst_layout_struct.defined())
+  ICHECK(src_layout_struct.defined() && dst_layout_struct.defined())
       << "cannot convert from/to undefined layout";
 
   auto layout_converter = tir::BijectiveLayout(src_layout_struct, dst_layout_struct);
-  TVM_ICHECK(layout_converter.defined())
+  ICHECK(layout_converter.defined())
       << "cannot convert from " << src_layout << " to " << dst_layout;
 
   Array<PrimExpr> dst_shape = layout_converter.ForwardShape(src->shape);
@@ -1444,7 +1444,7 @@ inline void parse_auto_scheduler_layout(const String& layout, Array<PrimExpr>* s
         axis = "";
       }
     } else {
-      TVM_LOG(FATAL) << "Invalid layout " << layout;
+      LOG(FATAL) << "Invalid layout " << layout;
     }
   }
   if (!axis.empty()) {
@@ -1480,7 +1480,7 @@ inline Tensor auto_scheduler_layout_transform(const Tensor& src, const String& s
         Array<PrimExpr> src_indices;
         for (const std::string& src_axis : src_axes) {
           PrimExpr src_index = 0;
-          TVM_CHECK_EQ(dst_indices_expr.size(), dst_axes.size());
+          CHECK_EQ(dst_indices_expr.size(), dst_axes.size());
           for (size_t i = 0; i < dst_axes.size(); ++i) {
             if (dst_axes[i] == src_axis) {
               src_index = src_index * dst_shape[i] + dst_indices_expr[i];
@@ -1608,10 +1608,10 @@ inline Tensor sparse_to_dense(const Tensor& sparse_indices, const Array<PrimExpr
                               const Tensor& sparse_values, const PrimExpr& default_value,
                               const std::string name = "T_sparse_to_dense",
                               const std::string tag = kInjective) {
-  TVM_ICHECK(sparse_indices->dtype.is_int()) << "sparse_indices only accepts integer values";
-  TVM_ICHECK_LE(sparse_indices->shape.size(), 3)
+  ICHECK(sparse_indices->dtype.is_int()) << "sparse_indices only accepts integer values";
+  ICHECK_LE(sparse_indices->shape.size(), 3)
       << "sparse_indices tensor should be 0D, 1D, or 2D only";
-  TVM_ICHECK_LE(sparse_values->shape.size(), 2) << "sparse_values tensor should be 0D or 1D only";
+  ICHECK_LE(sparse_values->shape.size(), 2) << "sparse_values tensor should be 0D or 1D only";
 
   const auto rank_sparse_indices = static_cast<int>(sparse_indices->shape.size());
   Array<PrimExpr> oshape;

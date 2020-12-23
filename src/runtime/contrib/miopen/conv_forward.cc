@@ -134,10 +134,10 @@ TVM_REGISTER_GLOBAL("tvm.contrib.miopen.conv2d.setup").set_body([](TVMArgs args,
       "miopenConvolutionFwdAlgoWinograd",
   };
   const auto best_algo = perfs[0].fwd_algo;
-  TVM_LOG(INFO) << "\tMIOpen Found " << returned_algo_count << " fwd algorithms, choosing "
+  LOG(INFO) << "\tMIOpen Found " << returned_algo_count << " fwd algorithms, choosing "
             << fwd_algo_names[best_algo];
   for (int i = 0; i < returned_algo_count; ++i) {
-    TVM_LOG(INFO) << "\t\t" << i << ") " << fwd_algo_names[perfs[i].fwd_algo]
+    LOG(INFO) << "\t\t" << i << ") " << fwd_algo_names[perfs[i].fwd_algo]
               << " - time: " << perfs[i].time << " ms"
               << ", Memory: " << perfs[i].memory;
   }

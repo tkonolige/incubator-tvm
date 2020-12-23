@@ -38,7 +38,7 @@
 
 /*!
  * \brief COND_X calls COND_X_N where N is the number of parameters passed to COND_X
- * X can be any of TVM_CHECK_GE, TVM_CHECK_EQ, TVM_CHECK, or TVM_LOG (defined dmlc-core/include/dmlc/logging.h.)
+ * X can be any of CHECK_GE, CHECK_EQ, CHECK, or LOG (defined dmlc-core/include/dmlc/logging.h.)
  * COND_X (but not COND_X_N) are supposed to be used outside this file.
  * The first parameter of COND_X (and therefore, COND_X_N), which we call 'quit_on_assert',
  * is a boolean. The rest of the parameters of COND_X is the same as the parameters of X.
@@ -95,7 +95,7 @@
   if (!quit_on_assert) {                              \
     if (!((x)op(y))) what;                            \
   } else /* NOLINT(*) */                              \
-    TVM_CHECK_##op(x, y)
+    CHECK_##op(x, y)
 
 #define COND_CHECK_EQ_4(quit_on_assert, x, y, what) COND_CHECK_OP(quit_on_assert, x, y, what, ==)
 #define COND_CHECK_GE_4(quit_on_assert, x, y, what) COND_CHECK_OP(quit_on_assert, x, y, what, >=)
@@ -104,13 +104,13 @@
   if (!quit_on_assert) {                      \
     if (!(x)) what;                           \
   } else /* NOLINT(*) */                      \
-    TVM_CHECK(x)
+    CHECK(x)
 
 #define COND_LOG_3(quit_on_assert, x, what) \
   if (!quit_on_assert) {                    \
     what;                                   \
   } else /* NOLINT(*) */                    \
-    TVM_LOG(x)
+    LOG(x)
 
 #define COND_CHECK_EQ_3(quit_on_assert, x, y) COND_CHECK_EQ_4(quit_on_assert, x, y, return false)
 #define COND_CHECK_GE_3(quit_on_assert, x, y) COND_CHECK_GE_4(quit_on_assert, x, y, return false)
@@ -182,77 +182,77 @@ class LogMessage {
   std::ostringstream stream_;
 };
 
-#define TVM_LOG(level) TVM_LOG_##level
-#define TVM_LOG_FATAL tvm::LogFatal(__FILE__, __LINE__).stream()
-#define TVM_LOG_INFO tvm::LogMessage(__FILE__, __LINE__).stream()
-#define TVM_LOG_ERROR (tvm::LogMessage(__FILE__, __LINE__).stream() << "error: ")
-#define TVM_LOG_WARNING (tvm::LogMessage(__FILE__, __LINE__).stream() << "warning: ")
+#define LOG(level) LOG_##level
+#define LOG_FATAL tvm::LogFatal(__FILE__, __LINE__).stream()
+#define LOG_INFO tvm::LogMessage(__FILE__, __LINE__).stream()
+#define LOG_ERROR (tvm::LogMessage(__FILE__, __LINE__).stream() << "error: ")
+#define LOG_WARNING (tvm::LogMessage(__FILE__, __LINE__).stream() << "warning: ")
 
 #define TVM_CHECK_BINARY_OP(name, op, x, y)                           \
   if (!((x) op (y))) \
   tvm::LogFatal(__FILE__, __LINE__).stream()                       \
       << "Check failed: " << #x " " #op " " #y << ": "
 
-#define TVM_CHECK(x)                            \
+#define CHECK(x)                            \
   if (!(x))                                  \
   tvm::LogFatal(__FILE__, __LINE__).stream() \
       << "Check failed: " #x << " == false: "
 
-#define TVM_CHECK_LT(x, y) TVM_CHECK_BINARY_OP(_LT, <, x, y)
-#define TVM_CHECK_GT(x, y) TVM_CHECK_BINARY_OP(_GT, >, x, y)
-#define TVM_CHECK_LE(x, y) TVM_CHECK_BINARY_OP(_LE, <=, x, y)
-#define TVM_CHECK_GE(x, y) TVM_CHECK_BINARY_OP(_GE, >=, x, y)
-#define TVM_CHECK_EQ(x, y) TVM_CHECK_BINARY_OP(_EQ, ==, x, y)
-#define TVM_CHECK_NE(x, y) TVM_CHECK_BINARY_OP(_NE, !=, x, y)
-#define TVM_CHECK_NOTNULL(x)                                                                        \
+#define CHECK_LT(x, y) TVM_CHECK_BINARY_OP(_LT, <, x, y)
+#define CHECK_GT(x, y) TVM_CHECK_BINARY_OP(_GT, >, x, y)
+#define CHECK_LE(x, y) TVM_CHECK_BINARY_OP(_LE, <=, x, y)
+#define CHECK_GE(x, y) TVM_CHECK_BINARY_OP(_GE, >=, x, y)
+#define CHECK_EQ(x, y) TVM_CHECK_BINARY_OP(_EQ, ==, x, y)
+#define CHECK_NE(x, y) TVM_CHECK_BINARY_OP(_NE, !=, x, y)
+#define CHECK_NOTNULL(x)                                                                        \
   ((x) == nullptr ? tvm::LogFatal(__FILE__, __LINE__).stream()                                   \
                         << "Check not null: " #x \
                         << ' ',                                                                  \
    (x) : (x))  // NOLINT(*)
 
-#define TVM_LOG_IF(severity, condition) \
-  !(condition) ? (void)0 : dmlc::LogMessageVoidify() & TVM_LOG(severity)
+#define LOG_IF(severity, condition) \
+  !(condition) ? (void)0 : dmlc::LogMessageVoidify() & LOG(severity)
 
-#if TVM_LOG_DEBUG
+#if LOG_DEBUG
 
 #define LOG_DFATAL LOG_FATAL
 #define DFATAL FATAL
-#define DLOG(severity) TVM_LOG_IF(severity, ::dmlc::DebugLoggingEnabled())
-#define DLOG_IF(severity, condition) TVM_LOG_IF(severity, ::dmlc::DebugLoggingEnabled() && (condition))
+#define DLOG(severity) LOG_IF(severity, ::dmlc::DebugLoggingEnabled())
+#define DLOG_IF(severity, condition) LOG_IF(severity, ::dmlc::DebugLoggingEnabled() && (condition))
 
 #else
 
 #define LOG_DFATAL LOG_ERROR
 #define DFATAL ERROR
-#define DLOG(severity) true ? (void)0 : dmlc::LogMessageVoidify() & TVM_LOG(severity)
+#define DLOG(severity) true ? (void)0 : dmlc::LogMessageVoidify() & LOG(severity)
 #define DLOG_IF(severity, condition) \
-  (true || !(condition)) ? (void)0 : dmlc::LogMessageVoidify() & TVM_LOG(severity)
+  (true || !(condition)) ? (void)0 : dmlc::LogMessageVoidify() & LOG(severity)
 
 #endif
 
-#if TVM_LOG_DEBUG
-#define TVM_DCHECK(x) \
-  while (false) TVM_CHECK(x)
-#define TVM_DCHECK_LT(x, y) \
-  while (false) TVM_CHECK((x) < (y))
-#define TVM_DCHECK_GT(x, y) \
-  while (false) TVM_CHECK((x) > (y))
-#define TVM_DCHECK_LE(x, y) \
-  while (false) TVM_CHECK((x) <= (y))
-#define TVM_DCHECK_GE(x, y) \
-  while (false) TVM_CHECK((x) >= (y))
-#define TVM_DCHECK_EQ(x, y) \
-  while (false) TVM_CHECK((x) == (y))
-#define TVM_DCHECK_NE(x, y) \
-  while (false) TVM_CHECK((x) != (y))
+#if LOG_DEBUG
+#define DCHECK(x) \
+  while (false) CHECK(x)
+#define DCHECK_LT(x, y) \
+  while (false) CHECK((x) < (y))
+#define DCHECK_GT(x, y) \
+  while (false) CHECK((x) > (y))
+#define DCHECK_LE(x, y) \
+  while (false) CHECK((x) <= (y))
+#define DCHECK_GE(x, y) \
+  while (false) CHECK((x) >= (y))
+#define DCHECK_EQ(x, y) \
+  while (false) CHECK((x) == (y))
+#define DCHECK_NE(x, y) \
+  while (false) CHECK((x) != (y))
 #else
-#define TVM_DCHECK(x) TVM_CHECK(x)
-#define TVM_DCHECK_LT(x, y) TVM_CHECK((x) < (y))
-#define TVM_DCHECK_GT(x, y) TVM_CHECK((x) > (y))
-#define TVM_DCHECK_LE(x, y) TVM_CHECK((x) <= (y))
-#define TVM_DCHECK_GE(x, y) TVM_CHECK((x) >= (y))
-#define TVM_DCHECK_EQ(x, y) TVM_CHECK((x) == (y))
-#define TVM_DCHECK_NE(x, y) TVM_CHECK((x) != (y))
+#define DCHECK(x) CHECK(x)
+#define DCHECK_LT(x, y) CHECK((x) < (y))
+#define DCHECK_GT(x, y) CHECK((x) > (y))
+#define DCHECK_LE(x, y) CHECK((x) <= (y))
+#define DCHECK_GE(x, y) CHECK((x) >= (y))
+#define DCHECK_EQ(x, y) CHECK((x) == (y))
+#define DCHECK_NE(x, y) CHECK((x) != (y))
 #endif
 
 constexpr const char* kTVM_INTERNAL_ERROR_MESSAGE =
@@ -262,28 +262,31 @@ constexpr const char* kTVM_INTERNAL_ERROR_MESSAGE =
     "More details can be found here: https://discuss.tvm.ai/t/error-reporting/7793.\n"
     "---------------------------------------------------------------\n";
 
-#define TVM_ICHECK_INDENT "  "
+#define ICHECK_INDENT "  "
 
-#define TVM_ICHECK_BINARY_OP(name, op, x, y)                           \
+#define ICHECK_BINARY_OP(name, op, x, y)                           \
+  _Pragma("GCC diagnostic push")\
+  _Pragma("GCC diagnostic ignored \"-Wsign-compare\"")\
   if (!((x) op (y))) \
+  _Pragma("GCC diagnostic pop")\
   tvm::LogFatal(__FILE__, __LINE__).stream()                       \
       << tvm::kTVM_INTERNAL_ERROR_MESSAGE << std::endl             \
-      << TVM_ICHECK_INDENT << "Check failed: " << #x " " #op " " #y << ": "
+      << ICHECK_INDENT << "Check failed: " << #x " " #op " " #y << ": "
 
-#define TVM_ICHECK(x)                            \
+#define ICHECK(x)                            \
   if (!(x))                                  \
   tvm::LogFatal(__FILE__, __LINE__).stream() \
-      << tvm::kTVM_INTERNAL_ERROR_MESSAGE << TVM_ICHECK_INDENT << "Check failed: " #x << " == false: "
+      << tvm::kTVM_INTERNAL_ERROR_MESSAGE << ICHECK_INDENT << "Check failed: " #x << " == false: "
 
-#define TVM_ICHECK_LT(x, y) TVM_ICHECK_BINARY_OP(_LT, <, x, y)
-#define TVM_ICHECK_GT(x, y) TVM_ICHECK_BINARY_OP(_GT, >, x, y)
-#define TVM_ICHECK_LE(x, y) TVM_ICHECK_BINARY_OP(_LE, <=, x, y)
-#define TVM_ICHECK_GE(x, y) TVM_ICHECK_BINARY_OP(_GE, >=, x, y)
-#define TVM_ICHECK_EQ(x, y) TVM_ICHECK_BINARY_OP(_EQ, ==, x, y)
-#define TVM_ICHECK_NE(x, y) TVM_ICHECK_BINARY_OP(_NE, !=, x, y)
-#define TVM_ICHECK_NOTNULL(x)                                                                        \
+#define ICHECK_LT(x, y) ICHECK_BINARY_OP(_LT, <, x, y)
+#define ICHECK_GT(x, y) ICHECK_BINARY_OP(_GT, >, x, y)
+#define ICHECK_LE(x, y) ICHECK_BINARY_OP(_LE, <=, x, y)
+#define ICHECK_GE(x, y) ICHECK_BINARY_OP(_GE, >=, x, y)
+#define ICHECK_EQ(x, y) ICHECK_BINARY_OP(_EQ, ==, x, y)
+#define ICHECK_NE(x, y) ICHECK_BINARY_OP(_NE, !=, x, y)
+#define ICHECK_NOTNULL(x)                                                                        \
   ((x) == nullptr ? tvm::LogFatal(__FILE__, __LINE__).stream()                                   \
-                        << tvm::kTVM_INTERNAL_ERROR_MESSAGE << TVM_ICHECK_INDENT << "Check not null: " #x \
+                        << tvm::kTVM_INTERNAL_ERROR_MESSAGE << ICHECK_INDENT << "Check not null: " #x \
                         << ' ',                                                                  \
    (x) : (x))  // NOLINT(*)
 

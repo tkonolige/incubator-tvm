@@ -67,7 +67,7 @@ runtime::Module CreateMetadataModule(
       for (size_t i = 0; i < variables.size(); i++) {
         arrays.push_back(variables[i].operator std::string());
       }
-      TVM_ICHECK_EQ(sym_metadata.count(symbol), 0U) << "Found duplicated symbol: " << symbol;
+      ICHECK_EQ(sym_metadata.count(symbol), 0U) << "Found duplicated symbol: " << symbol;
       sym_metadata[symbol] = arrays;
     }
   }
@@ -89,7 +89,7 @@ class SourceModuleNode : public runtime::ModuleNode {
   const char* type_key() const { return "source"; }
 
   PackedFunc GetFunction(const std::string& name, const ObjectPtr<Object>& sptr_to_self) final {
-    TVM_LOG(FATAL) << "Source module cannot execute, to get executable module"
+    LOG(FATAL) << "Source module cannot execute, to get executable module"
                << " build TVM with \'" << fmt_ << "\' runtime support";
     return PackedFunc();
   }
@@ -132,10 +132,10 @@ class CSourceModuleNode : public runtime::ModuleNode {
     std::string fmt = GetFileFormat(file_name, format);
     std::string meta_file = GetMetaFilePath(file_name);
     if (fmt == "cc") {
-      TVM_ICHECK_NE(code_.length(), 0);
+      ICHECK_NE(code_.length(), 0);
       SaveBinaryToFile(file_name, code_);
     } else {
-      TVM_ICHECK_EQ(fmt, fmt_) << "Can only save to format=" << fmt_;
+      ICHECK_EQ(fmt, fmt_) << "Can only save to format=" << fmt_;
     }
   }
 
@@ -162,7 +162,7 @@ class DeviceSourceModuleNode final : public runtime::ModuleNode {
       : data_(data), fmt_(fmt), fmap_(fmap), type_key_(type_key), fget_source_(fget_source) {}
 
   PackedFunc GetFunction(const std::string& name, const ObjectPtr<Object>& sptr_to_self) final {
-    TVM_LOG(FATAL) << "Source module cannot execute, to get executable module"
+    LOG(FATAL) << "Source module cannot execute, to get executable module"
                << " build TVM with \'" << fmt_ << "\' runtime support";
     return PackedFunc();
   }
@@ -179,7 +179,7 @@ class DeviceSourceModuleNode final : public runtime::ModuleNode {
 
   void SaveToFile(const std::string& file_name, const std::string& format) final {
     std::string fmt = GetFileFormat(file_name, format);
-    TVM_ICHECK_EQ(fmt, fmt_) << "Can only save to format=" << fmt_;
+    ICHECK_EQ(fmt, fmt_) << "Can only save to format=" << fmt_;
     std::string meta_file = GetMetaFilePath(file_name);
     SaveMetaDataToFile(meta_file, fmap_);
     SaveBinaryToFile(file_name, data_);

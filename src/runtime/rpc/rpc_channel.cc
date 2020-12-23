@@ -33,7 +33,7 @@ size_t CallbackChannel::Send(const void* data, size_t size) {
   bytes.size = size;
   int64_t n = fsend_(bytes);
   if (n == -1) {
-    TVM_LOG(FATAL) << "CallbackChannel::Send";
+    LOG(FATAL) << "CallbackChannel::Send";
   }
   return static_cast<size_t>(n);
 }
@@ -42,7 +42,7 @@ size_t CallbackChannel::Recv(void* data, size_t size) {
   TVMRetValue ret = frecv_(size);
 
   if (ret.type_code() != kTVMBytes) {
-    TVM_LOG(FATAL) << "CallbackChannel::Recv";
+    LOG(FATAL) << "CallbackChannel::Recv";
   }
   std::string* bytes = ret.ptr<std::string>();
   memcpy(static_cast<char*>(data), bytes->c_str(), bytes->length());

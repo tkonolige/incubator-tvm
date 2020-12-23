@@ -25,7 +25,6 @@
 #define TVM_RUNTIME_META_DATA_H_
 
 #include <tvm/support/dmlc.h>
-#include <tvm/support/dmlc.h>
 #include <tvm/runtime/module.h>
 #include <tvm/runtime/ndarray.h>
 #include <tvm/runtime/packed_func.h>

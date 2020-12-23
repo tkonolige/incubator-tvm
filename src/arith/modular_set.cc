@@ -67,7 +67,7 @@ struct ModularSetAnalyzer::Entry {
   Entry() = default;
 
   Entry(int64_t coeff, int64_t base) {
-    TVM_ICHECK_GE(coeff, 0);
+    ICHECK_GE(coeff, 0);
     this->coeff = coeff;
     if (coeff != 0) {
       base = base % coeff;
@@ -93,7 +93,7 @@ class ModularSetAnalyzer::Impl : public ExprFunctor<ModularSetAnalyzer::Entry(co
     if (!allow_override) {
       auto it = var_map_.find(var);
       if (it != var_map_.end()) {
-        TVM_ICHECK(it->second == info)
+        ICHECK(it->second == info)
             << "Trying to update var \'" << var << "\'"
             << " with a different const bound: "
             << "original=" << ModularSet(it->second.coeff, it->second.base) << ", new=" << info;
@@ -165,7 +165,7 @@ class ModularSetAnalyzer::Impl : public ExprFunctor<ModularSetAnalyzer::Entry(co
 
   Entry DivByConst(const PrimExpr& lhs, int64_t val, bool round_down) {
     Entry a = VisitExpr(lhs);
-    TVM_ICHECK_NE(val, 0);
+    ICHECK_NE(val, 0);
     if (a.coeff % val == 0) {
       if (a.base == 0) {
         // a c x  / c -> a x

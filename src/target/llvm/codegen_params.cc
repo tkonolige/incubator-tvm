@@ -68,9 +68,9 @@ llvm::ConstantArray* NDArrayToLLVMArray(llvm::LLVMContext* ctx, ::tvm::runtime::
   llvm::Type* element_type = nullptr;
 
   auto arr_type = arr.DataType();
-  TVM_CHECK(arr.IsContiguous()) << "CodegenParams: only support contiguous arrays";
-  TVM_CHECK_EQ(arr->ctx.device_type, kDLCPU) << "CodegenParams: only support contiguous arrays";
-  TVM_CHECK_EQ(arr_type.lanes(), 1) << "CodegenParams: only support generating 1-lane parameters; saw "
+  CHECK(arr.IsContiguous()) << "CodegenParams: only support contiguous arrays";
+  CHECK_EQ(arr->ctx.device_type, kDLCPU) << "CodegenParams: only support contiguous arrays";
+  CHECK_EQ(arr_type.lanes(), 1) << "CodegenParams: only support generating 1-lane parameters; saw "
                                 << arr_type.lanes();
 
   auto shape = arr.Shape();
@@ -83,7 +83,7 @@ llvm::ConstantArray* NDArrayToLLVMArray(llvm::LLVMContext* ctx, ::tvm::runtime::
 
   switch (arr_type.code()) {
     case runtime::DataType::kInt:
-      TVM_CHECK(arr_type.bits() == 8 || arr_type.bits() == 16 || arr_type.bits() == 32 ||
+      CHECK(arr_type.bits() == 8 || arr_type.bits() == 16 || arr_type.bits() == 32 ||
             arr_type.bits() == 64)
           << "CodegenParams: only support generating 8-, 16-, 32-, or 64-bit integer params; saw "
           << arr_type.bits() << "-bit array";
@@ -103,13 +103,13 @@ llvm::ConstantArray* NDArrayToLLVMArray(llvm::LLVMContext* ctx, ::tvm::runtime::
           BuildLLVMVector<int64_t>(element_type, arr->data, num_elements, &elements);
           break;
         default:
-          TVM_ICHECK(false) << "should not get here";
+          ICHECK(false) << "should not get here";
           break;
       }
       break;
 
     case runtime::DataType::TypeCode::kUInt:
-      TVM_CHECK(arr_type.bits() == 8 || arr_type.bits() == 16 || arr_type.bits() == 32 ||
+      CHECK(arr_type.bits() == 8 || arr_type.bits() == 16 || arr_type.bits() == 32 ||
             arr_type.bits() == 64)
           << "CodegenParams: only support generating 8-, 16-, 32-, or 64-bit integer params; saw "
           << arr_type.bits() << "-bit array";
@@ -129,7 +129,7 @@ llvm::ConstantArray* NDArrayToLLVMArray(llvm::LLVMContext* ctx, ::tvm::runtime::
           BuildLLVMVector<uint64_t>(element_type, arr->data, num_elements, &elements);
           break;
         default:
-          TVM_ICHECK(false) << "should not get here";
+          ICHECK(false) << "should not get here";
           break;
       }
       break;
@@ -150,20 +150,20 @@ llvm::ConstantArray* NDArrayToLLVMArray(llvm::LLVMContext* ctx, ::tvm::runtime::
           BuildLLVMVector<double>(element_type, arr->data, num_elements, &elements);
           break;
         default:
-          TVM_CHECK(false) << "CodegenParams: only support 32- or 64-bit floating point; saw "
+          CHECK(false) << "CodegenParams: only support 32- or 64-bit floating point; saw "
                        << arr_type.bits() << "-bit array";
           break;
       }
       break;
 
     case runtime::DataType::TypeCode::kBFloat:
-      TVM_CHECK(arr_type.bits() == 16)
+      CHECK(arr_type.bits() == 16)
           << "CodegenParams: only support 16-bit bfloat; saw " << arr_type.bits() << "-bit array";
       element_type = llvm::Type::getIntNTy(*ctx, arr_type.bits());
       BuildLLVMVector<uint16_t>(element_type, arr->data, num_elements, &elements);
 
     default:
-      TVM_CHECK(false) << "Data type not supported";
+      CHECK(false) << "Data type not supported";
   }
 
   return llvm::cast<llvm::ConstantArray>(llvm::ConstantArray::get(

@@ -39,14 +39,14 @@ namespace runtime {
   {                                                                                            \
     hipError_t result = x;                                                                     \
     if (result != hipSuccess && result != hipErrorDeinitialized) {                             \
-      TVM_LOG(FATAL) << "ROCM HIP Error: " #x " failed with error: " << hipGetErrorString(result); \
+      LOG(FATAL) << "ROCM HIP Error: " #x " failed with error: " << hipGetErrorString(result); \
     }                                                                                          \
   }
 
 #define ROCM_CALL(func)                                              \
   {                                                                  \
     hipError_t e = (func);                                           \
-    TVM_ICHECK(e == hipSuccess) << "ROCM HIP: " << hipGetErrorString(e); \
+    ICHECK(e == hipSuccess) << "ROCM HIP: " << hipGetErrorString(e); \
   }
 
 /*! \brief Thread local workspace */

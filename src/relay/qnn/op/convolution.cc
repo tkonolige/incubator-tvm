@@ -44,19 +44,19 @@ bool QnnConv2DRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
                   const TypeReporter& reporter) {
   // Expected Types: data, weight, input_zero_point, weight_zero_point, input_scale, weight_scale,
   // out_type
-  TVM_ICHECK_EQ(types.size(), 7);
+  ICHECK_EQ(types.size(), 7);
   const auto* data = types[0].as<TensorTypeNode>();
   const auto* weight = types[1].as<TensorTypeNode>();
   if (data == nullptr || weight == nullptr) return false;
   const auto* param = attrs.as<Conv2DAttrs>();
-  TVM_ICHECK(param != nullptr) << "Conv2DAttrs cannot be nullptr.";
-  TVM_ICHECK(data->dtype == DataType::Int(8) || data->dtype == DataType::UInt(8))
+  ICHECK(param != nullptr) << "Conv2DAttrs cannot be nullptr.";
+  ICHECK(data->dtype == DataType::Int(8) || data->dtype == DataType::UInt(8))
       << "Expected qnn conv2d type(int8, uint8) for input but was " << data->dtype;
-  TVM_ICHECK(weight->dtype == DataType::Int(8) || weight->dtype == DataType::UInt(8))
+  ICHECK(weight->dtype == DataType::Int(8) || weight->dtype == DataType::UInt(8))
       << "Expected qnn conv2d type(int8, uint8) for weight but was " << weight->dtype;
-  TVM_ICHECK(param->out_dtype == DataType::Int(16) || param->out_dtype == DataType::Int(32))
+  ICHECK(param->out_dtype == DataType::Int(16) || param->out_dtype == DataType::Int(32))
       << "Expected qnn conv2d type(int32, int16) for output but was " << param->out_dtype;
-  TVM_ICHECK(param->out_dtype.bits() > 0) << "Output dtype bits should be greater than 0.";
+  ICHECK(param->out_dtype.bits() > 0) << "Output dtype bits should be greater than 0.";
 
   // Check the types of scale and zero points.
   for (size_t i = 2; i < 5; ++i) {
@@ -64,19 +64,19 @@ bool QnnConv2DRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
       return false;
     }
   }
-  TVM_ICHECK(IsScalarType(types[2], DataType::Int(32)));    // input_zero_point
-  TVM_ICHECK(IsScalarType(types[3], DataType::Int(32)));    // weight_zero_point
-  TVM_ICHECK(IsScalarType(types[4], DataType::Float(32)));  // input_scale
+  ICHECK(IsScalarType(types[2], DataType::Int(32)));    // input_zero_point
+  ICHECK(IsScalarType(types[3], DataType::Int(32)));    // weight_zero_point
+  ICHECK(IsScalarType(types[4], DataType::Float(32)));  // input_scale
   // Kernel scale can be a vector of length output_channels or a scalar.
   if (param->groups == 1) {
     size_t axis = param->kernel_layout.operator std::string().find('O');
-    TVM_ICHECK(axis != std::string::npos) << "Kernel layout attribute is not defined";
+    ICHECK(axis != std::string::npos) << "Kernel layout attribute is not defined";
     AssignType(types[5], DataType::Float(32), weight->shape[axis], reporter);  // weight_scale
   } else {
     // Here, total number of output channels depend on depth multiplier.
     size_t o_axis = param->kernel_layout.operator std::string().find('O');
     size_t i_axis = param->kernel_layout.operator std::string().find('I');
-    TVM_ICHECK(o_axis != std::string::npos || i_axis != std::string::npos)
+    ICHECK(o_axis != std::string::npos || i_axis != std::string::npos)
         << "Kernel layout attribute is not defined";
     AssignType(types[5], DataType::Float(32), weight->shape[i_axis] * weight->shape[o_axis],
                reporter);  // weight_scale
@@ -130,7 +130,7 @@ WorkloadType GetWorkload(const Array<tvm::relay::Type>& arg_types, const Conv2DA
     batch_size = get_const_int(in_shape[0]);
     in_channels = get_const_int(in_shape[3]);
   } else {
-    TVM_LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
+    LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
   }
 
   const auto kernel_shape = get_shape(arg_types[1]);
@@ -159,7 +159,7 @@ WorkloadType GetWorkload(const Array<tvm::relay::Type>& arg_types, const Conv2DA
       channel_multiplier = get_const_int(kernel_shape[3]);
     }
   } else {
-    TVM_LOG(FATAL) << "qnn.conv2d does not support " << param->kernel_layout << " layout";
+    LOG(FATAL) << "qnn.conv2d does not support " << param->kernel_layout << " layout";
   }
 
   return std::make_tuple(batch_size, in_channels, out_channels, kernel_h, kernel_w,
@@ -232,7 +232,7 @@ Expr Conv2DPadInput(const Expr& data, const Expr& input_zero_point, const Conv2D
     } else if (param->data_layout == "NHWC") {
       pad_width = {pad_n, pad_h, pad_w, pad_c};
     } else {
-      TVM_LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
+      LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
     }
     auto pad_value = GetScalarFromConstant<int>(input_zero_point);
     padded_data = Pad(data, pad_width, pad_value, "constant");
@@ -300,7 +300,7 @@ Expr DepthwiseConv2DSecondTerm(const Expr& padded_data, const Expr& kernel_zero_
   } else if (param->data_layout == "NHWC") {
     axis_t2 = 3;
   } else {
-    TVM_LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
+    LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
   }
   auto repeated_t2 = multiplied_t2;
   if (channel_multiplier != 1) {
@@ -336,7 +336,7 @@ Expr DepthwiseConv2DThirdTerm(const Expr& weight, const Expr& input_zero_point,
   } else if (param->kernel_layout == "HWOI") {
     axes_t3 = {0, 1};
   } else {
-    TVM_LOG(FATAL) << "qnn.conv2d does not support " << param->kernel_layout << " layout";
+    LOG(FATAL) << "qnn.conv2d does not support " << param->kernel_layout << " layout";
   }
   auto reduced_t3 = Sum(Cast(weight, DataType::Int(32)), axes_t3, false, false);
 
@@ -347,7 +347,7 @@ Expr DepthwiseConv2DThirdTerm(const Expr& weight, const Expr& input_zero_point,
   } else if (param->data_layout == "NHWC") {
     newshape = {1, 1, 1, out_channels * channel_multiplier};
   } else {
-    TVM_LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
+    LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
   }
   auto reshaped_t3 = Reshape(reduced_t3, newshape);
 
@@ -426,7 +426,7 @@ Expr Conv2DSecondTerm(const Expr& padded_data, const Expr& kernel_zero_point,
   } else if (param->data_layout == "NHWC") {
     axes_t2 = {3};
   } else {
-    TVM_LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
+    LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
   }
   // Keep dims true to retain 4D tensor
   auto reduced_c_t2 = Sum(casted_t2, axes_t2, true, false);
@@ -486,7 +486,7 @@ Expr Conv2DThirdTerm(const Expr& weight, const Expr& input_zero_point, const Con
   } else if (param->kernel_layout == "HWOI") {
     axes_t3 = {0, 1, 3};
   } else {
-    TVM_LOG(FATAL) << "qnn.conv2d does not support " << param->kernel_layout << " layout";
+    LOG(FATAL) << "qnn.conv2d does not support " << param->kernel_layout << " layout";
   }
   auto reduced_t3 = Sum(Cast(weight, DataType::Int(32)), axes_t3, false, false);
 
@@ -497,7 +497,7 @@ Expr Conv2DThirdTerm(const Expr& weight, const Expr& input_zero_point, const Con
   } else if (param->data_layout == "NHWC") {
     newshape = {1, 1, 1, out_channels};
   } else {
-    TVM_LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
+    LOG(FATAL) << "qnn.conv2d does not support " << param->data_layout << " layout";
   }
   auto reshaped_t3 = Reshape(reduced_t3, newshape);
 
@@ -635,17 +635,17 @@ Expr Conv2DCombineTerms(const Expr& term1, const Expr& term2, const Expr& term3,
  */
 Expr QnnConv2DCanonicalize(const Attrs& attrs, const Array<Expr>& new_args,
                            const Array<tvm::relay::Type>& arg_types) {
-  TVM_ICHECK_EQ(new_args.size(), 6);
+  ICHECK_EQ(new_args.size(), 6);
   Expr data = new_args[0];
   Expr weight = new_args[1];
   Expr input_zero_point = new_args[2];
   Expr kernel_zero_point = new_args[3];
   const auto* param = attrs.as<Conv2DAttrs>();
-  TVM_ICHECK(param != nullptr);
+  ICHECK(param != nullptr);
   // Assertion checks for exisiing support.
-  TVM_ICHECK(param->data_layout == "NCHW" || param->data_layout == "NHWC")
+  ICHECK(param->data_layout == "NCHW" || param->data_layout == "NHWC")
       << "qnn.conv2d supports only NCHW/NHWC input data layout.";
-  TVM_ICHECK(param->kernel_layout == "OIHW" || param->kernel_layout == "HWIO" ||
+  ICHECK(param->kernel_layout == "OIHW" || param->kernel_layout == "HWIO" ||
          param->kernel_layout == "HWOI")
       << "qnn.conv2d supports only OIHW/HWIO/HWOI kernel data layout.";
 
@@ -662,14 +662,14 @@ Expr QnnConv2DCanonicalize(const Attrs& attrs, const Array<Expr>& new_args,
   // traverse the elements in dilated manner. Currently, we do not have strided pool. So, in case of
   // dilated conv with non-zero kernel point, we fall back to simpler but slow lowering.
 
-  TVM_ICHECK_EQ(param->dilation.size(), 2) << "qnn.conv2d only supports 2D dilation";
+  ICHECK_EQ(param->dilation.size(), 2) << "qnn.conv2d only supports 2D dilation";
   auto dilation_h = get_const_int(param->dilation[0]);
   auto dilation_w = get_const_int(param->dilation[1]);
   if ((kernel_zero_point_int != 0 && (dilation_h != 1 || dilation_w != 1)) ||
       (param->groups != 1 && !is_depthwise(param))) {
     return Conv2DFallBack(data, weight, input_zero_point, kernel_zero_point, param);
   } else if (is_depthwise(param)) {
-    TVM_ICHECK_NE(channel_multiplier, -1);
+    ICHECK_NE(channel_multiplier, -1);
     auto padded_data = Conv2DPadInput(data, input_zero_point, param);
     auto term1 = Conv2DFirstTerm(padded_data, weight, param);
     auto term2 = DepthwiseConv2DSecondTerm(padded_data, kernel_zero_point, param, kernel_h,

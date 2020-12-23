@@ -44,7 +44,7 @@ TVM_REGISTER_GLOBAL("ir.BaseFuncWithAttr")
       } else if (func->IsInstance<relay::FunctionNode>()) {
         return WithAttr(Downcast<relay::Function>(std::move(func)), key, value);
       } else {
-        TVM_LOG(FATAL) << "Do not support function type " << func->GetTypeKey();
+        LOG(FATAL) << "Do not support function type " << func->GetTypeKey();
         return func;
       }
     });

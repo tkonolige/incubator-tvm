@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
   utvm_rpc_server_t rpc_server = UTvmRpcServerInit(&UTvmWriteFunc, nullptr);
 
 #ifdef TVM_HOST_USE_GRAPH_RUNTIME_MODULE
-  TVM_CHECK_EQ(TVMGraphRuntimeModule_Register(), kTvmErrorNoError,
+  CHECK_EQ(TVMGraphRuntimeModule_Register(), kTvmErrorNoError,
            "failed to register GraphRuntime TVMModule");
 #endif
 

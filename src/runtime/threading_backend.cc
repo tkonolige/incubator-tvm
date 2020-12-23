@@ -46,7 +46,7 @@ class ThreadGroup::Impl {
  public:
   Impl(int num_workers, std::function<void(int)> worker_callback, bool exclude_worker0)
       : num_workers_(num_workers) {
-    TVM_ICHECK_GE(num_workers, 1) << "Requested a non-positive number of worker threads.";
+    ICHECK_GE(num_workers, 1) << "Requested a non-positive number of worker threads.";
     for (int i = exclude_worker0; i < num_workers_; ++i) {
       threads_.emplace_back([worker_callback, i] { worker_callback(i); });
     }
@@ -86,7 +86,7 @@ class ThreadGroup::Impl {
       if (sorted_order_.size() >= static_cast<unsigned int>(num_workers_)) {
         SetAffinity(exclude_worker0, mode == kLittle);
       } else {
-        TVM_LOG(WARNING) << "The thread affinity cannot be set when the number of workers"
+        LOG(WARNING) << "The thread affinity cannot be set when the number of workers"
                      << "is larger than the number of available cores in the system.";
       }
     }
@@ -112,7 +112,7 @@ class ThreadGroup::Impl {
 #endif
 #endif
 #if defined(__linux__) || defined(__ANDROID__)
-    TVM_ICHECK_GE(sorted_order_.size(), num_workers_);
+    ICHECK_GE(sorted_order_.size(), num_workers_);
 
     for (unsigned i = 0; i < threads_.size(); ++i) {
       unsigned core_id;
@@ -214,7 +214,7 @@ class ThreadGroup::Impl {
       }
     }
     if (big_count_ + little_count_ != static_cast<int>(sorted_order_.size())) {
-      TVM_LOG(WARNING) << "more than two frequencies detected!";
+      LOG(WARNING) << "more than two frequencies detected!";
     }
   }
 

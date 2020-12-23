@@ -46,16 +46,6 @@
 #define TVM_AUTO_SCHEDULER_TRANSFORM_STEP_H_
 
 #include <tvm/support/dmlc.h>
-#undef LOG
-#undef CHECK
-#undef CHECK_EQ
-#undef CHECK_GT
-#undef CHECK_GE
-#undef CHECK_LT
-#undef CHECK_LE
-#undef CHECK_NE
-#undef CHECK_NOTNULL
-
 #include <tvm/node/node.h>
 #include <tvm/te/schedule.h>
 

@@ -42,8 +42,8 @@ void SmithNormalFormDiag(std::vector<std::vector<int64_t>>* S, std::vector<std::
   if (S->empty() || V->empty()) return;
   size_t m = S->size();
   size_t n = (*S)[0].size();  // n is # of variables
-  TVM_ICHECK_EQ(V->size(), n);
-  TVM_ICHECK_EQ((*V)[0].size(), n);
+  ICHECK_EQ(V->size(), n);
+  ICHECK_EQ((*V)[0].size(), n);
 
   for (size_t index = 0; index < std::min(m, n); ++index) {
     // Here A is partially diagonalized, that is A[i, j] is zero for all i, j
@@ -308,7 +308,7 @@ IntConstraintsTransform SolveLinearEquations(const IntConstraints& system_to_sol
           } else {
             // elements in matrix S V must be integers
             // ignore equations that we cannot deal with.
-            TVM_LOG(WARNING) << "Cannot deal with non-integer coefficients, ignore equation "
+            LOG(WARNING) << "Cannot deal with non-integer coefficients, ignore equation "
                          << equation;
             row.clear();
             break;
@@ -462,7 +462,7 @@ TVM_REGISTER_GLOBAL("arith.SolveLinearEquations").set_body([](TVMArgs args, TVMR
     IntConstraints problem(args[0], args[1], args[2]);
     *ret = SolveLinearEquations(problem);
   } else {
-    TVM_LOG(FATAL) << "arith.SolveLinearEquations expects 1 or 3 arguments, gets " << args.size();
+    LOG(FATAL) << "arith.SolveLinearEquations expects 1 or 3 arguments, gets " << args.size();
   }
 });
 

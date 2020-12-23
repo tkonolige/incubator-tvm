@@ -216,7 +216,7 @@ std::string ToString(const TokenType& token_type) {
       return "Null";
     // Older compilers warn even though the above code is exhaustive.
     default:
-      TVM_LOG(FATAL) << "unreachable code";
+      LOG(FATAL) << "unreachable code";
       return "";
   }
 }
@@ -339,7 +339,7 @@ std::string Pretty(const TokenType& token_type) {
       return "version attribute";
     // Older compilers warn even though the above code is exhaustive.
     default:
-      TVM_LOG(FATAL) << "unreachable code";
+      LOG(FATAL) << "unreachable code";
       return "";
   }
 }

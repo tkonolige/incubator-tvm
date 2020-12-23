@@ -122,7 +122,7 @@ void CheckOrSetAttr(Map<String, ObjectRef>* attrs, const String& name, const Str
     attrs->Set(name, value);
   } else {
     const auto* str = (*iter).second.as<StringObj>();
-    TVM_ICHECK(str != nullptr && GetRef<String>(str) == value)
+    ICHECK(str != nullptr && GetRef<String>(str) == value)
         << "ValueError: Expects \"" << name << "\" to be \"" << value
         << "\", but gets: " << (*iter).second;
   }
@@ -143,12 +143,12 @@ Map<String, ObjectRef> UpdateNVPTXAttrs(Map<String, ObjectRef> attrs) {
     // If -mcpu has been specified, validate the correctness
     String mcpu = Downcast<String>(attrs.at("mcpu"));
     arch = ExtractIntWithPrefix(mcpu, "sm_");
-    TVM_ICHECK(arch != -1) << "ValueError: NVPTX target gets an invalid CUDA arch: -mcpu=" << mcpu;
+    ICHECK(arch != -1) << "ValueError: NVPTX target gets an invalid CUDA arch: -mcpu=" << mcpu;
   } else {
     // Use the compute version of the first CUDA GPU instead
     TVMRetValue version;
     if (!DetectDeviceFlag({kDLGPU, 0}, runtime::kComputeVersion, &version)) {
-      TVM_LOG(WARNING) << "Unable to detect CUDA version, default to \"-mcpu=sm_20\" instead";
+      LOG(WARNING) << "Unable to detect CUDA version, default to \"-mcpu=sm_20\" instead";
       arch = 20;
     } else {
       arch = std::stod(version.operator std::string()) * 10 + 0.1;
@@ -170,11 +170,11 @@ Map<String, ObjectRef> UpdateROCmAttrs(Map<String, ObjectRef> attrs) {
   if (attrs.count("mcpu")) {
     String mcpu = Downcast<String>(attrs.at("mcpu"));
     arch = ExtractIntWithPrefix(mcpu, "gfx");
-    TVM_ICHECK(arch != -1) << "ValueError: ROCm target gets an invalid GFX version: -mcpu=" << mcpu;
+    ICHECK(arch != -1) << "ValueError: ROCm target gets an invalid GFX version: -mcpu=" << mcpu;
   } else {
     TVMRetValue val;
     if (!DetectDeviceFlag({kDLROCM, 0}, runtime::kGcnArch, &val)) {
-      TVM_LOG(WARNING) << "Unable to detect ROCm compute arch, default to \"-mcpu=gfx900\" instead";
+      LOG(WARNING) << "Unable to detect ROCm compute arch, default to \"-mcpu=gfx900\" instead";
       arch = 900;
     } else {
       arch = val.operator int();
@@ -188,7 +188,7 @@ Map<String, ObjectRef> UpdateROCmAttrs(Map<String, ObjectRef> attrs) {
   TVMRetValue val;
   int version;
   if (!DetectDeviceFlag({kDLROCM, 0}, runtime::kApiVersion, &val)) {
-    TVM_LOG(WARNING) << "Unable to detect ROCm version, assuming >= 3.5";
+    LOG(WARNING) << "Unable to detect ROCm version, assuming >= 3.5";
     version = 305;
   } else {
     version = val.operator int();

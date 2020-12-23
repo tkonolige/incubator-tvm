@@ -116,7 +116,7 @@ Array<BuildResult> LocalBuilderNode::Build(const Array<MeasureInput>& inputs, in
     Array<BuildResult> results = (*f)(inputs, timeout, n_parallel, build_func, verbose);
     return results;
   }
-  TVM_LOG(FATAL) << "auto_scheduler.local_builder.build is not registered. "
+  LOG(FATAL) << "auto_scheduler.local_builder.build is not registered. "
              << "This is a function registered in Python, "
              << "make sure the TVM Python runtime has been loaded successfully.";
   throw;
@@ -143,7 +143,7 @@ Array<MeasureResult> LocalRunnerNode::Run(const Array<MeasureInput>& inputs,
              enable_cpu_cache_flush, verbose);
     return results;
   }
-  TVM_LOG(FATAL) << "auto_scheduler.local_runner.run is not registered. "
+  LOG(FATAL) << "auto_scheduler.local_runner.run is not registered. "
              << "This is a function registered in Python, "
              << "make sure the TVM Python runtime has been loaded successfully.";
   throw;
@@ -176,7 +176,7 @@ Array<MeasureResult> RPCRunnerNode::Run(const Array<MeasureInput>& inputs,
              min_repeat_ms, cooldown_interval, enable_cpu_cache_flush, verbose);
     return results;
   } else {
-    TVM_LOG(FATAL) << "auto_scheduler.rpc_runner.run is not registered. "
+    LOG(FATAL) << "auto_scheduler.rpc_runner.run is not registered. "
                << "This is a function registered in Python, "
                << "make sure the TVM Python runtime has been loaded successfully.";
   }
@@ -274,7 +274,7 @@ Array<MeasureResult> ProgramMeasurerNode::Measure(const SearchTask& task,
     }
 
     if (error_ct > max_continuous_error) {
-      TVM_LOG(WARNING) << "Too many errors happened during tuning. Switching to debug mode."
+      LOG(WARNING) << "Too many errors happened during tuning. Switching to debug mode."
                    << std::endl;
       verbose = 2;
     } else {
@@ -316,7 +316,7 @@ TVM_STATIC_IR_FUNCTOR(ReprPrinter, vtable)
         auto old_config = p->stream.precision(4);
         for (size_t i = 0; i < node->costs.size(); ++i) {
           auto pf = node->costs[i].as<FloatImmNode>();
-          TVM_ICHECK(pf != nullptr);
+          ICHECK(pf != nullptr);
           p->stream << pf->value;
           if (i != node->costs.size() - 1) {
             p->stream << ",";

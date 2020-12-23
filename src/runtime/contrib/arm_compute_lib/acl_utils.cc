@@ -35,7 +35,7 @@ namespace contrib {
 using JSONGraphNode = tvm::runtime::json::JSONGraphNode;
 
 void CheckACLError(const arm_compute::Status& status) {
-  TVM_ICHECK(status.error_code() == arm_compute::ErrorCode::OK)
+  ICHECK(status.error_code() == arm_compute::ErrorCode::OK)
       << "ACL: " << status.error_description();
 }
 
@@ -67,7 +67,7 @@ arm_compute::TensorInfo MakeACLTensorInfo(const std::vector<int64_t>& shape,
   if (scale != nullptr && offset != nullptr) {
     std::vector<float> scale_data = GetVectorFromDLTensor<float>(scale);
     std::vector<int> offset_data = GetVectorFromDLTensor<int>(offset);
-    TVM_ICHECK(scale_data.size() == 1 && offset_data.size() == 1)
+    ICHECK(scale_data.size() == 1 && offset_data.size() == 1)
         << "Currently only per-layer quantization is supported in the Arm Compute Library runtime.";
     arm_compute::QuantizationInfo qinfo(scale_data[0], offset_data[0]);
     info.set_quantization_info(qinfo);
@@ -110,7 +110,7 @@ arm_compute::PadStrideInfo MakeACLPadStride(const std::vector<std::string>& pad,
     pad_2 = std::stoi(pad[0]);
     pad_3 = std::stoi(pad[2]);
   } else {
-    TVM_LOG(FATAL) << "Unsupported padding dimensions";
+    LOG(FATAL) << "Unsupported padding dimensions";
   }
 
   if (ceil_mode) {
@@ -129,14 +129,14 @@ arm_compute::DataType MakeACLDataType(const DLDataType& data_type) {
   } else if (data_type.code == DLDataTypeCode::kDLInt && data_type.bits == 32) {
     return arm_compute::DataType::S32;
   } else {
-    TVM_LOG(FATAL) << "Datatype " << data_type << " unsupported by ACL runtime";
+    LOG(FATAL) << "Datatype " << data_type << " unsupported by ACL runtime";
     return arm_compute::DataType::UNKNOWN;
   }
 }
 
 template <typename T>
 std::vector<T> GetVectorFromDLTensor(const DLTensor* tensor) {
-  TVM_ICHECK(tensor) << "Cannot convert a nullptr";
+  ICHECK(tensor) << "Cannot convert a nullptr";
   int len = 1;
   for (int i = 0; i < tensor->ndim; i++) {
     len *= tensor->shape[i];

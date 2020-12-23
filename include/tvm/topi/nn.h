@@ -99,8 +99,8 @@ inline tvm::te::Tensor leaky_relu(const tvm::te::Tensor& t, double alpha = 0.1,
 inline tvm::te::Tensor prelu(const tvm::te::Tensor& x, const tvm::te::Tensor& slope,
                              const int axis = 1, std::string name = "T_prelu",
                              std::string tag = kBroadcast) {
-  TVM_ICHECK((size_t)axis < x->shape.size()) << "Wrong axis (" << axis << ")value. ";
-  TVM_ICHECK(topi::detail::GetConstInt(slope->shape[0]) == topi::detail::GetConstInt(x->shape[axis]))
+  ICHECK((size_t)axis < x->shape.size()) << "Wrong axis (" << axis << ")value. ";
+  ICHECK(topi::detail::GetConstInt(slope->shape[0]) == topi::detail::GetConstInt(x->shape[axis]))
       << "Wrong slope shape received.";
 
   return tvm::te::compute(
@@ -163,8 +163,8 @@ inline tvm::te::Tensor pad(const tvm::te::Tensor& t, const tvm::Array<tvm::PrimE
   }
 
   arith::Analyzer analyzer;
-  TVM_ICHECK_GE(pad_before.size(), 1);
-  TVM_ICHECK_EQ(pad_before.size(), pad_after.size());
+  ICHECK_GE(pad_before.size(), 1);
+  ICHECK_EQ(pad_before.size(), pad_after.size());
   tvm::Array<tvm::PrimExpr> pad_before_int32;
   tvm::Array<tvm::PrimExpr> pad_after_int32;
 
@@ -268,8 +268,8 @@ inline tvm::te::Tensor conv2d_nchw(const tvm::te::Tensor& I, const tvm::te::Tens
                                    int pad_h = 0, int pad_w = 0, int stride_h = 1, int stride_w = 1,
                                    std::string name = "T_conv2d_nchw",
                                    std::string tag = kConv2dNCHW) {
-  TVM_ICHECK_EQ(4, I->shape.size());
-  TVM_ICHECK_EQ(4, W->shape.size());
+  ICHECK_EQ(4, I->shape.size());
+  ICHECK_EQ(4, W->shape.size());
   auto pH = I->shape[2];
   auto pW = I->shape[3];
   tvm::Array<tvm::PrimExpr> output_shape{
@@ -312,8 +312,8 @@ inline tvm::te::Tensor conv2d_hwcn(const tvm::te::Tensor& I, const tvm::te::Tens
                                    int pad_h = 0, int pad_w = 0, int stride_h = 1, int stride_w = 1,
                                    std::string name = "T_conv2d_hwcn",
                                    std::string tag = kConv2dHWCN) {
-  TVM_ICHECK_EQ(4, I->shape.size());
-  TVM_ICHECK_EQ(4, W->shape.size());
+  ICHECK_EQ(4, I->shape.size());
+  ICHECK_EQ(4, W->shape.size());
   auto pH = I->shape[2];
   auto pW = I->shape[3];
   tvm::Array<tvm::PrimExpr> output_shape{
@@ -357,8 +357,8 @@ inline tvm::te::Tensor depthwise_conv2d_nchw(const tvm::te::Tensor& I, const tvm
                                              int stride_w = 1,
                                              std::string name = "T_depthwise_conv2d_nchw",
                                              std::string tag = kDepthwiseConv2dNCHW) {
-  TVM_ICHECK_EQ(4, I->shape.size());
-  TVM_ICHECK_EQ(4, W->shape.size());
+  ICHECK_EQ(4, I->shape.size());
+  ICHECK_EQ(4, W->shape.size());
   auto pH = I->shape[2];
   auto pW = I->shape[3];
   auto pCM = W->shape[1];  // channel_multiplier
@@ -386,8 +386,8 @@ inline tvm::te::Tensor depthwise_conv2d_nhwc(const tvm::te::Tensor& I, const tvm
                                              int stride_w = 1,
                                              std::string name = "T_depthwise_conv2d_nhwc",
                                              std::string tag = kDepthwiseConv2dNHWC) {
-  TVM_ICHECK_EQ(4, I->shape.size());
-  TVM_ICHECK_EQ(4, W->shape.size());
+  ICHECK_EQ(4, I->shape.size());
+  ICHECK_EQ(4, W->shape.size());
   auto pH = I->shape[1];
   auto pW = I->shape[2];
   auto pCM = W->shape[1];  // channel_multiplier
@@ -435,8 +435,8 @@ inline tvm::te::Tensor group_conv2d_ngchw(const tvm::te::Tensor& I, const tvm::t
                                           int stride_w = 1,
                                           std::string name = "T_group_conv2d_ngchw",
                                           std::string tag = kGroupConv2d) {
-  TVM_ICHECK_EQ(5, I->shape.size());
-  TVM_ICHECK_EQ(5, W->shape.size());
+  ICHECK_EQ(5, I->shape.size());
+  ICHECK_EQ(5, W->shape.size());
   auto pH = I->shape[2];
   auto pW = I->shape[3];
   tvm::Array<tvm::PrimExpr> output_shape{
@@ -486,8 +486,8 @@ inline tvm::te::Tensor space_to_batch_nd(const tvm::te::Tensor& data,
                                          std::string name = "space_to_batch_nd",
                                          std::string tag = kInjective) {
   tvm::te::Tensor padded_t;
-  TVM_CHECK_EQ(pad_before.size(), pad_after.size());
-  TVM_CHECK_EQ(block_shape.size(), pad_before.size())
+  CHECK_EQ(pad_before.size(), pad_after.size());
+  CHECK_EQ(block_shape.size(), pad_before.size())
       << "Paddings must be provided for each spatial dimension";
   tvm::Array<tvm::PrimExpr> pad_before_int32;
   tvm::Array<tvm::PrimExpr> pad_after_int32;
@@ -525,7 +525,7 @@ inline tvm::te::Tensor space_to_batch_nd(const tvm::te::Tensor& data,
   for (size_t i = 1; i <= num_block_dims; i++) {
     int padded_input = static_cast<int>(GetConstInt(padded_shape[i]));
     int block_size = static_cast<int>(GetConstInt(block_shape[i - 1]));
-    TVM_CHECK_EQ((padded_input % block_size), 0)
+    CHECK_EQ((padded_input % block_size), 0)
         << "(" << i
         << ")th "
            "Input dimension after padding ("
@@ -627,7 +627,7 @@ inline tvm::te::Tensor batch_to_space_nd(const tvm::te::Tensor& data,
       int begin_i = static_cast<int>(GetConstInt(crop_begin_list[i - 1]));
       int end_i = static_cast<int>(GetConstInt(crop_end_list[i - 1]));
       int out_i = static_cast<int>(GetConstInt(r_p_shape[i]));
-      TVM_CHECK_GT(out_i, (begin_i + end_i))
+      CHECK_GT(out_i, (begin_i + end_i))
           << "Incorrect crop sizes for (" << i << ")th dim, can not crop more than"
           << " output size" << out_i << " vs " << (begin_i + end_i);
       begin_idx.push_back(begin_i);

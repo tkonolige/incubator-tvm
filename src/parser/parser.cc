@@ -139,7 +139,7 @@ class ScopeStack {
   /*! \brief Adds a variable binding to the current scope. */
   void Add(const std::string& name, const T& value) {
     if (!this->scope_stack.size()) {
-      TVM_LOG(FATAL) << "internal issue";
+      LOG(FATAL) << "internal issue";
     }
     this->scope_stack.back().name_map.insert({name, value});
   }
@@ -371,7 +371,7 @@ class Parser {
    * \return The Nth token.
    */
   Token Lookahead(int n) {
-    TVM_ICHECK_GE(n, 1) << "lookahead is only valid when n >= 1";
+    ICHECK_GE(n, 1) << "lookahead is only valid when n >= 1";
 
     // We intend to skip n - 1 tokens, then return the nth.
     auto old_pos = pos;
@@ -542,7 +542,7 @@ class Parser {
       array[0] = value;
       return data;
     } else {
-      TVM_LOG(FATAL) << "internal error: should only call this function on numeric tokens";
+      LOG(FATAL) << "internal error: should only call this function on numeric tokens";
       return NDArray();
     }
   }
@@ -769,7 +769,7 @@ class Parser {
           auto global_name = global_tok.ToString();
           auto global = AddOrGet(&global_names, global_name);
           auto func = WithSpan<relay::Function>([&]() { return ParseFunctionDef(); });
-          TVM_ICHECK(func->span.defined()) << "spans must be set in parser";
+          ICHECK(func->span.defined()) << "spans must be set in parser";
           defs.funcs.push_back(GlobalFunc(global, func));
           continue;
         }
@@ -835,7 +835,7 @@ class Parser {
               ctor = tvm::Constructor(ctor_name, arg_types, type_global);
             }
 
-            TVM_ICHECK(ctor.defined());
+            ICHECK(ctor.defined());
 
             try {
               this->ctors.Add(ctor_name, ctor);
@@ -954,10 +954,10 @@ class Parser {
         }
       }
 
-      TVM_ICHECK_GE(exprs.size(), 1);
+      ICHECK_GE(exprs.size(), 1);
 
       if (exprs.size() == 1) {
-        // TVM_ICHECK(exprs[0].defined() && exprs[0]->span.defined())
+        // ICHECK(exprs[0].defined() && exprs[0]->span.defined())
         //   << "parser must set expression spans.\n"
         //   << exprs[0];
         return exprs[0];
@@ -966,11 +966,11 @@ class Parser {
         exprs.pop_back();
         while (exprs.size()) {
           auto value = exprs.back();
-          TVM_ICHECK(value->span.defined()) << "parser must set expression spans.";
+          ICHECK(value->span.defined()) << "parser must set expression spans.";
           exprs.pop_back();
           body = relay::Let(Var("", IncompleteType()), value, body, value->span.Merge(body->span));
         }
-        TVM_ICHECK(body->span.defined()) << "parser must set expression spans.";
+        ICHECK(body->span.defined()) << "parser must set expression spans.";
         return body;
       }
     });
@@ -1268,7 +1268,7 @@ class Parser {
         auto op = opt_op[0];
 
         Expr right = WithSpan<Expr>([this] { return ParseCallExpr(); });
-        TVM_ICHECK(right->span.defined());
+        ICHECK(right->span.defined());
 
         // If the operator stack is empty
         // we parse an operator and expression
@@ -1295,7 +1295,7 @@ class Parser {
           exprs.pop_back();
           Expr left = exprs.back();
           exprs.pop_back();
-          TVM_ICHECK(new_op.op.defined()) << "a call op must be set " << new_op.op;
+          ICHECK(new_op.op.defined()) << "a call op must be set " << new_op.op;
           exprs.push_back(
               relay::Call(new_op.op, {left, right}, Attrs(), {}, left->span.Merge(right->span)));
         }
@@ -1311,14 +1311,14 @@ class Parser {
         exprs.pop_back();
         Expr left = exprs.back();
         exprs.pop_back();
-        TVM_ICHECK(new_op.op.defined()) << "a call op must be set " << new_op.op;
+        ICHECK(new_op.op.defined()) << "a call op must be set " << new_op.op;
         exprs.push_back(
             relay::Call(new_op.op, {left, right}, Attrs(), {}, left->span.Merge(right->span)));
       }
 
-      TVM_ICHECK_EQ(ops.size(), 0) << "No operations should be left on the operation stack.";
+      ICHECK_EQ(ops.size(), 0) << "No operations should be left on the operation stack.";
 
-      TVM_ICHECK_EQ(exprs.size(), 1)
+      ICHECK_EQ(exprs.size(), 1)
           << "Only a single expression should be left on the expression stack.";
 
       return exprs[0];
@@ -1383,7 +1383,7 @@ class Parser {
   }
 
   Expr ParseCallArgs(Expr op) {
-    TVM_ICHECK(op.defined()) << "the operator must be defined";
+    ICHECK(op.defined()) << "the operator must be defined";
 
     DLOG(INFO) << "Parser::ParseCallArgs";
     Attrs attrs;
@@ -1421,7 +1421,7 @@ class Parser {
               } else {
                 auto raw_attrs = ParseAttrs();
                 auto attr_obj = tvm::ReflectionVTable::Global()->CreateObject(op_key, raw_attrs);
-                TVM_ICHECK(attr_obj.defined());
+                ICHECK(attr_obj.defined());
                 attrs = Downcast<Attrs>(attr_obj);
               }
               return true;
@@ -1433,7 +1433,7 @@ class Parser {
       if (!attrs.defined()) {
         if (is_op && op_key.size()) {
           auto attr_obj = tvm::ReflectionVTable::Global()->CreateObject(op_key, {});
-          TVM_ICHECK(attr_obj.defined());
+          ICHECK(attr_obj.defined());
           attrs = Downcast<Attrs>(attr_obj);
         }
       }
@@ -1499,7 +1499,7 @@ class Parser {
           Consume(next->token_type);
           auto number = NumberToNDArray(next);
           Expr e = Constant(number, next->span);
-          TVM_ICHECK(e->span.defined()) << "constant spans must be defined";
+          ICHECK(e->span.defined()) << "constant spans must be defined";
           return e;
         }
         case TokenType::kBoolean: {
@@ -1507,7 +1507,7 @@ class Parser {
           int value = Downcast<tvm::Integer>(next->data);
           auto boolean = BooleanToNDarray(value);
           Expr e = Constant(boolean, next->span);
-          TVM_ICHECK(e->span.defined()) << "constant spans must be defined";
+          ICHECK(e->span.defined()) << "constant spans must be defined";
           return e;
         }
         // Parse a local of the form `%x`.
@@ -1533,7 +1533,7 @@ class Parser {
             auto spanned_idents = ParseHierarchicalName();
             auto idents = spanned_idents.data;
             auto span = spanned_idents.span;
-            TVM_ICHECK_NE(idents.size(), 0);
+            ICHECK_NE(idents.size(), 0);
             std::stringstream op_name;
             int i = 0;
             int periods = idents.size() - 1;
@@ -1557,7 +1557,7 @@ class Parser {
         case TokenType::kFn: {
           Consume(TokenType::kFn);
           Expr e = ParseFunctionDef();
-          TVM_ICHECK(e->span.defined()) << "function spans must be defined.\n" << e;
+          ICHECK(e->span.defined()) << "function spans must be defined.\n" << e;
           return e;
         }
         case TokenType::kIf: {
@@ -1620,7 +1620,7 @@ class Parser {
                 }
               }
               Expr tuple = Tuple(exprs, sp);
-              TVM_ICHECK(tuple->span.defined()) << "tuple span should be defined";
+              ICHECK(tuple->span.defined()) << "tuple span should be defined";
               return tuple;
             }
           }
@@ -1872,13 +1872,13 @@ IRModule ParseModule(std::string file_name, std::string file_content,
   DLOG(INFO) << "ParseModule";
   auto parser = InitParser(file_name, file_content, init_module);
   auto mod = parser.ParseModule();
-  TVM_ICHECK(mod.defined()) << "The parser must return a non-null module.";
+  ICHECK(mod.defined()) << "The parser must return a non-null module.";
   // NB(@jroesch): it is very important that we render any errors before we procede
   // if there were any errors which allow the parser to procede we must render them
   // here.
   parser.diag_ctx.Render();
   auto infer_type = tvm::relay::transform::InferType();
-  TVM_ICHECK(infer_type.defined()) << "The type inferencer must be non-null.";
+  ICHECK(infer_type.defined()) << "The type inferencer must be non-null.";
   return infer_type(mod);
 }
 

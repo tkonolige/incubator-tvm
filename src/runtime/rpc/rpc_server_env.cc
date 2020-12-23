@@ -31,7 +31,7 @@ namespace runtime {
 std::string RPCGetPath(const std::string& name) {
   // do live lookup everytime as workpath can change.
   const PackedFunc* f = runtime::Registry::Get("tvm.rpc.server.workpath");
-  TVM_ICHECK(f != nullptr) << "require tvm.rpc.server.workpath";
+  ICHECK(f != nullptr) << "require tvm.rpc.server.workpath";
   return (*f)(name);
 }
 
@@ -48,7 +48,7 @@ TVM_REGISTER_GLOBAL("tvm.rpc.server.download").set_body([](TVMArgs args, TVMRetV
   TVMByteArray arr;
   arr.data = data.c_str();
   arr.size = data.length();
-  TVM_LOG(INFO) << "Download " << file_name << "... nbytes=" << arr.size;
+  LOG(INFO) << "Download " << file_name << "... nbytes=" << arr.size;
   *rv = arr;
 });
 

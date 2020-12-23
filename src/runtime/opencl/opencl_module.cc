@@ -50,7 +50,7 @@ class OpenCLWrappedFunc {
   }
   // invoke the function with void arguments
   void operator()(TVMArgs args, TVMRetValue* rv, void** void_args) const {
-    TVM_ICHECK(w_->context != nullptr) << "No OpenCL device";
+    ICHECK(w_->context != nullptr) << "No OpenCL device";
     cl::OpenCLThreadEntry* t = w_->GetThreadEntry();
     // get the kernel from thread local kernel table.
     if (entry_.kernel_id >= t->kernel_table.size()) {
@@ -116,8 +116,8 @@ cl::OpenCLWorkspace* OpenCLModuleNode::GetGlobalWorkspace() {
 
 PackedFunc OpenCLModuleNode::GetFunction(const std::string& name,
                                          const ObjectPtr<Object>& sptr_to_self) {
-  TVM_ICHECK_EQ(sptr_to_self.get(), this);
-  TVM_ICHECK_NE(name, symbol::tvm_module_main) << "Device function do not have main";
+  ICHECK_EQ(sptr_to_self.get(), this);
+  ICHECK_NE(name, symbol::tvm_module_main) << "Device function do not have main";
   auto it = fmap_.find(name);
   if (it == fmap_.end()) return PackedFunc();
   const FunctionInfo& info = it->second;
@@ -125,13 +125,13 @@ PackedFunc OpenCLModuleNode::GetFunction(const std::string& name,
   std::vector<size_t> arg_size(info.arg_types.size());
   for (size_t i = 0; i < info.arg_types.size(); ++i) {
     DLDataType t = info.arg_types[i];
-    TVM_ICHECK_EQ(t.lanes, 1U);
+    ICHECK_EQ(t.lanes, 1U);
     if (t.code == kTVMOpaqueHandle) {
       // specially store pointer type size in OpenCL driver
       arg_size[i] = sizeof(void*);
     } else {
       uint32_t bits = t.bits;
-      TVM_ICHECK_EQ(bits % 8, 0U);
+      ICHECK_EQ(bits % 8, 0U);
       arg_size[i] = bits / 8;
     }
   }
@@ -142,7 +142,7 @@ PackedFunc OpenCLModuleNode::GetFunction(const std::string& name,
 
 void OpenCLModuleNode::SaveToFile(const std::string& file_name, const std::string& format) {
   std::string fmt = GetFileFormat(file_name, format);
-  TVM_ICHECK_EQ(fmt, fmt_) << "Can only save to format=" << fmt_;
+  ICHECK_EQ(fmt, fmt_) << "Can only save to format=" << fmt_;
   std::string meta_file = GetMetaFilePath(file_name);
   SaveMetaDataToFile(meta_file, fmap_);
   SaveBinaryToFile(file_name, data_);
@@ -205,7 +205,7 @@ cl_kernel OpenCLModuleNode::InstallKernel(cl::OpenCLWorkspace* w, cl::OpenCLThre
       program_ = clCreateProgramWithBinary(w->context, 1, &dev, &len, &s, NULL, &err);
       OPENCL_CHECK_ERROR(err);
     } else {
-      TVM_LOG(FATAL) << "Unknown OpenCL format " << fmt_;
+      LOG(FATAL) << "Unknown OpenCL format " << fmt_;
     }
     // build program
     cl_int err;
@@ -217,7 +217,7 @@ cl_kernel OpenCLModuleNode::InstallKernel(cl::OpenCLWorkspace* w, cl::OpenCLThre
       clGetProgramBuildInfo(program_, dev, CL_PROGRAM_BUILD_LOG, 0, nullptr, &len);
       log.resize(len);
       clGetProgramBuildInfo(program_, dev, CL_PROGRAM_BUILD_LOG, len, &log[0], nullptr);
-      TVM_LOG(FATAL) << "OpenCL build error for device=" << dev << log;
+      LOG(FATAL) << "OpenCL build error for device=" << dev << log;
     }
     device_built_flag_[device_id] = true;
   }

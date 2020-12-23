@@ -109,9 +109,9 @@ class AttrRegistry {
       op_map->data_.resize(index + 1, std::make_pair(TVMRetValue(), 0));
     }
     std::pair<TVMRetValue, int>& p = op_map->data_[index];
-    TVM_ICHECK(p.second != plevel) << "Attribute " << attr_name << " of " << key->AttrRegistryName()
+    ICHECK(p.second != plevel) << "Attribute " << attr_name << " of " << key->AttrRegistryName()
                                << " is already registered with same plevel=" << plevel;
-    TVM_ICHECK(value.type_code() != kTVMNullptr) << "Registered packed_func is Null for " << attr_name
+    ICHECK(value.type_code() != kTVMNullptr) << "Registered packed_func is Null for " << attr_name
                                              << " of operator " << key->AttrRegistryName();
     if (p.second < plevel && value.type_code() != kTVMNullptr) {
       op_map->data_[index] = std::make_pair(value, plevel);
@@ -144,7 +144,7 @@ class AttrRegistry {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = attrs_.find(attr_name);
     if (it == attrs_.end()) {
-      TVM_LOG(FATAL) << "Attribute \'" << attr_name << "\' is not registered";
+      LOG(FATAL) << "Attribute \'" << attr_name << "\' is not registered";
     }
     return *it->second.get();
   }

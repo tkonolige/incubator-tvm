@@ -42,7 +42,7 @@ TVM_REGISTER_NODE_TYPE(MetaRefAttrs);
 
 bool MetaRefRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
                 const TypeReporter& reporter) {
-  TVM_LOG(FATAL) << "need to expand before type checking";
+  LOG(FATAL) << "need to expand before type checking";
   return true;
 }
 
@@ -72,9 +72,9 @@ struct MetaRefExpander : public ExprMutator {
     if (auto op_node = call->op.as<OpNode>()) {
       if (op_node->name == "parser.MetaRef") {
         auto meta_attrs = call->attrs.as<MetaRefAttrs>();
-        TVM_ICHECK(meta_attrs) << "an internal error has occurred";
+        ICHECK(meta_attrs) << "an internal error has occurred";
         auto nodes = table.at(meta_attrs->node_type_key);
-        TVM_ICHECK_LT(meta_attrs->node_index, nodes.size());
+        ICHECK_LT(meta_attrs->node_index, nodes.size());
         return Downcast<Expr>(nodes[meta_attrs->node_index]);
       }
     }

@@ -38,7 +38,7 @@ TVM_REGISTER_NODE_TYPE(QuantizeAttrs);
 
 bool QuantizeRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
                  const TypeReporter& reporter) {
-  TVM_ICHECK_EQ(types.size(), 4);
+  ICHECK_EQ(types.size(), 4);
   const auto* data = types[0].as<TensorTypeNode>();
 
   if (data == nullptr) {
@@ -46,15 +46,15 @@ bool QuantizeRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
   }
 
   const auto input_dtype = data->dtype;
-  TVM_ICHECK(input_dtype == DataType::Float(32))
+  ICHECK(input_dtype == DataType::Float(32))
       << "Input type should be one of float32 but was " << input_dtype;
 
   const auto* quantize_attrs = attrs.as<QuantizeAttrs>();
   int axis = quantize_attrs->axis;
   axis = (axis == -1) ? data->shape.size() - 1 : axis;
-  TVM_ICHECK_LT(axis, static_cast<int>(data->shape.size()))
+  ICHECK_LT(axis, static_cast<int>(data->shape.size()))
       << "axis " << quantize_attrs->axis << " is out of range";
-  TVM_ICHECK_GE(axis, 0) << "axis " << quantize_attrs->axis << " is out of range";
+  ICHECK_GE(axis, 0) << "axis " << quantize_attrs->axis << " is out of range";
 
   // Check and assign types for scale and zero points.
   AssignType(types[1], DataType::Float(32), data->shape[axis], reporter);  // scale
@@ -62,7 +62,7 @@ bool QuantizeRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
 
   const Array<tvm::PrimExpr> oshape = data->shape;
   const DataType out_dtype = quantize_attrs->out_dtype;
-  TVM_ICHECK(out_dtype == DataType::Int(8) || out_dtype == DataType::UInt(8) ||
+  ICHECK(out_dtype == DataType::Int(8) || out_dtype == DataType::UInt(8) ||
          out_dtype == DataType::Int(32))
       << "Output type should be one of [int8, unit8, int32] but was " << out_dtype;
   // assign output type
@@ -85,10 +85,10 @@ Expr MakeQuantize(Expr data, Expr output_scale, Expr output_zero_point, int axis
 Expr QuantizeLower(const Expr& input_tensor, const Expr& output_scale,
                    const Expr& output_zero_point, const Array<tvm::relay::Type>& types,
                    const QuantizeAttrs* attrs) {
-  TVM_ICHECK_EQ(types.size(), 4);
+  ICHECK_EQ(types.size(), 4);
   auto in_type = types[0];
   auto in_tensor_type = in_type.as<TensorTypeNode>();
-  TVM_ICHECK(in_tensor_type != nullptr) << "Type information missing."
+  ICHECK(in_tensor_type != nullptr) << "Type information missing."
                                     << " Please run infer_type pass.";
   Array<IndexExpr> input_shape = in_tensor_type->shape;
 
@@ -120,12 +120,12 @@ Expr QuantizeLower(const Expr& input_tensor, const Expr& output_scale,
 
 Expr QuantizeQnnCanonicalize(const Attrs& attrs, const Array<Expr>& new_args,
                              const Array<tvm::relay::Type>& types) {
-  TVM_ICHECK_EQ(new_args.size(), 3);
+  ICHECK_EQ(new_args.size(), 3);
   auto& data = new_args[0];
   auto& output_scale = new_args[1];
   auto& output_zero_point = new_args[2];
   const auto* quantize_attrs = attrs.as<QuantizeAttrs>();
-  TVM_ICHECK(quantize_attrs != nullptr);
+  ICHECK(quantize_attrs != nullptr);
 
   return QuantizeLower(data, output_scale, output_zero_point, types, quantize_attrs);
 }

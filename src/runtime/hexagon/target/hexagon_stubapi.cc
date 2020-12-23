@@ -35,17 +35,17 @@ StubAPI::StubAPI() {
   struct stat sb;
   if (!stat("/dev/subsys_cdsp", &sb)) {
     enable_domains_ = true;
-    TVM_LOGD("CDSP subsystem present");
+    LOGD("CDSP subsystem present");
   } else if (!stat("/dev/subsys_adsp", &sb)) {
     enable_domains_ = false;
-    TVM_LOGD("ADSP subsystem present");
+    LOGD("ADSP subsystem present");
   }
 
   constexpr auto domain_lib_name = "libtvm_remote_stub.so";
   constexpr auto nondomain_lib_name = "libtvm_remote_nd_stub.so";
 
   const char* lib_name = enable_domains_ ? domain_lib_name : nondomain_lib_name;
-  TVM_ICHECK(lib_handle_ = dlopen(lib_name, RTLD_LAZY | RTLD_LOCAL));
+  ICHECK(lib_handle_ = dlopen(lib_name, RTLD_LAZY | RTLD_LOCAL));
 
 #define RESOLVE(fn) p##fn##_ = GetSymbol<fn##_t*>(#fn)
   if (enable_domains_) {
@@ -82,7 +82,7 @@ StubAPI::~StubAPI() {
 template <typename T>
 T StubAPI::GetSymbol(const char* sym) {
   if (!lib_handle_) {
-    TVM_LOGE("error looking up symbol \"%s\": library not loaded", sym);
+    LOGE("error looking up symbol \"%s\": library not loaded", sym);
     return nullptr;
   }
   dlerror();  // Clear any previous errror conditions.
@@ -92,7 +92,7 @@ T StubAPI::GetSymbol(const char* sym) {
 
   const char* err = dlerror();
   const char* err_txt = err ? err : "symbol not found";
-  TVM_LOGE("error looking up symbol \"%s\": %s", sym, err_txt);
+  LOGE("error looking up symbol \"%s\": %s", sym, err_txt);
   return nullptr;
 }
 

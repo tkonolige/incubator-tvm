@@ -53,7 +53,7 @@ static std::string timeNow() {
   return std::string(str);
 }
 
-#define TVM_LOG(FMT, ...) \
+#define LOG(FMT, ...) \
   fprintf(stderr, "%s %s:%d: " FMT "\n", timeNow().c_str(), __FILE__, __LINE__, ##__VA_ARGS__)
 
 using HVX_Vector = int __attribute__((__vector_size__(128))) __attribute__((aligned(128)));
@@ -129,7 +129,7 @@ int clock_gettime(clockid_t clock_id, struct timespec* tp) {
 
 int __wrap_pthread_create(pthread_t* thread, const pthread_attr_t* attr,
                           void* (*start_routine)(void*), void* arg) {
-  TVM_LOG("%s", __func__);
+  LOG("%s", __func__);
   return pthread_create(thread, attr, start_routine, arg);
 }
 
@@ -180,7 +180,7 @@ void* Allocator::alloc(unsigned size, size_t align) {
     assert(uintptr_t(w->ptr_) + w->size_ <= uintptr_t(nw->ptr_));
   }
 
-  TVM_LOG("device: allocated %d bytes aligned at %d: %p", size, align, ptr);
+  LOG("device: allocated %d bytes aligned at %d: %p", size, align, ptr);
   return ptr;
 }
 
@@ -208,12 +208,12 @@ void* Allocator::vtcm_alloc(unsigned size, size_t align) {
     assert(uintptr_t(w->ptr_) + w->size_ <= uintptr_t(nw->ptr_));
   }
 
-  TVM_LOG("device: allocated vtcm %d bytes aligned at %d: %p", size, align, ptr);
+  LOG("device: allocated vtcm %d bytes aligned at %d: %p", size, align, ptr);
   return ptr;
 }
 
 void Allocator::free(void* ptr) {
-  TVM_LOG("device: freeing %p", ptr);
+  LOG("device: freeing %p", ptr);
   iterator i = std::lower_bound(allocations_.begin(), allocations_.end(), Block(ptr, 0));
   assert(i != allocations_.end());
   assert(i->ptr_ == ptr);
@@ -244,7 +244,7 @@ static void printMsgCall(const MsgCall& mc) {
     if (i + 1 != mc.stack_num) str += ',';
   }
   str += " }";
-  TVM_LOG("%s", str.c_str());
+  LOG("%s", str.c_str());
 }
 
 static std::vector<MsgCall*> task_queue;
@@ -347,7 +347,7 @@ int dispatch(Environment* env) {
 
   switch (code) {
     case kAlloc: {
-      TVM_LOG("device: {kAlloc, %lu, %lx}", message_buffer.len, message_buffer.va);
+      LOG("device: {kAlloc, %lu, %lx}", message_buffer.len, message_buffer.va);
       assert(message_buffer.len == sizeof(MsgAlloc));
       auto* ma = reinterpret_cast<volatile MsgAlloc*>(message_buffer.va);
       void* p = env->alloc.alloc(ma->size, ma->align);
@@ -356,7 +356,7 @@ int dispatch(Environment* env) {
       break;
     }
     case kFree: {
-      TVM_LOG("device: {kFree, %lu, %lx}", message_buffer.len, message_buffer.va);
+      LOG("device: {kFree, %lu, %lx}", message_buffer.len, message_buffer.va);
       assert(message_buffer.len == sizeof(MsgPointer));
       auto* mp = reinterpret_cast<volatile MsgPointer*>(message_buffer.va);
       env->alloc.free(pointer(mp->va));
@@ -364,7 +364,7 @@ int dispatch(Environment* env) {
       break;
     }
     case kAllocVtcm: {
-      TVM_LOG("device: {kAllocVtcm, %lu, %lx}", message_buffer.len, message_buffer.va);
+      LOG("device: {kAllocVtcm, %lu, %lx}", message_buffer.len, message_buffer.va);
       assert(message_buffer.len == sizeof(MsgAlloc));
       auto* ma = reinterpret_cast<volatile MsgAlloc*>(message_buffer.va);
       void* p = env->alloc.vtcm_alloc(ma->size, ma->align);
@@ -373,7 +373,7 @@ int dispatch(Environment* env) {
       break;
     }
     case kCopy: {
-      TVM_LOG("device: {kCopy, %lu, %lx}", message_buffer.len, message_buffer.va);
+      LOG("device: {kCopy, %lu, %lx}", message_buffer.len, message_buffer.va);
       assert(message_buffer.len == sizeof(MsgCopy));
       auto* mc = reinterpret_cast<volatile MsgCopy*>(message_buffer.va);
       memcpy(pointer(mc->dst), pointer(mc->src), mc->len);
@@ -383,9 +383,9 @@ int dispatch(Environment* env) {
     case kLoad: {
       if (env->dl_handle != nullptr) dlclose(env->dl_handle);
       const char* name = static_cast<const char*>(pointer(message_buffer.va));
-      // TVM_LOG(stderr, "device: dlopen(%s)", name);
+      // LOG(stderr, "device: dlopen(%s)", name);
       env->dl_handle = dlopen(name, RTLD_LAZY);
-      if (env->dl_handle == nullptr) TVM_LOG("dlopen: %s\n", dlerror());
+      if (env->dl_handle == nullptr) LOG("dlopen: %s\n", dlerror());
       assert(env->dl_handle != nullptr);
       reinterpret_cast<volatile MsgPointer*>(payload_buffer)->va = va(env->dl_handle);
       setMsg(kNone, sizeof(MsgPointer), va(payload_buffer));
@@ -402,7 +402,7 @@ int dispatch(Environment* env) {
       break;
     }
     case kResolve: {
-      TVM_LOG("device: {kResolve, %lu, %lx}", message_buffer.len, message_buffer.va);
+      LOG("device: {kResolve, %lu, %lx}", message_buffer.len, message_buffer.va);
       assert(env->dl_handle != nullptr);
       dlerror();
       const char* name = static_cast<const char*>(pointer(message_buffer.va));
@@ -412,7 +412,7 @@ int dispatch(Environment* env) {
       break;
     }
     case kCall: {
-      TVM_LOG("device: {kCall, %lu, %lx}", message_buffer.len, message_buffer.va);
+      LOG("device: {kCall, %lu, %lx}", message_buffer.len, message_buffer.va);
       // Add the task to the queue.
       auto* mc = reinterpret_cast<MsgCall*>(message_buffer.va);
       uint32_t size = 4 * (3 + mc->scalar_num + mc->stack_num);
@@ -425,8 +425,8 @@ int dispatch(Environment* env) {
       break;
     }
     case kFlush: {
-      TVM_LOG("device: {kFlush}");
-      TVM_LOG("device: %d tasks in the queue", task_queue.size());
+      LOG("device: {kFlush}");
+      LOG("device: %d tasks in the queue", task_queue.size());
       // Execute all tasks from the queue and release memory buffers
       // for as long as the return values are 0. Upon receiving a non-zero
       // return value, continue freeing memory but no longer execute
@@ -437,7 +437,7 @@ int dispatch(Environment* env) {
         if (rv == 0) {
           printMsgCall(*t);
           rv = launcher(t, &pcc);
-          TVM_LOG("device: execution took %lld pcycles", pcc);
+          LOG("device: execution took %lld pcycles", pcc);
         }
         free(t);
       }
@@ -447,7 +447,7 @@ int dispatch(Environment* env) {
       break;
     }
     default:
-      TVM_LOG("device: unknown code: %lu", message_buffer.code);
+      LOG("device: unknown code: %lu", message_buffer.code);
       abort();
       break;
   }
@@ -511,13 +511,13 @@ int main(int argc, char* argv[]) {
         ld_path += ':' + std::string(optarg);
         break;
       case '?':
-        TVM_LOG("Usage %s: [-L path1[:path2...]]", argv[0]);
+        LOG("Usage %s: [-L path1[:path2...]]", argv[0]);
         return 1;
     }
   }
 
   std::string rt_path = findInPaths("libtvm_runtime.so", ld_path);
-  TVM_LOG("TVM runtime path: %s", rt_path.c_str());
+  LOG("TVM runtime path: %s", rt_path.c_str());
 
   Environment env;
   acquire_vector_unit(0);
@@ -529,7 +529,7 @@ int main(int argc, char* argv[]) {
   dlinit(sizeof(builtin) / sizeof(builtin[0]), const_cast<char**>(builtin));
   void* rt_handle = dlopen(rt_path.c_str(), RTLD_GLOBAL);
   if (rt_handle == nullptr) {
-    TVM_LOG("error loading TVM runtime: %s", dlerror());
+    LOG("error loading TVM runtime: %s", dlerror());
     return 1;
   }
 
@@ -547,7 +547,7 @@ int main(int argc, char* argv[]) {
   TVMFunctionHandle cpu_api;
   if (get_global("device_api.cpu", &cpu_api) != 0 ||
       register_global("device_api.hexagon", cpu_api, true) != 0) {
-    TVM_LOG("error setting device_api.hexagon");
+    LOG("error setting device_api.hexagon");
     return 1;
   }
 

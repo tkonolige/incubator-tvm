@@ -122,7 +122,7 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
           break;
         case kRecvPacketNumBytes: {
           uint64_t packet_nbytes;
-          TVM_ICHECK(this->Read(&packet_nbytes));
+          ICHECK(this->Read(&packet_nbytes));
           if (packet_nbytes != 0) {
             this->SwitchToState(kProcessPacket);
             this->RequestBytes(packet_nbytes);
@@ -174,18 +174,18 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
     for (int i = 0; i < num_args; ++i) {
       int tcode = type_codes[i];
       if (tcode == kTVMObjectHandle || tcode == kTVMObjectRValueRefArg) {
-        TVM_LOG(FATAL) << "ValueError: Cannot pass argument " << i << ", type "
+        LOG(FATAL) << "ValueError: Cannot pass argument " << i << ", type "
                    << args[i].AsObjectRef<ObjectRef>()->GetTypeKey() << " is not supported by RPC";
       } else if (tcode == kTVMContext) {
         DLContext ctx = args[i];
-        TVM_ICHECK(!IsRPCSessionContext(ctx))
+        ICHECK(!IsRPCSessionContext(ctx))
             << "InternalError: cannot pass RPC context in the channel";
       }
     }
   }
 
   void ThrowError(RPCServerStatus code, RPCCode info = RPCCode::kNone) {
-    TVM_LOG(FATAL) << "RPCServerError:" << RPCServerStatusToString(code);
+    LOG(FATAL) << "RPCServerError:" << RPCServerStatusToString(code);
   }
 
   uint64_t PackedSeqGetNumBytes(const TVMValue* arg_values, const int* type_codes, int num_args,
@@ -254,7 +254,7 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
   void SwitchToState(State state) {
     // invariant
     if (state != kCopyAckReceived) {
-      TVM_ICHECK_EQ(pending_request_bytes_, 0U) << "state=" << state;
+      ICHECK_EQ(pending_request_bytes_, 0U) << "state=" << state;
     }
     // need to actively flush the writer
     // so the data get pushed out.
@@ -262,7 +262,7 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
       flush_writer_();
     }
     state_ = state;
-    TVM_ICHECK(state != kInitHeader) << "cannot switch to init header";
+    ICHECK(state != kInitHeader) << "cannot switch to init header";
     if (state == kRecvPacketNumBytes) {
       this->RequestBytes(sizeof(uint64_t));
       // recycle arena for the next session.
@@ -280,7 +280,7 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
       this->RequestBytes(len);
       return;
     } else {
-      TVM_ICHECK_EQ(init_header_step_, 1);
+      ICHECK_EQ(init_header_step_, 1);
       this->ReadArray(dmlc::BeginPtr(*remote_key_), remote_key_->length());
       this->SwitchToState(kRecvPacketNumBytes);
     }
@@ -325,7 +325,7 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
           break;
         }
         default:
-          TVM_LOG(FATAL) << "Unknown event " << static_cast<int>(code);
+          LOG(FATAL) << "Unknown event " << static_cast<int>(code);
       }
     }
   }
@@ -375,10 +375,10 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
       // switch to the state before sending exception.
       this->SwitchToState(kRecvPacketNumBytes);
       std::string msg = args[0];
-      TVM_LOG(FATAL) << "RPCError: Error caught from RPC call:\n" << msg;
+      LOG(FATAL) << "RPCError: Error caught from RPC call:\n" << msg;
     }
 
-    TVM_ICHECK(setreturn != nullptr) << "fsetreturn not available";
+    ICHECK(setreturn != nullptr) << "fsetreturn not available";
     setreturn(args);
 
     this->SwitchToState(kReturnReceived);
@@ -518,10 +518,10 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
     TVMArgs args = RecvPackedSeq();
 
     try {
-      TVM_ICHECK(serving_session_ == nullptr) << "Server has already been initialized";
+      ICHECK(serving_session_ == nullptr) << "Server has already been initialized";
 
       std::string server_protocol_ver = kRPCProtocolVer;
-      TVM_ICHECK_EQ(client_protocol_ver, server_protocol_ver)
+      ICHECK_EQ(client_protocol_ver, server_protocol_ver)
           << "Server[" << name_ << "]: Client protocol version mismatch with the server "
           << " server protocol=" << server_protocol_ver
           << ", client protocol=" << client_protocol_ver;
@@ -538,23 +538,23 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
       }
 
       auto* fconstructor = Registry::Get(constructor_name);
-      TVM_ICHECK(fconstructor != nullptr) << " Cannot find session constructor " << constructor_name;
+      ICHECK(fconstructor != nullptr) << " Cannot find session constructor " << constructor_name;
       TVMRetValue con_ret;
 
       try {
         fconstructor->CallPacked(constructor_args, &con_ret);
       } catch (const Error& e) {
-        TVM_LOG(FATAL) << "Server[" << name_ << "]:"
+        LOG(FATAL) << "Server[" << name_ << "]:"
                    << " Error caught from session constructor " << constructor_name << ":\n"
                    << e.what();
       }
 
-      TVM_ICHECK_EQ(con_ret.type_code(), kTVMModuleHandle)
+      ICHECK_EQ(con_ret.type_code(), kTVMModuleHandle)
           << "Server[" << name_ << "]:"
           << " Constructor " << constructor_name << " need to return an RPCModule";
       Module mod = con_ret;
       std::string tkey = mod->type_key();
-      TVM_ICHECK_EQ(tkey, "rpc") << "Constructor " << constructor_name << " to return an RPCModule";
+      ICHECK_EQ(tkey, "rpc") << "Constructor " << constructor_name << " to return an RPCModule";
       serving_session_ = RPCModuleGetSession(mod);
       this->ReturnVoid();
     } catch (const std::runtime_error& e) {
@@ -606,9 +606,9 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
 
  private:
   RPCSession* GetServingSession() const {
-    TVM_ICHECK(serving_session_ != nullptr)
+    ICHECK(serving_session_ != nullptr)
         << "Need to call InitRemoteSession first before any further actions";
-    TVM_ICHECK(!serving_session_->IsAsync() || async_server_mode_)
+    ICHECK(!serving_session_->IsAsync() || async_server_mode_)
         << "Cannot host an async session in a non-Event driven server";
 
     return serving_session_.get();
@@ -616,7 +616,7 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
   // Utility functions
   // Internal read function, update pending_request_bytes_
   size_t Read(void* data, size_t size) final {
-    TVM_ICHECK_LE(size, pending_request_bytes_);
+    ICHECK_LE(size, pending_request_bytes_);
     reader_->Read(data, size);
     pending_request_bytes_ -= size;
     return size;
@@ -655,7 +655,7 @@ RPCCode RPCEndpoint::HandleUntilReturnEvent(bool client_mode, RPCSession::FEncod
         if (handler_->CanCleanShutdown()) {
           return RPCCode::kShutdown;
         } else {
-          TVM_LOG(FATAL) << "Channel closes before we get neded bytes";
+          LOG(FATAL) << "Channel closes before we get neded bytes";
         }
       }
     }
@@ -693,10 +693,10 @@ void RPCEndpoint::Init() {
     handler_->SendPackedSeq(args.values, args.type_codes, args.num_args, true);
 
     code = HandleUntilReturnEvent(true, [rv](TVMArgs args) {
-      TVM_ICHECK_EQ(args.size(), 1);
+      ICHECK_EQ(args.size(), 1);
       *rv = args[0];
     });
-    TVM_ICHECK(code == RPCCode::kReturn) << "code=" << static_cast<int>(code);
+    ICHECK(code == RPCCode::kReturn) << "code=" << static_cast<int>(code);
   });
 }
 
@@ -747,7 +747,7 @@ void RPCEndpoint::ServerLoop() {
     (*f)();
   }
   TVMRetValue rv;
-  TVM_ICHECK(HandleUntilReturnEvent(false, [](TVMArgs) {}) == RPCCode::kShutdown);
+  ICHECK(HandleUntilReturnEvent(false, [](TVMArgs) {}) == RPCCode::kShutdown);
   if (const auto* f = Registry::Get("tvm.rpc.server.shutdown")) {
     (*f)();
   }
@@ -765,7 +765,7 @@ int RPCEndpoint::ServerAsyncIOEventHandler(const std::string& in_bytes, int even
         [this](const void* data, size_t size) { return channel_->Send(data, size); },
         writer_.bytes_available());
   }
-  TVM_ICHECK(code != RPCCode::kReturn && code != RPCCode::kCopyAck);
+  ICHECK(code != RPCCode::kReturn && code != RPCCode::kCopyAck);
   if (code == RPCCode::kShutdown) return 0;
   if (writer_.bytes_available() != 0) return 2;
   return 1;
@@ -789,7 +789,7 @@ void RPCEndpoint::InitRemoteSession(TVMArgs args) {
   handler_->SendPackedSeq(args.values, args.type_codes, args.num_args, true);
 
   code = HandleUntilReturnEvent(true, [](TVMArgs args) {});
-  TVM_ICHECK(code == RPCCode::kReturn) << "code=" << static_cast<int>(code);
+  ICHECK(code == RPCCode::kReturn) << "code=" << static_cast<int>(code);
 }
 
 // Get remote function with name
@@ -812,7 +812,7 @@ void RPCEndpoint::CallFunc(RPCSession::PackedFuncHandle h, const TVMValue* arg_v
   handler_->SendPackedSeq(arg_values, arg_type_codes, num_args, true);
 
   code = HandleUntilReturnEvent(true, encode_return);
-  TVM_ICHECK(code == RPCCode::kReturn) << "code=" << static_cast<int>(code);
+  ICHECK(code == RPCCode::kReturn) << "code=" << static_cast<int>(code);
 }
 
 void RPCEndpoint::CopyToRemote(void* from, size_t from_offset, void* to, size_t to_offset,
@@ -835,7 +835,7 @@ void RPCEndpoint::CopyToRemote(void* from, size_t from_offset, void* to, size_t 
   handler_->Write(type_hint);
   handler_->WriteArray(reinterpret_cast<char*>(from) + from_offset, data_size);
 
-  TVM_ICHECK(HandleUntilReturnEvent(true, [](TVMArgs) {}) == RPCCode::kReturn);
+  ICHECK(HandleUntilReturnEvent(true, [](TVMArgs) {}) == RPCCode::kReturn);
 }
 
 void RPCEndpoint::CopyFromRemote(void* from, size_t from_offset, void* to, size_t to_offset,
@@ -858,7 +858,7 @@ void RPCEndpoint::CopyFromRemote(void* from, size_t from_offset, void* to, size_
   handler_->Write(type_hint);
 
   TVMRetValue rv;
-  TVM_ICHECK(HandleUntilReturnEvent(true, [](TVMArgs) {}) == RPCCode::kCopyAck);
+  ICHECK(HandleUntilReturnEvent(true, [](TVMArgs) {}) == RPCCode::kCopyAck);
   handler_->ReadArray(reinterpret_cast<char*>(to) + to_offset, data_size);
   handler_->FinishCopyAck();
 }
@@ -925,7 +925,7 @@ void RPCCopyAmongRemote(RPCSession* handler, TVMArgs args, TVMRetValue* rv) {
   if (ctx.device_type == kDLCPU) {
     ctx = ctx_to;
   } else {
-    TVM_ICHECK(ctx_to.device_type == kDLCPU || ctx_to.device_type == ctx_from.device_type)
+    ICHECK(ctx_to.device_type == kDLCPU || ctx_to.device_type == ctx_from.device_type)
         << "Can not copy across different ctx types directly";
   }
   handler->GetDeviceAPI(ctx)->CopyDataFromTo(from, from_offset, to, to_offset, size, ctx_from,
@@ -961,11 +961,11 @@ void RPCEndpoint::EventHandler::HandleSyscall(RPCCode code) {
       SysCallHandler(RPCCopyAmongRemote);
       break;
     default:
-      TVM_LOG(FATAL) << "Unknown event " << static_cast<int>(code);
+      LOG(FATAL) << "Unknown event " << static_cast<int>(code);
   }
 
   if (state_ != kWaitForAsyncCallback) {
-    TVM_ICHECK_EQ(state_, kRecvPacketNumBytes);
+    ICHECK_EQ(state_, kRecvPacketNumBytes);
   }
 }
 

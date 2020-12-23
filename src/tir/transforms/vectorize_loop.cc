@@ -45,7 +45,7 @@ inline PrimExpr BroadcastTo(PrimExpr e, int lanes) {
       return Broadcast(op->value, lanes);
     }
   }
-  TVM_ICHECK_EQ(e.dtype().lanes(), 1) << "Cannot broadcast lane=" << e.dtype().lanes() << " to "
+  ICHECK_EQ(e.dtype().lanes(), 1) << "Cannot broadcast lane=" << e.dtype().lanes() << " to "
                                   << lanes;
   return Broadcast(e, lanes);
 }
@@ -105,7 +105,7 @@ class Vectorizer : public StmtMutator, public ExprFunctor<PrimExpr(const PrimExp
   }
 
   Stmt VisitStmt(const Stmt& stmt) final {
-    TVM_ICHECK(!need_scalarize_);
+    ICHECK(!need_scalarize_);
     Stmt ret = StmtMutator::VisitStmt(stmt);
     if (need_scalarize_) {
       need_scalarize_ = false;
@@ -319,7 +319,7 @@ class Vectorizer : public StmtMutator, public ExprFunctor<PrimExpr(const PrimExp
     // (let x = 1 in x + 1) * (let x = 1 in x + 1)
     auto it = let_binding_.find(op->var);
     if (it != let_binding_.end()) {
-      TVM_ICHECK(deep_equal_(it->second, value))
+      ICHECK(deep_equal_(it->second, value))
           << "Let cannot bind the same var to two different values";
     }
     if (value.dtype().lanes() != op->value.dtype().lanes()) {
@@ -353,10 +353,10 @@ class Vectorizer : public StmtMutator, public ExprFunctor<PrimExpr(const PrimExp
   // For
   Stmt VisitStmt_(const ForNode* op) final {
     if (op->for_type == ForType::Vectorized) {
-      TVM_LOG(WARNING) << "Detect vectorize inside vectorized loop, ignoring...";
+      LOG(WARNING) << "Detect vectorize inside vectorized loop, ignoring...";
     }
-    TVM_ICHECK(is_zero(op->min));
-    TVM_ICHECK(!op->extent.dtype().is_vector());
+    ICHECK(is_zero(op->min));
+    ICHECK(!op->extent.dtype().is_vector());
     PrimExpr extent = this->VisitExpr(op->extent);
     if (extent.dtype().is_vector()) {
       return Scalarize(GetRef<Stmt>(op));
@@ -370,7 +370,7 @@ class Vectorizer : public StmtMutator, public ExprFunctor<PrimExpr(const PrimExp
   }
   // IfThenElse
   Stmt VisitStmt_(const IfThenElseNode* op) final {
-    TVM_ICHECK(!op->condition.dtype().is_vector());
+    ICHECK(!op->condition.dtype().is_vector());
     PrimExpr condition = this->VisitExpr(op->condition);
     if (condition.dtype().is_vector()) {
       return Scalarize(GetRef<Stmt>(op));
@@ -390,7 +390,7 @@ class Vectorizer : public StmtMutator, public ExprFunctor<PrimExpr(const PrimExp
   // LetStmt
   Stmt VisitStmt_(const LetStmtNode* op) final {
     PrimExpr value = this->VisitExpr(op->value);
-    TVM_ICHECK(!let_binding_.count(op->var)) << "SSA violation, a single var is binded twice";
+    ICHECK(!let_binding_.count(op->var)) << "SSA violation, a single var is binded twice";
     let_binding_[op->var] = value;
 
     if (value.dtype().lanes() != op->value.dtype().lanes()) {
@@ -411,14 +411,14 @@ class Vectorizer : public StmtMutator, public ExprFunctor<PrimExpr(const PrimExp
   Stmt VisitStmt_(const AllocateNode* op) final {
     PrimExpr condition = this->VisitExpr(op->condition);
     if (condition.dtype().is_vector()) {
-      TVM_LOG(WARNING) << "Cannot handle vector extent in alloc ";
+      LOG(WARNING) << "Cannot handle vector extent in alloc ";
       return Scalarize(GetRef<Stmt>(op));
     }
     Array<PrimExpr> extents;
     for (size_t i = 0; i < op->extents.size(); i++) {
       PrimExpr new_ext = this->VisitExpr(op->extents[i]);
       if (new_ext.dtype().is_vector()) {
-        TVM_LOG(WARNING) << "Cannot handle vector extent in alloc ";
+        LOG(WARNING) << "Cannot handle vector extent in alloc ";
         return Scalarize(GetRef<Stmt>(op));
       }
       extents.push_back(new_ext);
@@ -440,7 +440,7 @@ class Vectorizer : public StmtMutator, public ExprFunctor<PrimExpr(const PrimExp
   }
   // ProducerStore
   Stmt VisitStmt_(const ProducerStoreNode* op) final {
-    TVM_LOG(FATAL) << "ProducerProvide is cannot appear in a TIR PrimFunc";
+    LOG(FATAL) << "ProducerProvide is cannot appear in a TIR PrimFunc";
     return Stmt();
   }
 
@@ -526,10 +526,10 @@ class LoopVectorizer : public StmtMutator {
  public:
   Stmt VisitStmt_(const ForNode* op) final {
     if (op->for_type == ForType::Vectorized) {
-      TVM_ICHECK(is_zero(op->min));
+      ICHECK(is_zero(op->min));
       auto* extent_as_int = op->extent.as<IntImmNode>();
       if (!extent_as_int || extent_as_int->value < 1) {
-        TVM_LOG(FATAL) << "Failed to vectorize loop with extent " << op->extent;
+        LOG(FATAL) << "Failed to vectorize loop with extent " << op->extent;
       }
       return Vectorizer(op->loop_var, static_cast<int>(extent_as_int->value))(op->body);
     } else {

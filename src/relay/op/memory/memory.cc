@@ -54,19 +54,19 @@ TVM_REGISTER_GLOBAL("relay.op.memory._make.alloc_storage")
 
 bool AllocStorageRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
                      const TypeReporter& reporter) {
-  TVM_ICHECK_EQ(types.size(), 3u);
+  ICHECK_EQ(types.size(), 3u);
   auto size_type = types[0];
   auto tensor_type = size_type.as<TensorTypeNode>();
-  TVM_ICHECK(tensor_type != nullptr);
-  TVM_ICHECK_EQ(tensor_type->dtype, DataType::Int(64));
-  TVM_ICHECK_EQ(tensor_type->shape.size(), 0);
+  ICHECK(tensor_type != nullptr);
+  ICHECK_EQ(tensor_type->dtype, DataType::Int(64));
+  ICHECK_EQ(tensor_type->shape.size(), 0);
   auto align_type = types[1];
   auto align_ttype = align_type.as<TensorTypeNode>();
-  TVM_ICHECK(align_ttype != nullptr);
-  TVM_ICHECK_EQ(align_ttype->dtype, DataType::Int(64));
-  TVM_ICHECK_EQ(align_ttype->shape.size(), 0);
+  ICHECK(align_ttype != nullptr);
+  ICHECK_EQ(align_ttype->dtype, DataType::Int(64));
+  ICHECK_EQ(align_ttype->shape.size(), 0);
   auto mod = reporter->GetModule();
-  TVM_ICHECK(mod.defined());
+  ICHECK(mod.defined());
   auto storage_name = mod->GetGlobalTypeVar("Storage");
   auto storage = TypeCall(storage_name, {});
   reporter->Assign(types[2], storage);
@@ -107,10 +107,10 @@ TVM_REGISTER_GLOBAL("relay.op.memory._make.alloc_tensor")
 std::vector<int64_t> FromConstShape(Constant konst) {
   runtime::NDArray shape = konst->data;
   std::vector<int64_t> raw_shape;
-  TVM_ICHECK_EQ(shape->ndim, 1u);
-  TVM_ICHECK_EQ(shape->dtype.code, 0U) << "The dtype of constant shape must be int32 or int64, but got "
+  ICHECK_EQ(shape->ndim, 1u);
+  ICHECK_EQ(shape->dtype.code, 0U) << "The dtype of constant shape must be int32 or int64, but got "
                                    << runtime::DLDataType2String(shape->dtype);
-  TVM_ICHECK(shape->dtype.bits == 64 || shape->dtype.bits == 32)
+  ICHECK(shape->dtype.bits == 64 || shape->dtype.bits == 32)
       << "The dtype of constant shape must be int32 or int64, but got"
       << runtime::DLDataType2String(shape->dtype);
 
@@ -131,28 +131,28 @@ std::vector<int64_t> FromConstShape(Constant konst) {
 
 bool AllocTensorRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
                     const TypeReporter& reporter) {
-  TVM_ICHECK_EQ(types.size(), 4u);
+  ICHECK_EQ(types.size(), 4u);
   auto alloc_attrs = attrs.as<AllocTensorAttrs>();
-  TVM_ICHECK(alloc_attrs != nullptr) << "must be alloc_tensor attributes";
+  ICHECK(alloc_attrs != nullptr) << "must be alloc_tensor attributes";
   // First argument should be storage.
   auto mod = reporter->GetModule();
-  TVM_ICHECK(mod.defined());
+  ICHECK(mod.defined());
   auto storage_name = mod->GetGlobalTypeVar("Storage");
   auto storage = relay::TypeCall(storage_name, {});
   reporter->Assign(types[0], storage);
   // Second argument should be the offset.
   auto offset_type = types[1].as<TensorTypeNode>();
-  TVM_ICHECK(offset_type != nullptr) << "must be a scalar type";
+  ICHECK(offset_type != nullptr) << "must be a scalar type";
 
   // Third argument should be shape tensor.
   auto tt = types[2].as<TensorTypeNode>();
-  TVM_ICHECK(tt != nullptr) << "must be tensor type";
+  ICHECK(tt != nullptr) << "must be tensor type";
 
   // Be careful about having to allocate scalars.
   int64_t dims = 0;
   if (tt->shape.size() != 0) {
     auto rank = tt->shape[0].as<tvm::IntImmNode>();
-    TVM_ICHECK(rank != nullptr);
+    ICHECK(rank != nullptr);
     dims = rank->value;
   }
 
@@ -161,14 +161,14 @@ bool AllocTensorRel(const Array<Type>& types, int num_inputs, const Attrs& attrs
   if (alloc_attrs->const_shape.defined()) {
     auto con = alloc_attrs->const_shape;
     auto sh = FromConstShape(con);
-    TVM_ICHECK_EQ(sh.size(), dims);
+    ICHECK_EQ(sh.size(), dims);
     Array<IndexExpr> out_shape;
     for (auto i = 0u; i < dims; i++) {
       out_shape.push_back(tvm::Integer(sh[i]));
     }
     alloc_type = TensorType(out_shape, alloc_attrs->dtype);
   } else {
-    TVM_ICHECK(alloc_attrs->assert_shape.defined())
+    ICHECK(alloc_attrs->assert_shape.defined())
         << "the assert_shape must be set when const_shape is not";
     alloc_type = TensorType(alloc_attrs->assert_shape, alloc_attrs->dtype);
     return true;
@@ -198,7 +198,7 @@ RELAY_REGISTER_OP("memory.alloc_tensor")
 
 bool KillRel(const Array<Type>& types, int num_inputs, const Attrs& attrs,
              const TypeReporter& reporter) {
-  TVM_ICHECK_EQ(types.size(), 2u);
+  ICHECK_EQ(types.size(), 2u);
   // TODO(@jroesch): should only support tensors.
   reporter->Assign(types[1], TupleType::Empty());
   return true;
@@ -228,7 +228,7 @@ static void FlattenTupleTypeAux(const Type& type, std::vector<TensorType>* out) 
       FlattenTupleTypeAux(field, out);
     }
   } else {
-    TVM_LOG(FATAL) << "unsupported " << type;
+    LOG(FATAL) << "unsupported " << type;
   }
 }
 
@@ -246,7 +246,7 @@ static void FromTupleTypeAux(const Type& type, const Expr& expr, std::vector<Exp
       FromTupleTypeAux(tuple_ty->fields[i], TupleGetItem(expr, i), out);
     }
   } else {
-    TVM_LOG(FATAL) << "unsupported " << type;
+    LOG(FATAL) << "unsupported " << type;
   }
 }
 
@@ -268,7 +268,7 @@ static void ToTupleTypeAux(const Type& type, const std::vector<Expr>& exprs, int
     }
     out->push_back(Tuple(tuple_out));
   } else {
-    TVM_LOG(FATAL) << "unsupported " << type;
+    LOG(FATAL) << "unsupported " << type;
   }
 }
 

@@ -123,12 +123,12 @@ IRModule FunctionPassNode::operator()(IRModule mod, const PassContext& pass_ctx)
     pass_ctx->diag_ctx = previous;
   }
 
-  TVM_ICHECK(pass_ctx->diag_ctx)
+  ICHECK(pass_ctx->diag_ctx)
       << "The diagnostic context was set at the top of this block this is a bug.";
 
   const PassInfo& pass_info = Info();
 
-  TVM_ICHECK(mod.defined());
+  ICHECK(mod.defined());
 
   DLOG(INFO) << "Executing function pass : " << pass_info->name
              << " with opt level: " << pass_info->opt_level;
@@ -153,7 +153,7 @@ IRModule FunctionPassNode::operator()(IRModule mod, const PassContext& pass_ctx)
     updated_mod->Add(pair.first, pair.second, true);
   }
 
-  TVM_ICHECK(pass_ctx->diag_ctx)
+  ICHECK(pass_ctx->diag_ctx)
       << "The diagnostic context was set at the top of this block this is a bug.";
 
   pass_ctx->diag_ctx.value().Render();

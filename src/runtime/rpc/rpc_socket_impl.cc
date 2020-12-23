@@ -70,32 +70,32 @@ std::shared_ptr<RPCEndpoint> RPCConnect(std::string url, int port, std::string k
   support::TCPSocket sock;
   support::SockAddr addr(url.c_str(), port);
   sock.Create(addr.ss_family());
-  TVM_ICHECK(sock.Connect(addr)) << "Connect to " << addr.AsString() << " failed";
+  ICHECK(sock.Connect(addr)) << "Connect to " << addr.AsString() << " failed";
   // hand shake
   std::ostringstream os;
   int code = kRPCMagic;
   int keylen = static_cast<int>(key.length());
-  TVM_ICHECK_EQ(sock.SendAll(&code, sizeof(code)), sizeof(code));
-  TVM_ICHECK_EQ(sock.SendAll(&keylen, sizeof(keylen)), sizeof(keylen));
+  ICHECK_EQ(sock.SendAll(&code, sizeof(code)), sizeof(code));
+  ICHECK_EQ(sock.SendAll(&keylen, sizeof(keylen)), sizeof(keylen));
   if (keylen != 0) {
-    TVM_ICHECK_EQ(sock.SendAll(key.c_str(), keylen), keylen);
+    ICHECK_EQ(sock.SendAll(key.c_str(), keylen), keylen);
   }
-  TVM_ICHECK_EQ(sock.RecvAll(&code, sizeof(code)), sizeof(code));
+  ICHECK_EQ(sock.RecvAll(&code, sizeof(code)), sizeof(code));
   if (code == kRPCMagic + 2) {
     sock.Close();
-    TVM_LOG(FATAL) << "URL " << url << ":" << port << " cannot find server that matches key=" << key;
+    LOG(FATAL) << "URL " << url << ":" << port << " cannot find server that matches key=" << key;
   } else if (code == kRPCMagic + 1) {
     sock.Close();
-    TVM_LOG(FATAL) << "URL " << url << ":" << port << " server already have key=" << key;
+    LOG(FATAL) << "URL " << url << ":" << port << " server already have key=" << key;
   } else if (code != kRPCMagic) {
     sock.Close();
-    TVM_LOG(FATAL) << "URL " << url << ":" << port << " is not TVM RPC server";
+    LOG(FATAL) << "URL " << url << ":" << port << " is not TVM RPC server";
   }
-  TVM_ICHECK_EQ(sock.RecvAll(&keylen, sizeof(keylen)), sizeof(keylen));
+  ICHECK_EQ(sock.RecvAll(&keylen, sizeof(keylen)), sizeof(keylen));
   std::string remote_key;
   if (keylen != 0) {
     remote_key.resize(keylen);
-    TVM_ICHECK_EQ(sock.RecvAll(&remote_key[0], keylen), keylen);
+    ICHECK_EQ(sock.RecvAll(&remote_key[0], keylen), keylen);
   }
   auto endpt =
       RPCEndpoint::Create(std::unique_ptr<SockChannel>(new SockChannel(sock)), key, remote_key);

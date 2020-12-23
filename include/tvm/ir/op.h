@@ -145,7 +145,7 @@ class OpNode : public RelayExprNode {
   // Internal function to compute if it is primitive op
   bool IsPrimitiveOp_() const {
     const auto& fn_ty = this->op_type;
-    TVM_ICHECK(fn_ty.get() != nullptr);
+    ICHECK(fn_ty.get() != nullptr);
     if (fn_ty->type_constraints.size() != 1) return false;
     const TypeRelationNode* rel = fn_ty->type_constraints[0].as<TypeRelationNode>();
     if (rel == nullptr) return false;
@@ -461,7 +461,7 @@ inline OpRegEntry& OpRegEntry::set_support_level(int32_t n) {  // NOLINT(*)
 template <typename ValueType>
 inline OpRegEntry& OpRegEntry::set_attr(  // NOLINT(*)
     const std::string& attr_name, const ValueType& value, int plevel) {
-  TVM_ICHECK_GT(plevel, 0) << "plevel in set_attr must be greater than 0";
+  ICHECK_GT(plevel, 0) << "plevel in set_attr must be greater than 0";
   runtime::TVMRetValue rv;
   rv = value;
   UpdateAttr(attr_name, rv, plevel);
@@ -472,7 +472,7 @@ inline OpRegEntry& OpRegEntry::set_attr(  // NOLINT(*)
 
 template <typename ValueType>
 inline ValueType OpAttrMap<ValueType>::get(const RelayExpr& expr, ValueType def_value) const {
-  TVM_ICHECK(expr.defined());
+  ICHECK(expr.defined());
   if (const OpNode* op = expr.as<OpNode>()) {
     return this->map_.get(GetRef<Op>(op), def_value);
   } else {

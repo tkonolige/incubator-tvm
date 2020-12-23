@@ -53,7 +53,7 @@ void CodeGenCHost::Init(bool output_ssa, bool emit_asserts, std::string target_s
 
 void CodeGenCHost::AddFunction(const PrimFunc& f) {
   auto global_symbol = f->GetAttr<String>(tvm::attr::kGlobalSymbol);
-  TVM_ICHECK(global_symbol.defined())
+  ICHECK(global_symbol.defined())
       << "CodeGenCHost: Expect PrimFunc to have the global_symbol attribute";
   function_names_.emplace_back(global_symbol.value());
 
@@ -65,7 +65,7 @@ void CodeGenCHost::LinkParameters(Map<String, LinkedParam> params) {
   stream << " " << tvm::runtime::symbol::tvm_lookup_linked_param
          << "(void* args, int* arg_type_ids, int num_args, void* out_ret_value, "
          << "int* out_ret_tcode, void* resource_handle) {\n";
-  TVM_ICHECK_EQ(GetUniqueName(tvm::runtime::symbol::tvm_lookup_linked_param),
+  ICHECK_EQ(GetUniqueName(tvm::runtime::symbol::tvm_lookup_linked_param),
             tvm::runtime::symbol::tvm_lookup_linked_param)
       << "builtin PackedFunc name already taken: " << tvm::runtime::symbol::tvm_lookup_linked_param;
   stream << "    switch (((int64_t*) args)[0]) {\n"
@@ -117,7 +117,7 @@ void CodeGenCHost::PrintFinalReturn() {  // NOLINT(*)
 void CodeGenCHost::PrintType(DataType t, std::ostream& os) {  // NOLINT(*)
   int lanes = t.lanes();
   if (t.is_handle()) {
-    TVM_ICHECK_EQ(lanes, 1) << "does not support vector types";
+    ICHECK_EQ(lanes, 1) << "does not support vector types";
     os << "void*";
     return;
   }
@@ -176,7 +176,7 @@ void CodeGenCHost::PrintType(DataType t, std::ostream& os) {  // NOLINT(*)
       return;
     }
   }
-  TVM_LOG(FATAL) << "Cannot convert type " << t << " to C type";
+  LOG(FATAL) << "Cannot convert type " << t << " to C type";
 }
 
 void CodeGenCHost::VisitExpr_(const BroadcastNode* op, std::ostream& os) {  // NOLINT(*)
@@ -238,7 +238,7 @@ void CodeGenCHost::VisitExpr_(const CallNode* op, std::ostream& os) {  // NOLINT
     std::string stack_name = GetUniqueName("stack");
     const std::string& type = op->args[0].as<StringImmNode>()->value;
     const IntImmNode* num = op->args[1].as<IntImmNode>();
-    TVM_ICHECK(num != nullptr);
+    ICHECK(num != nullptr);
     static_assert(alignof(TVMValue) % alignof(DLTensor) == 0, "invariant");
     size_t unit = sizeof(TVMValue);
     size_t size = 0;
@@ -251,25 +251,25 @@ void CodeGenCHost::VisitExpr_(const CallNode* op, std::ostream& os) {  // NOLINT
     } else if (type == "array") {
       size = (num->value * sizeof(DLTensor) + unit - 1) / unit;
     } else {
-      TVM_LOG(FATAL) << "Unknown stack alloca type " << type;
+      LOG(FATAL) << "Unknown stack alloca type " << type;
     }
     this->PrintIndent();
     this->stream << "TVMValue " << stack_name << "[" << size << "];\n";
     os << stack_name;
   } else if (op->op.same_as(builtin::tvm_call_packed_lowered())) {
     const StringImmNode* s = op->args[0].as<StringImmNode>();
-    TVM_ICHECK(s != nullptr) << "tvm_call_packed_lowered expects first argument as function name";
+    ICHECK(s != nullptr) << "tvm_call_packed_lowered expects first argument as function name";
     int64_t begin = op->args[3].as<IntImmNode>()->value;
     int64_t end = op->args[4].as<IntImmNode>()->value;
     int64_t num_args = end - begin;
-    TVM_ICHECK_GE(num_args, 0);
+    ICHECK_GE(num_args, 0);
     std::string func_name = s->value;
     // NOTE: cannot rely on GetUnique for global decl_stream declarations
     // because it is reset between AddFunction().
     std::string packed_func_name = func_name + "_packed";
     if (declared_globals_.insert(packed_func_name).second) {
       // Still reserve the name among unique names.
-      TVM_ICHECK(GetUniqueName(packed_func_name) == packed_func_name)
+      ICHECK(GetUniqueName(packed_func_name) == packed_func_name)
           << "Expected name " << packed_func_name << " to not be taken";
       decl_stream << "static void* " << packed_func_name << " = NULL;\n";
     }
@@ -359,7 +359,7 @@ runtime::Module BuildCHost(IRModule mod, Target target) {
     if (could_have_linked_params &&
         kv.first->name_hint == ::tvm::runtime::symbol::tvm_lookup_linked_param) {
       Map<String, ObjectRef> attrs_dict = Downcast<Map<String, ObjectRef>>(kv.second->attrs->dict);
-      TVM_CHECK(attrs_dict.find(::tvm::tir::attr::kLinkedParams) != attrs_dict.end())
+      CHECK(attrs_dict.find(::tvm::tir::attr::kLinkedParams) != attrs_dict.end())
           << "no " << ::tvm::tir::attr::kLinkedParams << " attribute found!";
       linked_params =
           Downcast<Map<String, LinkedParam>>(attrs_dict[::tvm::tir::attr::kLinkedParams]);
@@ -367,18 +367,18 @@ runtime::Module BuildCHost(IRModule mod, Target target) {
       continue;
     }
 
-    TVM_ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodegenCHost: Can only take PrimFunc";
+    ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodegenCHost: Can only take PrimFunc";
     auto f = Downcast<PrimFunc>(kv.second);
     cg.AddFunction(f);
   }
 
   if (could_have_linked_params) {
-    TVM_ICHECK(found_linked_params) << "-link-params given but none found";
+    ICHECK(found_linked_params) << "-link-params given but none found";
     cg.LinkParameters(linked_params);
   }
 
   if (target->GetAttr<Bool>("system-lib").value_or(Bool(false))) {
-    TVM_ICHECK_EQ(target->GetAttr<String>("runtime").value_or(""), "c")
+    ICHECK_EQ(target->GetAttr<String>("runtime").value_or(""), "c")
         << "c target only supports generating C runtime SystemLibs";
     cg.GenerateFuncRegistry();
     cg.GenerateCrtSystemLib();

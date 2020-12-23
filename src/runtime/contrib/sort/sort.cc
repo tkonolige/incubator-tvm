@@ -68,13 +68,13 @@ TVM_REGISTER_GLOBAL("tvm.contrib.sort.argsort_nms").set_body([](TVMArgs args, TV
   }
 
   // Currently only supports input dtype to be float32.
-  TVM_ICHECK_EQ(dtype.code, 2) << "Currently only supports input dtype "
+  ICHECK_EQ(dtype.code, 2) << "Currently only supports input dtype "
                               "to be float.";
 #if (__ARM_FEATURE_FP16_SCALAR_ARITHMETIC != 1)
-  TVM_ICHECK_EQ(dtype.bits, 32) << "Currently only supports input dtype "
+  ICHECK_EQ(dtype.bits, 32) << "Currently only supports input dtype "
                                "to be float32.";
 #endif
-  TVM_ICHECK_LT(axis, input->ndim) << "Axis out of boundary for "
+  ICHECK_LT(axis, input->ndim) << "Axis out of boundary for "
                                   "input ndim "
                                << input->ndim;
 
@@ -175,7 +175,7 @@ TVM_REGISTER_GLOBAL("tvm.contrib.sort.argsort").set_body([](TVMArgs args, TVMRet
   if (axis < 0) {
     axis = input->ndim + axis;
   }
-  TVM_ICHECK_LT(axis, input->ndim) << "Axis out of boundary for "
+  ICHECK_LT(axis, input->ndim) << "Axis out of boundary for "
                                   "input ndim "
                                << input->ndim;
 
@@ -192,7 +192,7 @@ TVM_REGISTER_GLOBAL("tvm.contrib.sort.argsort").set_body([](TVMArgs args, TVMRet
     } else if (out_dtype == "float64") {
       argsort<float, double>(input, output, axis, is_ascend);
     } else {
-      TVM_LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
+      LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
     }
   } else if (data_dtype == "float64") {
     if (out_dtype == "int32") {
@@ -204,14 +204,14 @@ TVM_REGISTER_GLOBAL("tvm.contrib.sort.argsort").set_body([](TVMArgs args, TVMRet
     } else if (out_dtype == "float64") {
       argsort<double, double>(input, output, axis, is_ascend);
     } else {
-      TVM_LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
+      LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
     }
 #if (__ARM_FEATURE_FP16_SCALAR_ARITHMETIC == 1)
   } else if (data_dtype == "float16") {
     if (out_dtype == "float16") {
       argsort<__fp16, __fp16>(input, output, axis, is_ascend);
     } else {
-      TVM_LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
+      LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
     }
 #endif
   } else if (data_dtype == "int32") {
@@ -224,7 +224,7 @@ TVM_REGISTER_GLOBAL("tvm.contrib.sort.argsort").set_body([](TVMArgs args, TVMRet
     } else if (out_dtype == "float64") {
       argsort<int32_t, double>(input, output, axis, is_ascend);
     } else {
-      TVM_LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
+      LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
     }
   } else if (data_dtype == "int64") {
     if (out_dtype == "int32") {
@@ -236,10 +236,10 @@ TVM_REGISTER_GLOBAL("tvm.contrib.sort.argsort").set_body([](TVMArgs args, TVMRet
     } else if (out_dtype == "float64") {
       argsort<int64_t, double>(input, output, axis, is_ascend);
     } else {
-      TVM_LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
+      LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
     }
   } else {
-    TVM_LOG(FATAL) << "Unsupported input dtype: " << data_dtype;
+    LOG(FATAL) << "Unsupported input dtype: " << data_dtype;
   }
 });
 
@@ -317,12 +317,12 @@ TVM_REGISTER_GLOBAL("tvm.contrib.sort.topk").set_body([](TVMArgs args, TVMRetVal
   } else if (ret_type == "indices") {
     indices_out = args[1];
   } else {
-    TVM_LOG(FATAL) << "Unsupported ret type: " << ret_type;
+    LOG(FATAL) << "Unsupported ret type: " << ret_type;
   }
   if (axis < 0) {
     axis = input->ndim + axis;
   }
-  TVM_ICHECK(axis >= 0 && axis < input->ndim) << "Axis out of boundary for input ndim " << input->ndim;
+  ICHECK(axis >= 0 && axis < input->ndim) << "Axis out of boundary for input ndim " << input->ndim;
 
   auto data_dtype = DLDataType2String(input->dtype);
   auto out_dtype = (indices_out == nullptr) ? "int64" : DLDataType2String(indices_out->dtype);
@@ -337,7 +337,7 @@ TVM_REGISTER_GLOBAL("tvm.contrib.sort.topk").set_body([](TVMArgs args, TVMRetVal
     } else if (out_dtype == "float64") {
       topk<float, double>(input, values_out, indices_out, k, axis, is_ascend);
     } else {
-      TVM_LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
+      LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
     }
   } else if (data_dtype == "float64") {
     if (out_dtype == "int32") {
@@ -349,7 +349,7 @@ TVM_REGISTER_GLOBAL("tvm.contrib.sort.topk").set_body([](TVMArgs args, TVMRetVal
     } else if (out_dtype == "float64") {
       topk<double, double>(input, values_out, indices_out, k, axis, is_ascend);
     } else {
-      TVM_LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
+      LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
     }
   } else if (data_dtype == "int32") {
     if (out_dtype == "int32") {
@@ -361,7 +361,7 @@ TVM_REGISTER_GLOBAL("tvm.contrib.sort.topk").set_body([](TVMArgs args, TVMRetVal
     } else if (out_dtype == "float64") {
       topk<int32_t, double>(input, values_out, indices_out, k, axis, is_ascend);
     } else {
-      TVM_LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
+      LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
     }
   } else if (data_dtype == "int64") {
     if (out_dtype == "int32") {
@@ -373,10 +373,10 @@ TVM_REGISTER_GLOBAL("tvm.contrib.sort.topk").set_body([](TVMArgs args, TVMRetVal
     } else if (out_dtype == "float64") {
       topk<int64_t, double>(input, values_out, indices_out, k, axis, is_ascend);
     } else {
-      TVM_LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
+      LOG(FATAL) << "Unsupported output dtype: " << out_dtype;
     }
   } else {
-    TVM_LOG(FATAL) << "Unsupported input dtype: " << data_dtype;
+    LOG(FATAL) << "Unsupported input dtype: " << data_dtype;
   }
 });
 

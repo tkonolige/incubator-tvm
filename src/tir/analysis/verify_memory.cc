@@ -170,7 +170,7 @@ class MemoryAccessVerifier final : protected StmtExprVisitor {
 /// Interface of VerifyMemory pass
 std::vector<String> VerifyMemory_(const PrimFunc& func) {
   auto target = func->GetAttr<Target>(tvm::attr::kTarget);
-  TVM_ICHECK(target.defined()) << "LowerWarpMemory: Require the target attribute";
+  ICHECK(target.defined()) << "LowerWarpMemory: Require the target attribute";
 
   if (func->GetAttr<Integer>(tvm::attr::kCallingConv, Integer(CallingConv::kDefault)) ==
       CallingConv::kDefault) {
@@ -199,7 +199,7 @@ Pass VerifyMemory() {
           for (auto& err : errs) {
             s << "    " << err << "\n";
           }
-          TVM_LOG(FATAL) << "RuntimeError: Memory verification failed with the following errors:\n"
+          LOG(FATAL) << "RuntimeError: Memory verification failed with the following errors:\n"
                      << s.str() << "  Did you forget to bind?\n"
                      << func;
         }

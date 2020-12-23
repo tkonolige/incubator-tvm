@@ -119,7 +119,7 @@ enum ArgConvertCode {
 };
 
 inline ArgConvertCode GetArgConvertCode(DLDataType t) {
-  TVM_ICHECK_EQ(t.lanes, 1U) << "Cannot pass vector type argument to devic function for now";
+  ICHECK_EQ(t.lanes, 1U) << "Cannot pass vector type argument to devic function for now";
   if (t.code == kDLInt) {
     if (t.bits == 64U) return INT64_TO_INT64;
     if (t.bits == 32U) return INT64_TO_INT32;
@@ -131,7 +131,7 @@ inline ArgConvertCode GetArgConvertCode(DLDataType t) {
   } else if (t.code == kTVMOpaqueHandle) {
     return HANDLE_TO_HANDLE;
   }
-  TVM_LOG(FATAL) << "Cannot handle " << t << " as device function argument";
+  LOG(FATAL) << "Cannot handle " << t << " as device function argument";
   return HANDLE_TO_HANDLE;
 }
 
@@ -183,7 +183,7 @@ inline PackedFunc PackFuncNonBufferArg_(F f, int base, const std::vector<ArgConv
       switch (codes[i]) {
         case INT64_TO_INT64:
         case FLOAT64_TO_FLOAT64: {
-          TVM_LOG(FATAL) << "Do not support 64bit argument to device function";
+          LOG(FATAL) << "Do not support 64bit argument to device function";
           break;
         }
         case INT64_TO_INT32: {
@@ -199,7 +199,7 @@ inline PackedFunc PackFuncNonBufferArg_(F f, int base, const std::vector<ArgConv
           break;
         }
         case HANDLE_TO_HANDLE: {
-          TVM_LOG(FATAL) << "not reached";
+          LOG(FATAL) << "not reached";
           break;
         }
       }
@@ -247,7 +247,7 @@ inline PackedFunc PackFuncPackedArg_(F f, const std::vector<ArgConvertCode>& cod
           break;
         }
         default: {
-          TVM_LOG(FATAL) << "not reached";
+          LOG(FATAL) << "not reached";
           break;
         }
       }
@@ -284,7 +284,7 @@ inline size_t NumBufferArgs(const std::vector<DLDataType>& arg_types) {
     }
   }
   for (size_t i = base; i < arg_types.size(); ++i) {
-    TVM_ICHECK(arg_types[i].code != kTVMOpaqueHandle) << "Device function need to be organized";
+    ICHECK(arg_types[i].code != kTVMOpaqueHandle) << "Device function need to be organized";
   }
   return base;
 }

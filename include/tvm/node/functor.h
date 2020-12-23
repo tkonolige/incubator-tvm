@@ -51,9 +51,9 @@ using runtime::ObjectRef;
  *   Expr x = make_const(1);
  *   Expr y = x + x;
  *   // dispatch to IntImm, outputs "MyIntImm"
- *   TVM_LOG(INFO) << tostr(x, "My");
+ *   LOG(INFO) << tostr(x, "My");
  *   // dispatch to IntImm, outputs "MyAdd"
- *   TVM_LOG(INFO) << tostr(y, "My");
+ *   LOG(INFO) << tostr(y, "My");
  * \endcode
  *
  * \tparam FType function signiture
@@ -91,7 +91,7 @@ class NodeFunctor<R(const ObjectRef& n, Args...)> {
    * \return The result.
    */
   R operator()(const ObjectRef& n, Args... args) const {
-    TVM_ICHECK(can_dispatch(n)) << "NodeFunctor calls un-registered function on type "
+    ICHECK(can_dispatch(n)) << "NodeFunctor calls un-registered function on type "
                             << n->GetTypeKey();
     return (*func_[n->type_index()])(n, std::forward<Args>(args)...);
   }
@@ -107,7 +107,7 @@ class NodeFunctor<R(const ObjectRef& n, Args...)> {
     if (func_.size() <= tindex) {
       func_.resize(tindex + 1, nullptr);
     }
-    TVM_ICHECK(func_[tindex] == nullptr) << "Dispatch for " << TNode::_type_key << " is already set";
+    ICHECK(func_[tindex] == nullptr) << "Dispatch for " << TNode::_type_key << " is already set";
     func_[tindex] = f;
     return *this;
   }
@@ -120,7 +120,7 @@ class NodeFunctor<R(const ObjectRef& n, Args...)> {
   template <typename TNode>
   TSelf& clear_dispatch() {  // NOLINT(*)
     uint32_t tindex = TNode::RuntimeTypeIndex();
-    TVM_ICHECK_LT(tindex, func_.size()) << "clear_dispatch: index out of range";
+    ICHECK_LT(tindex, func_.size()) << "clear_dispatch: index out of range";
     func_[tindex] = nullptr;
     return *this;
   }

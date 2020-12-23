@@ -114,7 +114,7 @@ std::string FeatureSet::ToString() const {
   DETECT_FEATURE(fGraph);
   DETECT_FEATURE(fLetRec);
 #undef DETECT_FEATURE
-  TVM_ICHECK(detected == feature_count) << "some feature not printed";
+  ICHECK(detected == feature_count) << "some feature not printed";
   ret += "]";
   return ret;
 }
@@ -139,7 +139,7 @@ TVM_REGISTER_GLOBAL("relay.analysis.detect_feature").set_body_typed(PyDetectFeat
 
 void CheckFeature(const Expr& expr, const FeatureSet& fs) {
   auto dfs = DetectFeature(expr);
-  TVM_ICHECK(dfs.is_subset_of(fs)) << AsText(expr, false)
+  ICHECK(dfs.is_subset_of(fs)) << AsText(expr, false)
                                << "\nhas unsupported feature: " << (dfs - fs).ToString();
 }
 

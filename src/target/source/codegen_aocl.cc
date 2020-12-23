@@ -41,10 +41,10 @@ runtime::Module BuildAOCL(IRModule mod, Target target, bool emulation) {
   cg.Init(output_ssa);
 
   for (auto kv : mod->functions) {
-    TVM_ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodegenOpenCL: Can only take PrimFunc";
+    ICHECK(kv.second->IsInstance<PrimFuncNode>()) << "CodegenOpenCL: Can only take PrimFunc";
     auto f = Downcast<PrimFunc>(kv.second);
     auto calling_conv = f->GetAttr<Integer>(tvm::attr::kCallingConv);
-    TVM_ICHECK(calling_conv == CallingConv::kDeviceKernelLaunch)
+    ICHECK(calling_conv == CallingConv::kDeviceKernelLaunch)
         << "CodegenOpenCL: expect calling_conv equals CallingConv::kDeviceKernelLaunch";
     cg.AddFunction(f);
   }
@@ -69,7 +69,7 @@ runtime::Module BuildAOCL(IRModule mod, Target target, bool emulation) {
     cmd += " -march=emulator";
   }
   if (system(cmd.c_str()) != 0) {
-    TVM_LOG(FATAL) << "OpenCL offline compilation error.";
+    LOG(FATAL) << "OpenCL offline compilation error.";
   }
 
   // Read .aocx file

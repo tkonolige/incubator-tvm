@@ -109,13 +109,13 @@ Expr AutoSchedulerLayoutRewriter::VisitExpr_(const CallNode* n) {
       // The layout transformation will be recorded to global_ori_layout_queue
       // and global_new_layouts_queue in ComputeDAG::RewriteLayout.
       auto f = runtime::Registry::Get("auto_scheduler.enter_layout_rewrite");
-      TVM_CHECK(f) << "Could not find auto_scheduler.enter_layout_rewrite function.";
+      CHECK(f) << "Could not find auto_scheduler.enter_layout_rewrite function.";
       (*f)();
 
       CreateSchedule(GetRef<Function>(func), Target::Current());
 
       f = runtime::Registry::Get("auto_scheduler.exit_layout_rewrite");
-      TVM_CHECK(f) << "Could not find ansor.exit_layout_rewrite function.";
+      CHECK(f) << "Could not find ansor.exit_layout_rewrite function.";
       (*f)();
 
       // Mutate the called function

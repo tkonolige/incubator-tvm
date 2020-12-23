@@ -41,7 +41,7 @@ inline CBLAS_TRANSPOSE MKLBooleanToTranspose(bool trans) {
 inline CBLAS_OFFSET MKLStringToOffset(const std::string offset_type) {
   if (offset_type != "CblasFixOffset" && offset_type != "CblasColOffset" &&
       offset_type != "CblasRowOffset") {
-    TVM_LOG(FATAL) << "Unrecognized offset_type " << offset_type;
+    LOG(FATAL) << "Unrecognized offset_type " << offset_type;
   }
   if (offset_type == "CblasFixOffset") {
     return CblasFixOffset;
@@ -156,7 +156,7 @@ struct MKLDgemmBatchIterativeOp {
 // matrix multiplication for row major
 TVM_REGISTER_GLOBAL("tvm.contrib.mkl.matmul").set_body([](TVMArgs args, TVMRetValue* ret) {
   DLTensor* A = args[0];
-  TVM_ICHECK(TypeMatch(A->dtype, kDLFloat, 32) || TypeMatch(A->dtype, kDLFloat, 64));
+  ICHECK(TypeMatch(A->dtype, kDLFloat, 32) || TypeMatch(A->dtype, kDLFloat, 64));
 
   if (TypeMatch(A->dtype, kDLFloat, 32))
     CallGemm(args, ret, MKLSgemmOp());
@@ -169,7 +169,7 @@ TVM_REGISTER_GLOBAL("tvm.contrib.mkl.matmul_u8s8s32").set_body([](TVMArgs args, 
   DLTensor* A = args[0];
   DLTensor* B = args[1];
   DLTensor* C = args[2];
-  TVM_ICHECK(TypeMatch(A->dtype, kDLUInt, 8) && TypeMatch(B->dtype, kDLInt, 8) &&
+  ICHECK(TypeMatch(A->dtype, kDLUInt, 8) && TypeMatch(B->dtype, kDLInt, 8) &&
          TypeMatch(C->dtype, kDLInt, 32));
 
   CallU8S8S32Gemm(args, ret, MKLGemmU8S8S32Op());
@@ -177,7 +177,7 @@ TVM_REGISTER_GLOBAL("tvm.contrib.mkl.matmul_u8s8s32").set_body([](TVMArgs args, 
 
 TVM_REGISTER_GLOBAL("tvm.contrib.mkl.batch_matmul").set_body([](TVMArgs args, TVMRetValue* ret) {
   DLTensor* A = args[0];
-  TVM_ICHECK(TypeMatch(A->dtype, kDLFloat, 32) || TypeMatch(A->dtype, kDLFloat, 64));
+  ICHECK(TypeMatch(A->dtype, kDLFloat, 32) || TypeMatch(A->dtype, kDLFloat, 64));
   if (TypeMatch(A->dtype, kDLFloat, 32)) {
     CallBatchGemm(args, ret, MKLSgemmBatchOp());
   } else {
@@ -188,7 +188,7 @@ TVM_REGISTER_GLOBAL("tvm.contrib.mkl.batch_matmul").set_body([](TVMArgs args, TV
 TVM_REGISTER_GLOBAL("tvm.contrib.mkl.batch_matmul_iterative")
     .set_body([](TVMArgs args, TVMRetValue* ret) {
       DLTensor* A = args[0];
-      TVM_ICHECK(TypeMatch(A->dtype, kDLFloat, 32) || TypeMatch(A->dtype, kDLFloat, 64));
+      ICHECK(TypeMatch(A->dtype, kDLFloat, 32) || TypeMatch(A->dtype, kDLFloat, 64));
       if (TypeMatch(A->dtype, kDLFloat, 32)) {
         CallBatchGemm(args, ret, MKLSgemmBatchIterativeOp());
       } else {

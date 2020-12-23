@@ -235,7 +235,7 @@ inline const char* DeviceName(int type) {
     case kDLHexagon:
       return "hexagon";
     default:
-      TVM_LOG(FATAL) << "unknown type =" << type;
+      LOG(FATAL) << "unknown type =" << type;
       return "Unknown";
   }
 }
@@ -250,7 +250,7 @@ inline bool IsRPCSessionContext(TVMContext ctx) { return (ctx.device_type / kRPC
  * \return the table index.
  */
 inline int GetRPCSessionIndex(TVMContext ctx) {
-  TVM_ICHECK(IsRPCSessionContext(ctx)) << "GetRPCSessionIndex: ctx has no RPC session";
+  ICHECK(IsRPCSessionContext(ctx)) << "GetRPCSessionIndex: ctx has no RPC session";
   return ctx.device_type / kRPCSessMask - 1;
 }
 
@@ -276,7 +276,7 @@ inline std::ostream& operator<<(std::ostream& os, DLContext ctx);
  * \return A TVMContext with RPC session mask added, valid on the RPC client.
  */
 inline TVMContext AddRPCSessionMask(TVMContext ctx, int session_table_index) {
-  TVM_CHECK(!IsRPCSessionContext(ctx))
+  CHECK(!IsRPCSessionContext(ctx))
       << "AddRPCSessionMask: ctx already non-zero RPCSessionIndex: " << ctx;
   ctx.device_type =
       static_cast<DLDeviceType>(ctx.device_type | (kRPCSessMask * (session_table_index + 1)));

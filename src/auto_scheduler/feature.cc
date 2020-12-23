@@ -299,7 +299,7 @@ class MathOpCounter : public StmtExprVisitor {
 
   void VisitExpr_(const CallNode* op) final {
     auto* pop = op->op.as<OpNode>();
-    TVM_ICHECK(pop != nullptr);
+    ICHECK(pop != nullptr);
     auto effect_kind = op_call_effect_[GetRef<Op>(pop)];
     bool is_pure =
         effect_kind == CallEffectKind::kPure || effect_kind == CallEffectKind::kExprAnnotation;
@@ -602,7 +602,7 @@ class PerStoreFeatureExtractor : public StmtExprVisitor {
         } else if (name == "threadIdx.z") {
           plen = &thread_idx_z_len_;
         } else {
-          TVM_LOG(FATAL) << "invalid thread itervar " + name;
+          LOG(FATAL) << "invalid thread itervar " + name;
         }
       } else {
         plen = &vthread_len_;
@@ -938,7 +938,7 @@ class PerStoreFeatureExtractor : public StmtExprVisitor {
         while (compute_ops_list[pt] < cur_compute_ops - 1e-4) {
           pt++;
         }
-        TVM_ICHECK_LT(pt, compute_ops_list.size());
+        ICHECK_LT(pt, compute_ops_list.size());
 
         float value;
         if (pt == 0) {
@@ -1324,7 +1324,7 @@ void GetPerStoreFeaturesWorkerFunc(const SearchTask& task, const State& state, i
         tir::transform::Sequential(Array<tvm::transform::Pass>{tir::transform::Simplify()});
     mod = optimize(std::move(mod));
     const auto& it = mod->functions.find(global_var);
-    TVM_ICHECK(it != mod->functions.end());
+    ICHECK(it != mod->functions.end());
     const auto& prim_func = (*it).second.as<PrimFuncNode>();
     GetPerStoreFeature(prim_func->body, task->hardware_params->cache_line_bytes, max_n_bufs,
                        feature);
@@ -1380,7 +1380,7 @@ void GetPerStoreFeaturesFromFile(const std::string& filename, int max_lines, int
 
   const auto* workload_key_to_tensors =
       tvm::runtime::Registry::Get("auto_scheduler.workload_key_to_tensors");
-  TVM_ICHECK(workload_key_to_tensors != nullptr);
+  ICHECK(workload_key_to_tensors != nullptr);
 
   // read from file
   RecordReader reader(filename);
@@ -1445,7 +1445,7 @@ void GetPerStoreFeaturesFromMeasurePairs(const Array<MeasureInput>& inputs,
 
   const auto* workload_key_to_tensors =
       tvm::runtime::Registry::Get("auto_scheduler.workload_key_to_tensors");
-  TVM_ICHECK(workload_key_to_tensors != nullptr);
+  ICHECK(workload_key_to_tensors != nullptr);
 
   tasks.reserve(inputs.size());
   normalized_throughputs->reserve(inputs.size());
@@ -1539,7 +1539,7 @@ TVMByteArray SerializeFeatures(std::vector<std::vector<float>>&& features,
   size_vector.push_back(static_cast<int>(task_ids.size()));
   total_bytes += sizeof(int) * task_ids.size();
 
-  TVM_ICHECK_EQ(size_vector.size(), size_vector_size);
+  ICHECK_EQ(size_vector.size(), size_vector_size);
 
   // allocate memory
   out_data->reserve(total_bytes);
@@ -1565,7 +1565,7 @@ TVMByteArray SerializeFeatures(std::vector<std::vector<float>>&& features,
   memmove(ptr, reinterpret_cast<char*>(task_ids.data()), task_ids.size() * sizeof(int));
   ptr += task_ids.size() * sizeof(int);
 
-  TVM_ICHECK_EQ(ptr - out_data->data(), total_bytes);
+  ICHECK_EQ(ptr - out_data->data(), total_bytes);
 
   return TVMByteArray{out_data->data(), total_bytes};
 }

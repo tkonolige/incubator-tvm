@@ -32,7 +32,7 @@ namespace runtime {
 namespace hexagon {
 
 DspRpcAPI::DspRpcAPI() {
-  TVM_ICHECK(lib_handle_ = dlopen(rpc_lib_name_, RTLD_LAZY | RTLD_LOCAL));
+  ICHECK(lib_handle_ = dlopen(rpc_lib_name_, RTLD_LAZY | RTLD_LOCAL));
 
 #define RESOLVE(n) n##_ = GetSymbol<n##_t*>(#n)
   RESOLVE(remote_handle_close);
@@ -73,7 +73,7 @@ DspRpcAPI::~DspRpcAPI() {
 template <typename T>
 T DspRpcAPI::GetSymbol(const char* sym) {
   if (!lib_handle_) {
-    TVM_LOGE("error looking up symbol \"%s\": library not loaded", sym);
+    LOGE("error looking up symbol \"%s\": library not loaded", sym);
     return nullptr;
   }
   dlerror();  // Clear any previous errror conditions.
@@ -83,7 +83,7 @@ T DspRpcAPI::GetSymbol(const char* sym) {
 
   const char* err = dlerror();
   const char* err_txt = err ? err : "symbol not found";
-  TVM_LOGD("error looking up symbol \"%s\": %s", sym, err_txt);
+  LOGD("error looking up symbol \"%s\": %s", sym, err_txt);
   return nullptr;
 }
 

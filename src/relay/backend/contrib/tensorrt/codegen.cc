@@ -109,7 +109,7 @@ class TensorRTJSONSerializer : public backend::contrib::JSONSerializer {
 
   void SetPadNodeAttribute(std::shared_ptr<JSONGraphNode> node, const CallNode* cn) {
     const auto* pad_attr = cn->attrs.as<PadAttrs>();
-    TVM_ICHECK(pad_attr);
+    ICHECK(pad_attr);
     auto p = pad_attr->pad_width;
     const int dim_h = (p.size() == 5) ? 3 : 2;
     const int dim_w = (p.size() == 5) ? 4 : 3;
@@ -124,7 +124,7 @@ class TensorRTJSONSerializer : public backend::contrib::JSONSerializer {
 
   void SetStridedSliceNodeAttribute(std::shared_ptr<JSONGraphNode> node, const CallNode* cn) {
     const auto* attrs = cn->attrs.as<StridedSliceAttrs>();
-    TVM_ICHECK(attrs && attrs->begin && attrs->end && attrs->strides)
+    ICHECK(attrs && attrs->begin && attrs->end && attrs->strides)
         << "StridedSlice must have static begin, end, and strides.";
     const bool default_strides =
         !attrs->strides.value().defined() || attrs->strides.value().size() == 0;
@@ -140,13 +140,13 @@ class TensorRTJSONSerializer : public backend::contrib::JSONSerializer {
     std::vector<std::string> start, size, strides;
     for (size_t i = 0; i < attrs->begin.value().size(); ++i) {
       const int begin_value = process_slice_index(attrs->begin.value()[i], 0, ishape[i]);
-      TVM_ICHECK_GE(begin_value, 0);
+      ICHECK_GE(begin_value, 0);
       start.push_back(std::to_string(begin_value));
       const int stride_value = (default_strides || i >= attrs->strides.value().size() ||
                                 !attrs->strides.value()[i].defined())
                                    ? 1
                                    : attrs->strides.value()[i].as<IntImmNode>()->value;
-      TVM_ICHECK_GT(stride_value, 0);
+      ICHECK_GT(stride_value, 0);
       strides.push_back(std::to_string(stride_value));
       int size_value;
       if (attrs->slice_mode == "end") {
@@ -157,7 +157,7 @@ class TensorRTJSONSerializer : public backend::contrib::JSONSerializer {
         int end_value = attrs->end.value()[i].as<IntImmNode>()->value;
         size_value = (end_value == -1) ? ishape[i] - begin_value : end_value;
       }
-      TVM_ICHECK_GT(size_value, 0);
+      ICHECK_GT(size_value, 0);
       size.push_back(std::to_string(size_value));
     }
     std::vector<dmlc::any> start_attr, size_attr, strides_attr;
@@ -175,7 +175,7 @@ class TensorRTJSONSerializer : public backend::contrib::JSONSerializer {
     if (!cfg.defined()) {
       cfg = AttrsWithDefaultValues<TensorRTCompilerConfig>();
     }
-    TVM_ICHECK_EQ(cfg.value()->tensorrt_version.size(), 3);
+    ICHECK_EQ(cfg.value()->tensorrt_version.size(), 3);
     std::vector<std::string> tensorrt_version = {std::to_string(cfg.value()->tensorrt_version[0]),
                                                  std::to_string(cfg.value()->tensorrt_version[1]),
                                                  std::to_string(cfg.value()->tensorrt_version[2])};
@@ -197,7 +197,7 @@ class TensorRTJSONSerializer : public backend::contrib::JSONSerializer {
  * \return A runtime module.
  */
 runtime::Module TensorRTCompiler(const ObjectRef& ref) {
-  TVM_ICHECK(ref->IsInstance<FunctionNode>()) << "The input ref is expected to be a Relay function.";
+  ICHECK(ref->IsInstance<FunctionNode>()) << "The input ref is expected to be a Relay function.";
   Function func = Downcast<Function>(ref);
   std::string func_name = backend::GetExtSymbol(func);
 
@@ -206,7 +206,7 @@ runtime::Module TensorRTCompiler(const ObjectRef& ref) {
   std::string graph_json = serializer.GetJSON();
   auto param_names = serializer.GetParams();
   const auto* pf = runtime::Registry::Get("runtime.tensorrt_runtime_create");
-  TVM_ICHECK(pf != nullptr) << "Cannot find TensorRT runtime module create function.";
+  ICHECK(pf != nullptr) << "Cannot find TensorRT runtime module create function.";
   runtime::Module lib = (*pf)(func_name, graph_json, param_names);
   return lib;
 }

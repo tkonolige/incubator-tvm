@@ -83,19 +83,19 @@ bool QnnConv2DTransposeRel(const Array<Type>& types, int num_inputs, const Attrs
                            const TypeReporter& reporter) {
   // Expected Types: data, weight, input_zero_point, weight_zero_point, input_scale, weight_scale,
   // out_type
-  TVM_ICHECK_EQ(types.size(), 7);
+  ICHECK_EQ(types.size(), 7);
   const auto* data = types[0].as<TensorTypeNode>();
   const auto* weight = types[1].as<TensorTypeNode>();
   if (data == nullptr || weight == nullptr) return false;
   const auto* param = attrs.as<Conv2DTransposeAttrs>();
-  TVM_ICHECK(param != nullptr) << "Conv2DTransposeAttrs cannot be nullptr.";
-  TVM_ICHECK(data->dtype == DataType::Int(8) || data->dtype == DataType::UInt(8))
+  ICHECK(param != nullptr) << "Conv2DTransposeAttrs cannot be nullptr.";
+  ICHECK(data->dtype == DataType::Int(8) || data->dtype == DataType::UInt(8))
       << "Expected qnn conv2d type(int8, uint8) for input but was " << data->dtype;
-  TVM_ICHECK(weight->dtype == DataType::Int(8) || weight->dtype == DataType::UInt(8))
+  ICHECK(weight->dtype == DataType::Int(8) || weight->dtype == DataType::UInt(8))
       << "Expected qnn conv2d type(int8, uint8) for weight but was " << weight->dtype;
-  TVM_ICHECK(param->out_dtype == DataType::Int(16) || param->out_dtype == DataType::Int(32))
+  ICHECK(param->out_dtype == DataType::Int(16) || param->out_dtype == DataType::Int(32))
       << "Expected qnn conv2d type(int32, int16) for output but was " << param->out_dtype;
-  TVM_ICHECK(param->out_dtype.bits() > 0) << "Output dtype bits should be greater than 0.";
+  ICHECK(param->out_dtype.bits() > 0) << "Output dtype bits should be greater than 0.";
 
   // Check the types of scale and zero points.
   for (size_t i = 2; i < 5; ++i) {
@@ -103,19 +103,19 @@ bool QnnConv2DTransposeRel(const Array<Type>& types, int num_inputs, const Attrs
       return false;
     }
   }
-  TVM_ICHECK(IsScalarType(types[2], DataType::Int(32)));    // input_zero_point
-  TVM_ICHECK(IsScalarType(types[3], DataType::Int(32)));    // weight_zero_point
-  TVM_ICHECK(IsScalarType(types[4], DataType::Float(32)));  // input_scale
+  ICHECK(IsScalarType(types[2], DataType::Int(32)));    // input_zero_point
+  ICHECK(IsScalarType(types[3], DataType::Int(32)));    // weight_zero_point
+  ICHECK(IsScalarType(types[4], DataType::Float(32)));  // input_scale
   // Kernel scale can be a vector of length output_channels or a scalar.
   if (param->groups == 1) {
     size_t axis = param->kernel_layout.find('O');
-    TVM_ICHECK(axis != std::string::npos) << "Kernel layout attribute is not defined";
+    ICHECK(axis != std::string::npos) << "Kernel layout attribute is not defined";
     AssignType(types[5], DataType::Float(32), weight->shape[axis], reporter);  // weight_scale
   } else {
     // Here, total number of output channels depend on depth multiplier.
     size_t o_axis = param->kernel_layout.find('O');
     size_t i_axis = param->kernel_layout.find('I');
-    TVM_ICHECK(o_axis != std::string::npos || i_axis != std::string::npos)
+    ICHECK(o_axis != std::string::npos || i_axis != std::string::npos)
         << "Kernel layout attribute is not defined";
     AssignType(types[5], DataType::Float(32), weight->shape[i_axis] * weight->shape[o_axis],
                reporter);  // kernel scale

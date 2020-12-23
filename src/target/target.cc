@@ -356,7 +356,7 @@ Target::Target(const String& tag_or_config_or_target_str) {
   try {
     target = TargetInternal::FromString(tag_or_config_or_target_str);
   } catch (const Error& e) {
-    TVM_LOG(FATAL) << "ValueError" << e.what()
+    LOG(FATAL) << "ValueError" << e.what()
                << ". Target creation from string failed: " << tag_or_config_or_target_str;
   }
   data_ = std::move(target);
@@ -367,7 +367,7 @@ Target::Target(const Map<String, ObjectRef>& config) {
   try {
     target = TargetInternal::FromConfig({config.begin(), config.end()});
   } catch (const Error& e) {
-    TVM_LOG(FATAL) << "ValueError" << e.what()
+    LOG(FATAL) << "ValueError" << e.what()
                << ". Target creation from config dict failed: " << config;
   }
   data_ = std::move(target);
@@ -421,8 +421,8 @@ void Target::EnterWithScope() {
 
 void Target::ExitWithScope() {
   TVMTargetThreadLocalEntry* entry = TVMTargetThreadLocalStore::Get();
-  TVM_ICHECK(!entry->context_stack.empty());
-  TVM_ICHECK(entry->context_stack.top().same_as(*this));
+  ICHECK(!entry->context_stack.empty());
+  ICHECK(entry->context_stack.top().same_as(*this));
   entry->context_stack.pop();
 }
 
@@ -431,7 +431,7 @@ Target Target::Current(bool allow_not_defined) {
   if (entry->context_stack.size() > 0) {
     return entry->context_stack.top();
   }
-  TVM_ICHECK(allow_not_defined)
+  ICHECK(allow_not_defined)
       << "Target context required. Please set it by constructing a TargetContext";
 
   return Target();
@@ -450,14 +450,14 @@ void TargetInternal::ConstructorDispatcher(TVMArgs args, TVMRetValue* rv) {
       *rv = Target(arg.operator Map<String, ObjectRef>());
     } else if (arg.type_code() == kTVMObjectHandle) {
       ObjectRef obj = arg;
-      TVM_LOG(FATAL) << "TypeError: Cannot create target with type: " << obj->GetTypeKey();
+      LOG(FATAL) << "TypeError: Cannot create target with type: " << obj->GetTypeKey();
     } else {
-      TVM_LOG(FATAL) << "TypeError: Cannot create target with type: "
+      LOG(FATAL) << "TypeError: Cannot create target with type: "
                  << runtime::ArgTypeCode2Str(arg.type_code());
     }
     return;
   }
-  TVM_LOG(FATAL) << "ValueError: Invalid number of arguments. Expect 1, but gets: " << args.num_args;
+  LOG(FATAL) << "ValueError: Invalid number of arguments. Expect 1, but gets: " << args.num_args;
 }
 
 ObjectPtr<Object> TargetInternal::FromString(const String& tag_or_config_or_target_str) {
@@ -473,7 +473,7 @@ ObjectPtr<Object> TargetInternal::FromString(const String& tag_or_config_or_targ
 
 ObjectPtr<Object> TargetInternal::FromConfigString(const String& config_str) {
   const auto* loader = tvm::runtime::Registry::Get("target._load_config_dict");
-  TVM_ICHECK(loader) << "AttributeError: \"target._load_config_dict\" is not registered. Please check "
+  ICHECK(loader) << "AttributeError: \"target._load_config_dict\" is not registered. Please check "
                     "if the python module is properly loaded";
   Optional<Map<String, ObjectRef>> config = (*loader)(config_str);
   if (!config.defined()) {

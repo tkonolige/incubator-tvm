@@ -34,8 +34,8 @@
 namespace tvm {
 namespace relay {
 MixedModeVisitor::MixedModeVisitor(int visit_limit) {
-  TVM_ICHECK(visit_limit > 0) << "Dataflow visit limit must be greater than 0";
-  TVM_ICHECK(visit_limit < 10) << "Dataflow visit limit must be less than 10";
+  ICHECK(visit_limit > 0) << "Dataflow visit limit must be greater than 0";
+  ICHECK(visit_limit < 10) << "Dataflow visit limit must be less than 10";
   visit_limit_ = visit_limit;
 }
 
@@ -456,13 +456,13 @@ class ExprBinder : public MixedModeMutator, PatternMutator {
   using MixedModeMutator::VisitExpr_;
 
   Expr VisitExpr_(const LetNode* op) final {
-    TVM_ICHECK(!args_map_.count(op->var)) << "Cannot bind an internel variable in let";
+    ICHECK(!args_map_.count(op->var)) << "Cannot bind an internel variable in let";
     return ExprMutator::VisitExpr_(op);
   }
 
   Expr VisitExpr_(const FunctionNode* op) final {
     for (Var param : op->params) {
-      TVM_ICHECK(!args_map_.count(param)) << "Cannnot bind an internal function parameter";
+      ICHECK(!args_map_.count(param)) << "Cannnot bind an internal function parameter";
     }
     return ExprMutator::VisitExpr_(op);
   }
@@ -485,7 +485,7 @@ class ExprBinder : public MixedModeMutator, PatternMutator {
   }
 
   Var VisitVar(const Var& v) final {
-    TVM_ICHECK(!args_map_.count(v)) << "Cannnot bind an internal pattern variable";
+    ICHECK(!args_map_.count(v)) << "Cannnot bind an internal pattern variable";
     return v;
   }
 
@@ -516,7 +516,7 @@ Expr Bind(const Expr& expr, const tvm::Map<Var, Expr>& args_map) {
       }
     }
     ret = Function(new_params, new_body, func->ret_type, func->type_params, func->attrs);
-    TVM_ICHECK_EQ(FreeVars(expr).size(), FreeVars(ret).size());
+    ICHECK_EQ(FreeVars(expr).size(), FreeVars(ret).size());
     return std::move(ret);
   } else {
     return ExprBinder(args_map).VisitExpr(expr);
@@ -528,7 +528,7 @@ TVM_REGISTER_GLOBAL("relay.ir.Bind").set_body([](TVMArgs args, TVMRetValue* ret)
   if (input->IsInstance<ExprNode>()) {
     *ret = Bind(Downcast<Expr>(input), args[1]);
   } else {
-    TVM_ICHECK(input->IsInstance<TypeNode>());
+    ICHECK(input->IsInstance<TypeNode>());
     *ret = Bind(Downcast<Type>(input), args[1]);
   }
 });
