@@ -63,7 +63,7 @@ class With {
     ctx_.EnterWithScope();
   }
   /*! \brief destructor, leaves the scope of the context. */
-  ~With() noexcept(false) { ctx_.ExitWithScope(); }
+  ~With() DMLC_THROW_EXCEPTION { ctx_.ExitWithScope(); }
 
  private:
   /*! \brief internal context type. */

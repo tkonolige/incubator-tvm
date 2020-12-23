@@ -139,7 +139,7 @@ inline TargetTagRegEntry& TargetTagRegEntry::set_name() {
 }
 
 #define TVM_TARGET_TAG_REGISTER_VAR_DEF \
-  static __attribute__((unused)) ::tvm::TargetTagRegEntry& __make_##TargetTag
+  static DMLC_ATTRIBUTE_UNUSED ::tvm::TargetTagRegEntry& __make_##TargetTag
 
 /*!
  * \def TVM_REGISTER_TARGET_TAG

@@ -157,7 +157,7 @@ class InternalError : public std::exception {
 class LogFatal {
  public:
   LogFatal(const std::string& file, int lineno) : file_(file), lineno_(lineno) {}
-  ~LogFatal() noexcept(false) {
+  ~LogFatal() DMLC_THROW_EXCEPTION {
     throw InternalError(file_, lineno_, stream_.str());
   }
   std::ostringstream& stream() { return stream_; }

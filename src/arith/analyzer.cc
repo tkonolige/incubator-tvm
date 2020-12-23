@@ -171,7 +171,7 @@ TVM_REGISTER_GLOBAL("arith.CreateAnalyzer").set_body([](TVMArgs args, TVMRetValu
       });
     } else if (name == "enter_constraint_context") {
       return PackedFunc([self](TVMArgs args, TVMRetValue* ret) {
-        // can't use make_shared due to noexcept(false) decl in destructor,
+        // can't use make_shared due to DMLC_THROW_EXCEPTION decl in destructor,
         // see https://stackoverflow.com/a/43907314
         auto ctx = std::shared_ptr<With<ConstraintContext> >(
             new With<ConstraintContext>(self.get(), args[0]));

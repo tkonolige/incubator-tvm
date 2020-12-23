@@ -256,17 +256,17 @@ using runtime::TVMArgValue;
 struct AttrNopEntry {
   using TSelf = AttrNopEntry;
 
-  TSelf& describe(__attribute__((unused)) const char* str) { return *this; }
+  TSelf& describe(DMLC_ATTRIBUTE_UNUSED const char* str) { return *this; }
   template <typename T>
-  TSelf& set_default(__attribute__((unused)) const T& value) {
+  TSelf& set_default(DMLC_ATTRIBUTE_UNUSED const T& value) {
     return *this;
   }
   template <typename T>
-  TSelf& set_lower_bound(__attribute__((unused)) const T& begin) {
+  TSelf& set_lower_bound(DMLC_ATTRIBUTE_UNUSED const T& begin) {
     return *this;
   }
   template <typename T>
-  TSelf& set_upper_bound(__attribute__((unused)) const T& end) {
+  TSelf& set_upper_bound(DMLC_ATTRIBUTE_UNUSED const T& end) {
     return *this;
   }
 };
@@ -352,7 +352,7 @@ struct AttrInitEntry {
   }
 
   // If the value is still missing in destruction time throw an error.
-  ~AttrInitEntry() noexcept(false) {
+  ~AttrInitEntry() DMLC_THROW_EXCEPTION {
     if (value_missing_) {
       std::ostringstream os;
       os << type_key_ << ": Cannot find required field \'" << key_ << "\' during initialization."
@@ -392,7 +392,7 @@ struct AttrInitEntry {
     value_missing_ = false;
     return *this;
   }
-  TSelf& describe(__attribute__((unused)) const char* str) { return *this; }
+  TSelf& describe(DMLC_ATTRIBUTE_UNUSED const char* str) { return *this; }
 };
 
 // Template function to allow smart conversion
@@ -568,11 +568,11 @@ class AttrDocEntry {
     return *this;
   }
   template <typename T>
-  TSelf& set_lower_bound(__attribute__((unused)) T begin) {
+  TSelf& set_lower_bound(DMLC_ATTRIBUTE_UNUSED T begin) {
     return *this;
   }
   template <typename T>
-  TSelf& set_upper_bound(__attribute__((unused)) T end) {
+  TSelf& set_upper_bound(DMLC_ATTRIBUTE_UNUSED T end) {
     return *this;
   }
 
@@ -614,20 +614,20 @@ struct AttrTriggerNonDefaultEntry {
   AttrTriggerNonDefaultEntry(AttrVisitor* visitor, const char* key, T* data)
       : visitor_(visitor), key_(key), data_(data) {}
 
-  ~AttrTriggerNonDefaultEntry() noexcept(false) {
+  ~AttrTriggerNonDefaultEntry() DMLC_THROW_EXCEPTION {
     if (trigger_) {
       visitor_->Visit(key_, data_);
     }
   }
-  TSelf& describe(__attribute__((unused)) const char* str) { return *this; }
+  TSelf& describe(DMLC_ATTRIBUTE_UNUSED const char* str) { return *this; }
   TSelf& set_default(const T& value) {
     if (tvm::StructuralEqual()(value, *data_)) {
       trigger_ = false;
     }
     return *this;
   }
-  TSelf& set_lower_bound(__attribute__((unused)) const T& begin) { return *this; }
-  TSelf& set_upper_bound(__attribute__((unused)) const T& end) { return *this; }
+  TSelf& set_lower_bound(DMLC_ATTRIBUTE_UNUSED const T& begin) { return *this; }
+  TSelf& set_upper_bound(DMLC_ATTRIBUTE_UNUSED const T& end) { return *this; }
 
  private:
   AttrVisitor* visitor_;

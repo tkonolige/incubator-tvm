@@ -662,7 +662,7 @@ struct ObjectPtrEqual {
 
 /*! \brief helper macro to supress unused warning */
 #if defined(__GNUC__)
-#define TVM_ATTRIBUTE_UNUSED __attribute__((unused))
+#define TVM_ATTRIBUTE_UNUSED DMLC_ATTRIBUTE_UNUSED
 #else
 #define TVM_ATTRIBUTE_UNUSED
 #endif
