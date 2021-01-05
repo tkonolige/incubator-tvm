@@ -31,6 +31,7 @@
 #include <string>
 
 #include "./dmlc_shim.h" // for dmlc::DebugLoggingEnabled and dmlc::LogMessageVoidify
+#include "tvm/runtime/c_runtime_api.h"
 
 // a technique that enables overriding macro names on the number of parameters. This is used
 // to define other macros below
@@ -119,7 +120,17 @@
 
 namespace tvm {
 
+#ifndef TVM_BACKTRACE_DISABLED
 std::string backtrace();
+#else
+// This inline function is to work around a linking error I am having when using MSVC
+// If the function definition is in logging.cc then the linker can't find it no matter what
+// kind of attributes (dllexport) I decorate it with. This is temporary and will be addressed
+// when we get backtrace working on Windows.
+inline std::string backtrace(){
+  return "";
+}
+#endif
 
 class Error : public std::runtime_error {
   public:

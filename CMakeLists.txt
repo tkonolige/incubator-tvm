@@ -379,9 +379,13 @@ set_property(TARGET tvm APPEND PROPERTY LINK_OPTIONS "${TVM_VISIBILITY_FLAGS}")
 add_library(tvm_runtime SHARED $<TARGET_OBJECTS:tvm_runtime_objs>)
 set_property(TARGET tvm_runtime APPEND PROPERTY LINK_OPTIONS "${TVM_VISIBILITY_FLAGS}")
 
-include(cmake/modules/Libbacktrace.cmake)
-target_link_libraries(tvm PRIVATE libbacktrace)
-target_link_libraries(tvm_runtime PRIVATE libbacktrace)
+if(NOT MSVC)
+  include(cmake/modules/Libbacktrace.cmake)
+  target_link_libraries(tvm PRIVATE libbacktrace)
+  target_link_libraries(tvm_runtime PRIVATE libbacktrace)
+else()
+  add_definitions(-DTVM_BACKTRACE_DISABLED)
+endif()
 
 if(USE_MICRO)
   # NOTE: cmake doesn't track dependencies at the file level across subdirectories. For the

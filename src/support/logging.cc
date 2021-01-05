@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+#ifndef TVM_BACKTRACE_DISABLED
+
 #include <backtrace.h>
 #include <cxxabi.h>
 #include <tvm/support/logging.h>
@@ -115,3 +118,4 @@ std::string tvm::backtrace() {
 
   return s.str();
 }
+#endif
