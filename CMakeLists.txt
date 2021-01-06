@@ -531,18 +531,18 @@ if(MSVC)
   target_compile_definitions(tvm_runtime_objs PRIVATE -DTVM_EXPORTS)
 endif()
 
-set(IS_DEBUG_BUILD OFF)
+set(TVM_IS_DEBUG_BUILD OFF)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo" OR CMAKE_CXX_FLAGS MATCHES "-g")
-  set(IS_DEBUG_BUILD ON)
+  set(TVM_IS_DEBUG_BUILD ON)
 endif()
 
 # Change relative paths in backtrace to absolute ones
-if(IS_DEBUG_BUILD)
+if(TVM_IS_DEBUG_BUILD)
   target_compile_options(tvm PRIVATE "-ffile-prefix-map=..=${CMAKE_CURRENT_SOURCE_DIR}")
 endif()
 
 # Run dsymutil to generate debugging symbols for backtraces
-if(APPLE AND IS_DEBUG_BUILD)
+if(APPLE AND TVM_IS_DEBUG_BUILD)
   find_program(DSYMUTIL dsymutil)
   mark_as_advanced(DSYMUTIL)
   add_custom_command(TARGET tvm
