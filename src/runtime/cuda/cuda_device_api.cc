@@ -23,7 +23,7 @@
  */
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/device_api.h>
 #include <tvm/runtime/registry.h>
 

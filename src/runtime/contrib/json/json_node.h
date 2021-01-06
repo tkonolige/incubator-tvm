@@ -26,7 +26,7 @@
 #define TVM_RUNTIME_CONTRIB_JSON_JSON_NODE_H_
 
 #include <dlpack/dlpack.h>
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/data_type.h>
 
 #include <cstdint>

@@ -18,7 +18,7 @@
  */
 
 /*!
- * \file tvm/support/dmlc.h
+ * \file tvm/support/dmlc_shim.h
  * \brief dmlc headers without polluting the global namespace.
  */
 

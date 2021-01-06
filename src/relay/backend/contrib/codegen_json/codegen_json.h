@@ -24,7 +24,7 @@
 #ifndef TVM_RELAY_BACKEND_CONTRIB_CODEGEN_JSON_CODEGEN_JSON_H_
 #define TVM_RELAY_BACKEND_CONTRIB_CODEGEN_JSON_CODEGEN_JSON_H_
 
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/node/container.h>
 #include <tvm/node/reflection.h>
 #include <tvm/runtime/container.h>

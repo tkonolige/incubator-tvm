@@ -22,7 +22,7 @@
  */
 #include "file_utils.h"
 
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/serializer.h>
 #include <tvm/support/logging.h>
 

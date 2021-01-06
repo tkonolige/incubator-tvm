@@ -26,6 +26,7 @@
 #define TVM_SUPPORT_WITH_H_
 
 #include <utility>
+#include <tvm/support/dmlc_shim.h>
 
 namespace tvm {
 

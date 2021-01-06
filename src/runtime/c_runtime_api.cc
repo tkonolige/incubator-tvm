@@ -21,7 +21,7 @@
  * \file c_runtime_api.cc
  * \brief Device specific implementations
  */
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/c_backend_api.h>
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/device_api.h>

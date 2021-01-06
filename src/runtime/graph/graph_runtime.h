@@ -26,7 +26,7 @@
 #define TVM_RUNTIME_GRAPH_GRAPH_RUNTIME_H_
 
 #include <dlpack/dlpack.h>
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/ndarray.h>
 #include <tvm/runtime/packed_func.h>
 

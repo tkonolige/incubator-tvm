@@ -45,7 +45,7 @@
 #ifndef TVM_AUTO_SCHEDULER_TRANSFORM_STEP_H_
 #define TVM_AUTO_SCHEDULER_TRANSFORM_STEP_H_
 
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/node/node.h>
 #include <tvm/te/schedule.h>
 

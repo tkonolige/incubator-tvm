@@ -21,7 +21,7 @@
  * \file src/ir/transform.cc
  * \brief Infrastructure for transformation passes.
  */
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/ir/transform.h>
 #include <tvm/node/repr_printer.h>
 #include <tvm/runtime/container.h>

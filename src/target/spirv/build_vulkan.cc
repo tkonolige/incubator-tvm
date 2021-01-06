@@ -22,7 +22,7 @@
  * \brief Build SPIRV block
  */
 // Use libspirv for parsing and validating code.
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <libspirv.h>
 #include <tvm/tir/transform.h>
 

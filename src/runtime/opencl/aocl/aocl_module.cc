@@ -22,7 +22,7 @@
  */
 #include "aocl_module.h"
 
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/registry.h>
 
 #include <string>

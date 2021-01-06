@@ -25,7 +25,7 @@
 #define TVM_RUNTIME_CONTRIB_MPS_MPS_UTILS_H_
 
 #import <MetalPerformanceShaders/MetalPerformanceShaders.h>
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/data_type.h>
 #include <tvm/runtime/device_api.h>
 #include <tvm/runtime/registry.h>

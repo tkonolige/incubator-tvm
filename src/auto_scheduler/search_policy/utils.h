@@ -25,7 +25,7 @@
 #ifndef TVM_AUTO_SCHEDULER_SEARCH_POLICY_UTILS_H_
 #define TVM_AUTO_SCHEDULER_SEARCH_POLICY_UTILS_H_
 
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/auto_scheduler/loop_state.h>
 #include <tvm/auto_scheduler/search_policy.h>
 #include <tvm/ir/expr.h>

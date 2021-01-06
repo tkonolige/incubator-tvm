@@ -21,7 +21,7 @@
  * \file thread_pool.cc
  * \brief Threadpool for multi-threading runtime.
  */
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/c_backend_api.h>
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/packed_func.h>

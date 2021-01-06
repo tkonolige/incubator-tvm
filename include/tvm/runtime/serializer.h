@@ -25,7 +25,7 @@
 #ifndef TVM_RUNTIME_SERIALIZER_H_
 #define TVM_RUNTIME_SERIALIZER_H_
 
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/c_runtime_api.h>
 #include <tvm/runtime/ndarray.h>
 

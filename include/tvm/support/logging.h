@@ -30,7 +30,7 @@
 #include <sstream>
 #include <string>
 
-#include "./dmlc.h" // for dmlc::DebugLoggingEnabled and dmlc::LogMessageVoidify
+#include "./dmlc_shim.h" // for dmlc::DebugLoggingEnabled and dmlc::LogMessageVoidify
 
 // a technique that enables overriding macro names on the number of parameters. This is used
 // to define other macros below

@@ -21,7 +21,7 @@
  * \file relay/ir/transform.cc
  * \brief Relay specific transformation passes.
  */
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/node/repr_printer.h>
 #include <tvm/relay/transform.h>
 #include <tvm/runtime/registry.h>

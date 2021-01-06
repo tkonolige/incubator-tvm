@@ -19,7 +19,7 @@
 /*!
  * \file src/target/generic_func.cc
  */
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/node/node.h>
 #include <tvm/node/repr_printer.h>
 #include <tvm/runtime/container.h>

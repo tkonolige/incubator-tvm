@@ -24,7 +24,7 @@
 #ifndef TVM_RUNTIME_VM_SERIALIZE_UTILS_H_
 #define TVM_RUNTIME_VM_SERIALIZE_UTILS_H_
 
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/vm/executable.h>
 
 #include <functional>

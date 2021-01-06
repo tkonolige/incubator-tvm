@@ -21,7 +21,7 @@
  * \file registry.cc
  * \brief The global registry of packed function.
  */
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/registry.h>
 #include <tvm/support/logging.h>
 

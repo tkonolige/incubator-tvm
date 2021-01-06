@@ -20,7 +20,7 @@
 /*!
  * \file External random functions for tensor.
  */
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/data_type.h>
 #include <tvm/runtime/registry.h>
 #include <tvm/support/logging.h>

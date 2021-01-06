@@ -21,7 +21,7 @@
  * \file rocm_device_api.cc
  * \brief GPU specific API
  */
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <hip/hip_runtime_api.h>
 #include <hsa/hsa.h>
 #include <tvm/runtime/device_api.h>

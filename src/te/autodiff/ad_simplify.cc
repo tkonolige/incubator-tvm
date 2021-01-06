@@ -44,7 +44,7 @@
  * Due to TVM's restriction, we also lift the reduction to the top of the compute stage.
  *
  */
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/arith/analyzer.h>
 #include <tvm/arith/int_solver.h>
 #include <tvm/runtime/registry.h>

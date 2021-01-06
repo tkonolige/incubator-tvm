@@ -2,8 +2,9 @@ include(ExternalProject)
 
 ExternalProject_Add(project_libbacktrace
   PREFIX libbacktrace
-  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbacktrace"
-  CONFIGURE_COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libbacktrace/configure" "--prefix=${CMAKE_CURRENT_BINARY_DIR}/libbacktrace"
+  GIT_REPOSITORY https://github.com/ianlancetaylor/libbacktrace.git
+  GIT_TAG 1da441c1b020bef75d040dd300814b1a49e0e529
+  CONFIGURE_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/libbacktrace/src/project_libbacktrace/configure" "--prefix=${CMAKE_CURRENT_BINARY_DIR}/libbacktrace"
   INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/libbacktrace"
   BUILD_COMMAND make
   INSTALL_COMMAND make install

@@ -20,7 +20,7 @@
  *  Compile executable modules.
  * \file src/target/target.cc
  */
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/registry.h>
 #include <tvm/target/tag.h>
 #include <tvm/target/target.h>

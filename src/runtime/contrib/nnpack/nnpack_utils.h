@@ -22,7 +22,7 @@
  */
 #ifndef TVM_RUNTIME_CONTRIB_NNPACK_NNPACK_UTILS_H_
 #define TVM_RUNTIME_CONTRIB_NNPACK_NNPACK_UTILS_H_
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <nnpack.h>
 #include <tvm/runtime/data_type.h>
 #include <tvm/runtime/registry.h>

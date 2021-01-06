@@ -20,7 +20,7 @@
 /*!
  * \file opencl_device_api.cc
  */
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/registry.h>
 
 #include "opencl_common.h"

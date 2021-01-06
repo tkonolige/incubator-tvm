@@ -17,7 +17,7 @@
  * under the License.
  */
 
-#include <tvm/support/dmlc.h>
+#include <tvm/support/dmlc_shim.h>
 #include <tvm/runtime/device_api.h>
 #include <tvm/runtime/registry.h>
 #include <vulkan/vulkan.h>
