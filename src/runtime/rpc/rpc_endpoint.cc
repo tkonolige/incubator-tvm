@@ -557,7 +557,7 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
       ICHECK_EQ(tkey, "rpc") << "Constructor " << constructor_name << " to return an RPCModule";
       serving_session_ = RPCModuleGetSession(mod);
       this->ReturnVoid();
-    } catch (const std::runtime_error& e) {
+    } catch (const std::exception& e) {
       this->ReturnException(e.what());
     }
 
@@ -579,7 +579,7 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
         }
         this->SwitchToState(kRecvPacketNumBytes);
       });
-    } catch (const std::runtime_error& e) {
+    } catch (const std::exception& e) {
       this->ReturnException(e.what());
       this->SwitchToState(kRecvPacketNumBytes);
     }
@@ -598,7 +598,7 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
       setter(0, rv);
 
       this->ReturnPackedSeq(TVMArgs(&ret_value, &ret_tcode, 1));
-    } catch (const std::runtime_error& e) {
+    } catch (const std::exception& e) {
       this->ReturnException(e.what());
     }
     this->SwitchToState(kRecvPacketNumBytes);

@@ -121,15 +121,16 @@ namespace tvm {
 
 std::string backtrace();
 
-struct Error : public std::runtime_error {
+class Error : public std::runtime_error {
+  public:
   explicit Error(const std::string &s) : std::runtime_error(s) {}
 };
 
-class InternalError : public std::exception {
+class InternalError : public Error {
  public:
   InternalError(const std::string& file, int lineno, const std::string& message,
         const std::time_t& time = std::time(nullptr), std::string stacktrace = backtrace())
-      : file_(file), lineno_(lineno), message_(message), time_(time), stacktrace_(stacktrace) {
+      : Error(""), file_(file), lineno_(lineno), message_(message), time_(time), stacktrace_(stacktrace) {
     std::ostringstream s;
     s << "[" << std::put_time(std::localtime(&time), "%H:%M:%S") << "] " << file << ":" << lineno
       << ": " << std::endl
