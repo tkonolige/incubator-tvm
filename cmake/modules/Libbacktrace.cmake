@@ -9,15 +9,20 @@ ExternalProject_Add(project_libbacktrace
   BUILD_COMMAND make
   INSTALL_COMMAND make install
   BUILD_BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/libbacktrace/lib/libbacktrace.a" "${CMAKE_CURRENT_BINARY_DIR}/libbacktrace/include/backtrace.h"
+  # disable the builtin update because it rebuilds on every build
+  UPDATE_DISCONNECTED ON
+  UPDATE_COMMAND ""
   )
 
 # rebuild libbacktrace when its source files change
 file(GLOB libbacktrace_srcs 3rdparty/libbacktrace/*)
 ExternalProject_Add_Step(project_libbacktrace sources DEPENDERS configure DEPENDS "${libbacktrace_srcs}")
 
-ExternalProject_Get_Property(project_libbacktrace install_dir)
+# Only rebuild libbacktrace if this file changes
+ExternalProject_Add_Step(project_libbacktrace update-new DEPENDERS configure DEPENDS "${CMAKE_CURRENT_LIST_DIR}/Libbacktrace.cmake" COMMAND cd ${CMAKE_CURRENT_BINARY_DIR}/libbacktrace/src/project_libbacktrace; git pull )
+
 add_library(libbacktrace STATIC IMPORTED)
 add_dependencies(libbacktrace project_libbacktrace)
-set_property(TARGET libbacktrace PROPERTY IMPORTED_LOCATION ${install_dir}/lib/libbacktrace.a)
-file(MAKE_DIRECTORY ${install_dir}/include) # create include directory so cmake doesn't complain
-target_include_directories(libbacktrace INTERFACE $<BUILD_INTERFACE:${install_dir}/include>)
+set_property(TARGET libbacktrace PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/libbacktrace/lib/libbacktrace.a)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/libbacktrace/include) # create include directory so cmake doesn't complain
+target_include_directories(libbacktrace INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/libbacktrace/include>)
