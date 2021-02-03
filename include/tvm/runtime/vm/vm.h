@@ -176,7 +176,7 @@ class VirtualMachine : public runtime::ModuleNode {
    */
   virtual void LoadExecutable(const Executable* exec);
 
- protected:
+ public:
   /*! \brief Push a call frame on to the call stack. */
   void PushFrame(Index arg_count, Index ret_pc, const VMFunction& vm_func);
 
@@ -198,7 +198,7 @@ class VirtualMachine : public runtime::ModuleNode {
    * \param reg The register to read from.
    * \return The read object.
    */
-  inline ObjectRef ReadRegister(RegName reg) const;
+  ObjectRef ReadRegister(RegName reg) const;
 
   /*!
    * \brief Read a VM register and cast it to int32_t
@@ -258,7 +258,7 @@ class VirtualMachine : public runtime::ModuleNode {
    */
   void InvokeGlobal(const VMFunction& func, const std::vector<ObjectRef>& args);
 
- protected:
+ public:
   /*! \brief The virtual machine's packed function table. */
   std::vector<PackedFunc> packed_funcs_;
   /*! \brief The current stack of call frames. */

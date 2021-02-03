@@ -85,6 +85,5 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   target_compile_options(tvm_objs PRIVATE $<$<COMPILE_LANGUAGE:CXX>: ${warning_opts}>)
   target_compile_options(tvm_runtime_objs PRIVATE $<$<COMPILE_LANGUAGE:CXX>: ${warning_opts}>)
 
-
   endif ()
 endif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")

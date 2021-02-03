@@ -94,6 +94,15 @@ class ROCMModuleNode : public runtime::ModuleNode {
     return "";
   }
 
+  void Initialize(int device_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    // must recheck under the lock scope
+
+    if (module_[device_id] == nullptr) {
+      ROCM_DRIVER_CALL(hipModuleLoadData(&(module_[device_id]), data_.c_str()));
+    }
+  }
+
   // get a CUfunction from primary context in device_id
   hipFunction_t GetFunc(int device_id, const std::string& func_name) {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -191,6 +200,9 @@ PackedFunc ROCMModuleNode::GetFunction(const std::string& name,
                                        const ObjectPtr<Object>& sptr_to_self) {
   ICHECK_EQ(sptr_to_self.get(), this);
   ICHECK_NE(name, symbol::tvm_module_main) << "Device function do not have main";
+  if(name == symbol::tvm_initialize) {
+    return TypedPackedFunc<void(int)>([this](int device_id){Initialize(device_id);});
+  }
   auto it = fmap_.find(name);
   if (it == fmap_.end()) return PackedFunc();
   const FunctionInfo& info = it->second;

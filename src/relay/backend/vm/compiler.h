@@ -80,9 +80,44 @@ struct VMCompilerContext {
   // Device type for constants
   std::vector<Index> const_device_type;
   // List of cached functions
-  std::vector<CachedFunc> cached_funcs;
+  std::vector<std::pair<CachedFunc, size_t>> cached_funcs;
   // The functions that have been lowered.
   std::unordered_map<tir::PrimFunc, size_t, ObjectPtrHash, ObjectPtrEqual> seen_funcs;
+  // Reserved slots at the start of the function table.
+  std::unordered_map<std::string, size_t> reserved_funcs;
+
+  size_t next_func_index() const {
+    return cached_funcs.size() + reserved_funcs.size();
+  }
+
+  size_t add_builtin_func(CachedFunc func) {
+    size_t index = next_func_index();
+    cached_funcs.push_back({func, index});
+    return index;
+  }
+
+  size_t lookup_or_add_func(CachedFunc cfunc, tir::PrimFunc pfunc) {
+    auto it = seen_funcs.find(pfunc);
+    if(it == seen_funcs.end()) {
+      size_t index = next_func_index();
+      cached_funcs.push_back({cfunc, index});
+      seen_funcs[pfunc] = index;
+      return index;
+    } else {
+      return it->second;
+    }
+  }
+
+  size_t add_reserved_func(std::string name) {
+    auto it = reserved_funcs.find(name);
+    if(it == reserved_funcs.end()) {
+      size_t index = next_func_index();
+      reserved_funcs[name] = index;
+      return index;
+    }else {
+      return it->second;
+    }
+  }
 };
 
 class VMCompiler : public runtime::ModuleNode {

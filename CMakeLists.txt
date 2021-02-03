@@ -238,6 +238,7 @@ file(GLOB_RECURSE RELAY_PASS_SRCS
     src/relay/analysis/*.cc
     src/relay/transforms/*.cc
     src/relay/quantize/*.cc
+    src/relay/profiler/*.cc
     )
 file(GLOB RELAY_BACKEND_SRCS
     src/relay/backend/*.cc
@@ -388,6 +389,8 @@ endif()
 if(USE_CPP_RPC)
   add_subdirectory("apps/cpp_rpc")
 endif()
+
+add_subdirectory("apps/vm")
 
 if(USE_RELAY_DEBUG)
   message(STATUS "Building Relay in debug mode...")

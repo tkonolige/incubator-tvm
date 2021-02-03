@@ -291,7 +291,13 @@ void VirtualMachine::LoadExecutable(const Executable* exec) {
       packed_funcs_.resize(packed_index + 1);
     }
     tvm::runtime::PackedFunc pf = lib.GetFunction(packed_name, true);
-    ICHECK(pf != nullptr) << "Cannot find function in module: " << packed_name;
+    // If the packed function does not exist in the IRModule, we try and look
+    // it up in the registry.
+    // TODO(tkonolige): explicitly mark functions as in the registry or in the IRModule
+    if(pf == nullptr) {
+      pf = *Registry::Get(packed_name);
+      ICHECK(pf != nullptr) << "Cannot find function in module or runtime Registry: " << packed_name;
+    }
     packed_funcs_[packed_index] = pf;
   }
   for (size_t i = 0; i < packed_funcs_.size(); ++i) {
@@ -319,7 +325,7 @@ inline void VirtualMachine::WriteRegister(Index r, const ObjectRef& val) {
   frames_.back().register_file[r] = val;
 }
 
-inline ObjectRef VirtualMachine::ReadRegister(Index r) const {
+ObjectRef VirtualMachine::ReadRegister(Index r) const {
   return frames_.back().register_file[r];
 }
 
@@ -414,16 +420,22 @@ void VirtualMachine::RunLoop() {
         ICHECK_LE(instr.packed_index, packed_funcs_.size());
         const auto& func = packed_funcs_[instr.packed_index];
         const auto& arity = instr.arity;
+        if(instr.is_debugging) {
+          // Debugging functions take one argument: the VM object.
+          TVMRetValue rv;
+          func(GetRef<Module>(this));
+        } else{
         std::vector<ObjectRef> args;
         for (Index i = 0; i < arity; ++i) {
           DLOG(INFO) << "arg" << i << " $" << instr.packed_args[i];
           auto arg = ReadRegister(instr.packed_args[i]);
           args.push_back(arg);
         }
-
         // We no longer need to write the registers back, we write directly
         // through the registers mutably.
         InvokePacked(instr.packed_index, func, arity, instr.output_size, args);
+        }
+
         pc_++;
         goto main_loop;
       }

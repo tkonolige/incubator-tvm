@@ -133,6 +133,14 @@ class CUDAModuleNode : public runtime::ModuleNode {
     return global;
   }
 
+  void Initialize(int device_id) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    // must recheck under the lock scope
+    if (module_[device_id] == nullptr) {
+      CUDA_DRIVER_CALL(cuModuleLoadData(&(module_[device_id]), data_.c_str()));
+    }
+  }
+
  private:
   // the binary data
   std::string data_;
@@ -236,6 +244,9 @@ PackedFunc CUDAModuleNode::GetFunction(const std::string& name,
   ICHECK_NE(name, symbol::tvm_module_main) << "Device function do not have main";
   if (name == symbol::tvm_prepare_global_barrier) {
     return PackedFunc(CUDAPrepGlobalBarrier(this, sptr_to_self));
+  }
+  if (name == symbol::tvm_initialize) {
+    return TypedPackedFunc<void(int)>([this](int device_id){Initialize(device_id);});
   }
   auto it = fmap_.find(name);
   if (it == fmap_.end()) return PackedFunc();

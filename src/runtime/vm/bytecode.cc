@@ -82,6 +82,7 @@ Instruction::Instruction(const Instruction& instr) {
       this->arity = instr.arity;
       this->output_size = instr.output_size;
       this->packed_args = Duplicate<RegName>(instr.packed_args, instr.arity);
+      this->is_debugging = instr.is_debugging;
       return;
     case Opcode::InvokeClosure:
       this->closure = instr.closure;
@@ -189,6 +190,7 @@ Instruction& Instruction::operator=(const Instruction& instr) {
       this->output_size = instr.output_size;
       FreeIf(this->packed_args);
       this->packed_args = Duplicate<RegName>(instr.packed_args, instr.arity);
+      this->is_debugging = instr.is_debugging;
       return *this;
     case Opcode::InvokeClosure:
       this->closure = instr.closure;
@@ -295,7 +297,9 @@ Instruction Instruction::Fatal() {
 }
 
 Instruction Instruction::InvokePacked(Index packed_index, Index arity, Index output_size,
-                                      const std::vector<RegName>& args) {
+                                      const std::vector<RegName>& args, bool is_debugging) {
+  ICHECK(!is_debugging || arity == 1) << "Debugging functions must take a single parameter (the VM object)";
+  ICHECK(!is_debugging || output_size == 0) << "Debugging functions must have no return values";
   Instruction instr;
   instr.op = Opcode::InvokePacked;
   instr.packed_index = packed_index;
@@ -305,6 +309,7 @@ Instruction Instruction::InvokePacked(Index packed_index, Index arity, Index out
   for (Index i = 0; i < arity; ++i) {
     instr.packed_args[i] = args[i];
   }
+  instr.is_debugging = is_debugging;
   return instr;
 }
 

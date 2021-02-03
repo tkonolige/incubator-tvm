@@ -431,6 +431,8 @@ TVM_DLL Pass SimplifyExpr();
  */
 TVM_DLL Pass ManifestAlloc(Target target_host, Map<tvm::Integer, tvm::Target> targets);
 
+TVM_DLL Pass AddProfiling();
+
 }  // namespace transform
 
 /*!

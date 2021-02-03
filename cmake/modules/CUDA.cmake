@@ -64,6 +64,8 @@ if(USE_CUDA)
     list(APPEND RUNTIME_SRCS ${CONTRIB_THRUST_SRC})
   endif(USE_THRUST)
 
+  add_definitions(-DTVM_CUDA_ENABLED)
+
 else(USE_CUDA)
   list(APPEND COMPILER_SRCS src/target/opt/build_cuda_off.cc)
 endif(USE_CUDA)

@@ -29,6 +29,7 @@
 #include <tvm/relay/analysis.h>
 #include <tvm/relay/attrs/device_copy.h>
 #include <tvm/relay/attrs/memory.h>
+#include <tvm/relay/attrs/profiler.h>
 #include <tvm/relay/expr_functor.h>
 #include <tvm/relay/interpreter.h>
 #include <tvm/relay/qnn/transform.h>
@@ -255,6 +256,12 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
         context_(context),
         target_host_(target_host),
         expr_device_map_(std::move(expr_device_map)) {
+    // Add two empty placeholders to the function table. These are used for profiling commands.
+    context_->add_reserved_func("profiler_start");
+    context_->add_reserved_func("profiler_end");
+    context_->add_reserved_func("profiler_pre_call");
+    context_->add_reserved_func("profiler_pre_call");
+    context_->add_reserved_func("profiler_post_call");
     for (const auto& it : targets) {
       targets_[it.first->value] = it.second;
     }
@@ -271,6 +278,9 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
       ++i;
     }
 
+    // Add profiling initialization hooks
+    Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_start"], 1, 0, {0}, true));
+
     if (IsClosure(func)) {
       Function inner_func = Downcast<Function>(func->body);
       for (auto param : inner_func->params) {
@@ -284,6 +294,7 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
     } else {
       this->VisitExpr(func->body);
     }
+    Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_end"], 1, 0, {0}, true));
     instructions_.push_back(Instruction::Ret(last_register_));
 
     std::vector<Index> params_device_type;
@@ -346,7 +357,11 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
       context_->const_device_type.push_back(expr_device_map_[con].device_type);
     }
     context_->constants.push_back(const_node->data);
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
     Emit(Instruction::LoadConst(konst_idx, NewRegister()));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
   }
 
   void VisitExpr_(const VarNode* var_node) {
@@ -366,7 +381,11 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
     }
 
     // TODO(@jroesch): use correct tag
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
     Emit(Instruction::AllocADT(0, tuple->fields.size(), fields_registers, NewRegister()));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
   }
 
   void VisitExpr_(const MatchNode* match_node) {
@@ -450,17 +469,10 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
     // Lower shape function
     CCacheKey key(func, target_host_);
     auto cfunc = engine_->LowerShapeFunc(key);
-    int op_index = -1;
     // pick the only function inside the context
     ICHECK_EQ(cfunc->funcs->functions.size(), 1);
     auto pfunc = Downcast<tir::PrimFunc>((*cfunc->funcs->functions.begin()).second);
-    if (context_->seen_funcs.count(pfunc) == 0) {
-      op_index = context_->cached_funcs.size();
-      context_->cached_funcs.push_back(cfunc);
-      context_->seen_funcs[pfunc] = op_index;
-    } else {
-      op_index = context_->seen_funcs[pfunc];
-    }
+    size_t op_index = context_->lookup_or_add_func(cfunc, pfunc);
 
     // Prepare input and output registers
     std::vector<Index> argument_registers;
@@ -476,8 +488,12 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
       argument_registers.push_back(reg->second);
     }
 
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
     Emit(Instruction::InvokePacked(op_index, argument_registers.size(), outputs.size(),
                                    argument_registers));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
   }
 
   void EmitInvokeTVMOp(const Function& func, const Expr& inputs, const Expr& outputs) {
@@ -535,23 +551,19 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
 
     auto op_index = -1;
     if (func->GetAttr<String>(attr::kCompiler).defined()) {
-      op_index = context_->cached_funcs.size();
-      context_->cached_funcs.push_back(cfunc);
+      op_index = context_->add_builtin_func(cfunc);
     } else {
       // TODO(jroesch): support lowered funcs for multiple targets
       ICHECK_EQ(cfunc->funcs->functions.size(), 1);
       auto pfunc = Downcast<tir::PrimFunc>((*cfunc->funcs->functions.begin()).second);
-      if (context_->seen_funcs.find(pfunc) == context_->seen_funcs.end()) {
-        op_index = context_->cached_funcs.size();
-        context_->cached_funcs.push_back(cfunc);
-        context_->seen_funcs[pfunc] = op_index;
-      } else {
-        op_index = context_->seen_funcs[pfunc];
-      }
+      op_index = context_->lookup_or_add_func(cfunc, pfunc);
     }
 
+    Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1, 0, {0}, true));
     Emit(Instruction::InvokePacked(op_index, argument_registers.size(), output_tuple->fields.size(),
                                    argument_registers));
+    Emit(
+        Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1, 0, {0}, true));
   }
 
   void VisitExpr_(const CallNode* call_node) {
@@ -589,6 +601,8 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
                    // instruction.
                    auto const_shape = args[2].as<ConstantNode>();
 
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
                    if (const_shape) {
                      NDArray shape = const_shape->data;
                      // TODO(@jroesch): we need to get an RFC done to standarize shape dtype
@@ -602,6 +616,8 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
                      Emit(Instruction::AllocTensorReg(storage_register, offset_register,
                                                       shape_register, dtype, NewRegister()));
                    }
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
                  })
           .Match("memory.alloc_storage",
                  [this, call_node](const Array<Expr>& args, const Attrs& attrs,
@@ -636,8 +652,12 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
                      device_type = expr_device_map_[GetRef<Call>(call_node)].device_type;
                    }
 
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
                    Emit(Instruction::AllocStorage(size_register, alignment, dtype, device_type,
                                                   NewRegister()));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
                  })
           .Match("vm.shape_func",
                  [this](const Array<Expr>& args, const Attrs& attrs, const Array<Type>& type_arg) {
@@ -657,7 +677,11 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
                        << "The dtype of shape of must be int64, but got"
                        << DLDataType2String(shape_of_attrs->dtype);
                    this->VisitExpr(args[0]);
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
                    Emit(Instruction::ShapeOf(last_register_, NewRegister()));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
                  })
           .Match("vm.reshape_tensor",
                  [this](const Array<Expr>& args, const Attrs& attrs, const Array<Type>& type_arg) {
@@ -666,7 +690,11 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
                    auto tensor_reg = last_register_;
                    this->VisitExpr(args[1]);
                    auto shape_reg = last_register_;
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
                    Emit(Instruction::ReshapeTensor(tensor_reg, shape_reg, NewRegister()));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
                  })
           .Match("device_copy",
                  [this](const Array<Expr>& args, const Attrs& attrs, const Array<Type>& type_arg) {
@@ -678,8 +706,12 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
                    ICHECK(device_copy_attrs != nullptr) << "Must be the device copy attrs";
                    Index src_device_type = device_copy_attrs->src_dev_type;
                    Index dst_device_type = device_copy_attrs->dst_dev_type;
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
                    Emit(Instruction::DeviceCopy(src_reg, src_device_type, dst_device_type,
                                                 NewRegister()));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
                  })
           .Match("memory.kill",
                  [](const Array<Expr>& args, const Attrs& attrs, const Array<Type>& type_arg) {
@@ -714,26 +746,42 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
       // perhaps establish as an invariance(all functions in mod must be relay::Function)
       auto func = Downcast<Function>(context_->module->Lookup(global));
 
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
       if (IsClosure(func)) {
         auto arity = func->params.size();
         Emit(Instruction::AllocClosure(it->second, arity, args_registers, NewRegister()));
       } else {
         Emit(Instruction::Invoke(it->second, args_registers, NewRegister()));
       }
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
     } else if (auto constructor_node = op.as<ConstructorNode>()) {
       // In the constructor case, we simply need to find its tag
       // and emit a call to allocate the data structure.
       auto constructor = GetRef<Constructor>(constructor_node);
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
       Emit(Instruction::AllocADT(constructor->tag, call_node->args.size(), args_registers,
                                  NewRegister()));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
     } else if (auto var_node = op.as<VarNode>()) {
       // If we are calling a variable, it must be the case that it is a closure so we
       // emit invoke closure here.
       VisitExpr(GetRef<Var>(var_node));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
       Emit(Instruction::InvokeClosure(last_register_, args_registers, NewRegister()));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
     } else if (auto inner_call_node = op.as<CallNode>()) {
       VisitExpr(GetRef<Call>(inner_call_node));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
       Emit(Instruction::InvokeClosure(last_register_, args_registers, NewRegister()));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
     } else {
       // Finally if there are any other cases this is a bug.
       LOG(FATAL) << "internal error: unreachable code,"
@@ -780,7 +828,11 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
         auto r = CompileMatchValue(cond->obj);
         Emit(Instruction::GetTag(r, NewRegister()));
         auto operand1 = last_register_;
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
+                                                  0, {0}, true));
         Emit(Instruction::LoadConsti(cond->target_tag, NewRegister()));
+                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
+                                                  0, {0}, true));
         auto operand2 = last_register_;
 
         Emit(Instruction::If(operand1, operand2, 1, 0));
@@ -956,9 +1008,11 @@ void VMCompiler::Lower(IRModule mod, const TargetsMap& targets, const tvm::Targe
   }
 
   // update primitive function map
-  size_t primitive_index = 0;
   for (const auto& cfunc : context_.cached_funcs) {
-    exec_->primitive_map.insert({cfunc->func_name, primitive_index++});
+    exec_->primitive_map.insert({cfunc.first->func_name, cfunc.second});
+  }
+  for (const auto& func : context_.reserved_funcs) {
+    exec_->primitive_map.insert({func.first, func.second});
   }
 }
 
@@ -1112,7 +1166,8 @@ void VMCompiler::Codegen() {
   }
   std::unordered_map<std::string, IRModule> funcs;
 
-  for (auto& cfunc : cached_funcs) {
+  for (auto& p : cached_funcs) {
+    const CachedFunc& cfunc = p.first;
     std::string target_str = cfunc->target->str();
     // NOTE: because module, is mutable, we need to make an
     // explicit copy of the IRModule.

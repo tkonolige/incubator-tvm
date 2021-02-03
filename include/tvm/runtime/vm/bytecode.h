@@ -70,6 +70,51 @@ enum class Opcode {
   DeviceCopy = 19U,
 };
 
+inline std::string OpName(Opcode op) {
+  switch (op) {
+    case Opcode::Move:
+      return "Move";
+    case Opcode::Ret:
+      return "Ret";
+    case Opcode::Invoke:
+      return "Invoke";
+    case Opcode::InvokeClosure:
+      return "InvokeClosure";
+    case Opcode::InvokePacked:
+      return "InvokePacked";
+    case Opcode::AllocTensor:
+      return "AllocTensor";
+    case Opcode::AllocTensorReg:
+      return "AllocTensorReg";
+    case Opcode::AllocADT:
+      return "AllocADT";
+    case Opcode::AllocClosure:
+      return "AllocClosure";
+    case Opcode::GetField:
+      return "GetField";
+    case Opcode::If:
+      return "If";
+    case Opcode::LoadConst:
+      return "LoadConst";
+    case Opcode::Goto:
+      return "Goto";
+    case Opcode::GetTag:
+      return "GetTag";
+    case Opcode::LoadConsti:
+      return "LoadConsti";
+    case Opcode::Fatal:
+      return "Fatal";
+    case Opcode::AllocStorage:
+      return "AllocStorage";
+    case Opcode::ShapeOf:
+      return "ShapeOf";
+    case Opcode::ReshapeTensor:
+      return "ReshapeTensor";
+    case Opcode::DeviceCopy:
+      return "DeviceCopy";
+  }
+}
+
 /*! \brief A single virtual machine instruction.
  *
  * The representation of the instruction is as
@@ -134,6 +179,9 @@ struct Instruction {
       Index output_size;
       /*! \brief The arguments to pass to the packed function. */
       RegName* packed_args;
+      /*! \brief Whether or not this is a debugging function. Debugging functions take one parameter
+       * (the VM) and are looked up in the runtime registry. */
+      bool is_debugging;
     };
     struct /* If Operands */ {
       /*! \brief The register containing the test value. */
@@ -234,10 +282,13 @@ struct Instruction {
    * \param arity The arity of the function.
    * \param output_size The number of outputs of the packed function.
    * \param args The argument registers.
+   * \param is_debugging Whether or not this is a debugging function. Debugging
+   *                     functions take one parameter (which is the VM) and are located in the
+   *                     runtime Registry.
    * \return The invoke packed instruction.
    */
   static Instruction InvokePacked(Index packed_index, Index arity, Index output_size,
-                                  const std::vector<RegName>& args);
+                                  const std::vector<RegName>& args, bool is_debugging = false);
   /*!
    * \brief Construct an allocate tensor instruction with constant shape.
    * \param storage The storage to allocate out of.
