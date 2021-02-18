@@ -770,11 +770,7 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
       // If we are calling a variable, it must be the case that it is a closure so we
       // emit invoke closure here.
       VisitExpr(GetRef<Var>(var_node));
-                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
-                                                  0, {0}, true));
       Emit(Instruction::InvokeClosure(last_register_, args_registers, NewRegister()));
-                   Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_post_call"], 1,
-                                                  0, {0}, true));
     } else if (auto inner_call_node = op.as<CallNode>()) {
       VisitExpr(GetRef<Call>(inner_call_node));
                    Emit(Instruction::InvokePacked(context_->reserved_funcs["profiler_pre_call"], 1,
