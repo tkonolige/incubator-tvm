@@ -32,6 +32,9 @@
 #include <map>
 #include <numeric>
 
+#include "./contrib/papi/papi.h"
+
+
 namespace tvm {
 namespace runtime {
 
@@ -107,8 +110,11 @@ void Profiler::Start(const std::vector<TVMContext>& ctxs) {
   }
 }
 
+static void* papi;
+
 void Profiler::StartCall(String name, TVMContext ctx,
                          std::unordered_map<std::string, ObjectRef> extra_metrics) {
+  papi = papi_start_call(ctx);
   in_flight_.push(CallFrame{ctx, name, Timer::Start(ctx), extra_metrics});
 }
 
@@ -120,6 +126,7 @@ void Profiler::StopCall(std::unordered_map<std::string, ObjectRef> extra_metrics
   }
   in_flight_.pop();
   calls_.push_back(cf);
+  papi_stop_call(papi);
 }
 
 void Profiler::Stop() {

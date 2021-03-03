@@ -47,6 +47,7 @@ tvm_option(USE_TF_TVMDSOOP "Build with TensorFlow TVMDSOOp" OFF)
 tvm_option(USE_FALLBACK_STL_MAP "Use TVM's POD compatible Map" OFF)
 tvm_option(USE_ETHOSN "Build with Arm Ethos-N" OFF)
 tvm_option(INDEX_DEFAULT_I64 "Defaults the index datatype to int64" ON)
+tvm_option(USE_PAPI "Use PAPI (The Performance Application Programming Interface) to read performance counters" ON)
 
 # 3rdparty libraries
 tvm_option(DLPACK_PATH "Path to DLPACK" "3rdparty/dlpack/include")
@@ -393,6 +394,10 @@ endif()
 
 if(USE_CPP_RPC)
   add_subdirectory("apps/cpp_rpc")
+endif()
+
+if(USE_PAPI)
+  include(cmake/modules/PAPI.cmake)
 endif()
 
 if(USE_RELAY_DEBUG)
