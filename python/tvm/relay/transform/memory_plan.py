@@ -374,3 +374,74 @@ class LiftConstants:
 
 
 register_func("relay.transform.LiftConstants", LiftConstants)
+
+
+class FloatStoragePass(ExprMutator):
+    def __init__(self):
+        super().__init__()
+        self.allocs = []
+
+    # def visit_function(self, fn):
+    #     """Transform the function body to use region allocation scheme."""
+    #     if getattr(fn.attrs, "Primitive", 0) == 1:
+    #         return super().visit_function(fn)
+    #
+    #     body = self.visit(fn.body)
+    #     return mk_let(self.allocs, body)
+
+    def visit_let(self, let):
+        allocs = []
+        bindings = []
+        i = 0
+        j = 0
+
+        while isinstance(let, expr.Let):
+            lhs = let.var
+            rhs = let.value
+            if isinstance(rhs, expr.Call) and rhs.op == op.op.get("memory.alloc_storage") and isinstance(let.body.value, expr.Call) and let.body.value.op == op.op.get("memory.alloc_tensor"):
+                v_tensor = let.body.var
+                v_storage = expr.var(f"alloc_storage{i}")
+                i += 1
+                alloc_tensor = let.body.value
+                alloc_tensor = expr.Call(op.op.get("memory.alloc_tensor"), [v_storage] + alloc_tensor.args[1:], alloc_tensor.attrs)
+                allocs.append((v_storage, rhs))
+                allocs.append((v_tensor, alloc_tensor))
+                let = let.body.body
+            elif isinstance(rhs, expr.Call):
+                new_args = []
+                for arg in rhs.args:
+                    if isinstance(arg, expr.Tuple):
+                        new_arg = []
+                        for x in arg:
+                            if isinstance(x, expr.Constant):
+                                v = expr.var(f"constant{j}")
+                                j += 1
+                                new_arg.append(v)
+                                allocs.append((v, x))
+                            else:
+                                new_arg.append(x)
+                        new_args.append(expr.Tuple(new_arg))
+                    else:
+                        new_args.append(arg)
+                bindings.append((lhs, expr.Call(rhs.op, new_args)))
+                let = let.body
+            else:
+                bindings.append((lhs, rhs))
+                let = let.body
+
+        result = mk_let(allocs, mk_let(bindings, let))
+        return result
+
+
+
+@function_pass(opt_level=0)
+class FloatStorage:
+
+    def transform_function(self, func, mod, _):
+        mod.import_from_std("core.rly")
+        sc = FloatStoragePass()
+        func = sc.visit(func)
+        return func
+
+
+register_func("relay.transform.FloatStorage", FloatStorage)

@@ -908,29 +908,29 @@ llvm::Value* CodeGenCPU::CreateIntrinsic(const CallNode* op) {
 }
 
 void CodeGenCPU::VisitStmt_(const AssertStmtNode* op) {
-  using llvm::BasicBlock;
-  llvm::Value* cond = MakeValue(op->condition);
-  std::ostringstream os;
-  os << "Assert fail: " << op->condition;
-  if (op->message.as<StringImmNode>()) {
-    os << ", " << op->message.as<StringImmNode>()->value;
-  }
-  llvm::Value* msg = GetConstString(os.str());
-  BasicBlock* fail_block = BasicBlock::Create(*ctx_, "assert_fail", function_);
-  BasicBlock* end_block = BasicBlock::Create(*ctx_, "assert_end", function_);
-  builder_->CreateCondBr(cond, end_block, fail_block, md_very_likely_branch_);
-  // fail condition.
-  builder_->SetInsertPoint(fail_block);
-#if TVM_LLVM_VERSION >= 90
-  auto err_callee =
-      llvm::FunctionCallee(ftype_tvm_api_set_last_error_, RuntimeTVMAPISetLastError());
-#else
-  auto err_callee = RuntimeTVMAPISetLastError();
-#endif
-  builder_->CreateCall(err_callee, {msg});
-  builder_->CreateRet(ConstInt32(-1));
-  // otherwise set it to be new end.
-  builder_->SetInsertPoint(end_block);
+//   using llvm::BasicBlock;
+//   llvm::Value* cond = MakeValue(op->condition);
+//   std::ostringstream os;
+//   os << "Assert fail: " << op->condition;
+//   if (op->message.as<StringImmNode>()) {
+//     os << ", " << op->message.as<StringImmNode>()->value;
+//   }
+//   llvm::Value* msg = GetConstString(os.str());
+//   BasicBlock* fail_block = BasicBlock::Create(*ctx_, "assert_fail", function_);
+//   BasicBlock* end_block = BasicBlock::Create(*ctx_, "assert_end", function_);
+//   builder_->CreateCondBr(cond, end_block, fail_block, md_very_likely_branch_);
+//   // fail condition.
+//   builder_->SetInsertPoint(fail_block);
+// #if TVM_LLVM_VERSION >= 90
+//   auto err_callee =
+//       llvm::FunctionCallee(ftype_tvm_api_set_last_error_, RuntimeTVMAPISetLastError());
+// #else
+//   auto err_callee = RuntimeTVMAPISetLastError();
+// #endif
+//   builder_->CreateCall(err_callee, {msg});
+//   builder_->CreateRet(ConstInt32(-1));
+//   // otherwise set it to be new end.
+//   builder_->SetInsertPoint(end_block);
   CodeGenLLVM::VisitStmt_(op);
 }
 

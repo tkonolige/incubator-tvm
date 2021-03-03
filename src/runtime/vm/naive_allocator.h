@@ -37,6 +37,7 @@ class NaiveAllocator final : public Allocator {
   explicit NaiveAllocator(Device dev) : Allocator(kNaive), used_memory_(0), device_(dev) {}
 
   Buffer Alloc(size_t nbytes, size_t alignment, DLDataType type_hint) override {
+    alignment = 128;
     Buffer buf;
     buf.device = device_;
     buf.size = nbytes;

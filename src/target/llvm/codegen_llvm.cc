@@ -157,6 +157,9 @@ void CodeGenLLVM::AddFunctionInternal(const PrimFunc& f, bool ret_void) {
       }
     }
   }
+  if(std::string(Downcast<String>(global_symbol.value())).find("fused_layout_transform") == std::string::npos) {
+    // LOG(FATAL) << function_;
+  }
   llvm::BasicBlock* entry = llvm::BasicBlock::Create(*ctx_, "entry", function_);
   builder_->SetInsertPoint(entry);
   this->VisitStmt(f->body);

@@ -49,6 +49,7 @@ tvm_option(USE_FALLBACK_STL_MAP "Use TVM's POD compatible Map" OFF)
 tvm_option(USE_ETHOSN "Build with Arm Ethos-N" OFF)
 tvm_option(INDEX_DEFAULT_I64 "Defaults the index datatype to int64" ON)
 tvm_option(USE_LIBBACKTRACE "Build libbacktrace to supply linenumbers on stack traces" AUTO)
+tvm_option(USE_PAPI "Use PAPI (The Performance Application Programming Interface) to read performance counters" OFF)
 
 # 3rdparty libraries
 tvm_option(DLPACK_PATH "Path to DLPACK" "3rdparty/dlpack/include")
@@ -387,9 +388,9 @@ include(cmake/modules/RustExt.cmake)
 
 include(CheckCXXCompilerFlag)
 if(NOT MSVC)
-  check_cxx_compiler_flag("-std=c++14" SUPPORT_CXX14)
-  set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
-  set(CMAKE_CUDA_STANDARD 14)
+  check_cxx_compiler_flag("-std=c++17" SUPPORT_CXX14)
+  set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CUDA_STANDARD 17)
 else()
   check_cxx_compiler_flag("/std:c++14" SUPPORT_CXX14)
   set(CMAKE_CXX_FLAGS "/std:c++14 ${CMAKE_CXX_FLAGS}")
@@ -422,6 +423,12 @@ endif()
 
 if(USE_CPP_RPC)
   add_subdirectory("apps/cpp_rpc")
+endif()
+
+add_subdirectory("apps/cpp_benchmark")
+
+if(USE_PAPI)
+  include(cmake/modules/PAPI.cmake)
 endif()
 
 if(USE_RELAY_DEBUG)

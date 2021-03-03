@@ -145,7 +145,7 @@ struct GatherAttrs : public tvm::AttrsNode<GatherAttrs> {
 
 struct TakeAttrs : public tvm::AttrsNode<TakeAttrs> {
   Integer axis;
-  std::string mode;
+  String mode;
 
   TVM_DECLARE_ATTRS(TakeAttrs, "relay.attrs.TakeAttrs") {
     TVM_ATTR_FIELD(axis)
@@ -187,7 +187,7 @@ struct ArangeAttrs : public tvm::AttrsNode<ArangeAttrs> {
 
 /*! \brief Attributes used in meshgrid operators */
 struct MeshgridAttrs : public tvm::AttrsNode<MeshgridAttrs> {
-  std::string indexing;
+  String indexing;
 
   TVM_DECLARE_ATTRS(MeshgridAttrs, "relay.attrs.MeshgridAttrs") {
     TVM_ATTR_FIELD(indexing)
@@ -290,7 +290,7 @@ struct StridedSliceAttrs : public tvm::AttrsNode<StridedSliceAttrs> {
   Optional<Array<Integer>> begin;
   Optional<Array<Integer>> end;
   Optional<Array<Integer>> strides;
-  std::string slice_mode;
+  String slice_mode;
 
   TVM_DECLARE_ATTRS(StridedSliceAttrs, "relay.attrs.StridedSliceAttrs") {
     TVM_ATTR_FIELD(begin).describe("Indices for begin of slice, begin index is also inclusive");
@@ -345,8 +345,8 @@ struct FixedPointMultiplyAttrs : public tvm::AttrsNode<FixedPointMultiplyAttrs> 
 
 /*! \brief Attributes for LayoutTransform operator */
 struct LayoutTransformAttrs : public tvm::AttrsNode<LayoutTransformAttrs> {
-  std::string src_layout;
-  std::string dst_layout;
+  String src_layout;
+  String dst_layout;
 
   TVM_DECLARE_ATTRS(LayoutTransformAttrs, "relay.attrs.LayoutTransformAttrs") {
     TVM_ATTR_FIELD(src_layout).describe("The source layout of the tensor. (e.g. NCHW)");
@@ -357,8 +357,8 @@ struct LayoutTransformAttrs : public tvm::AttrsNode<LayoutTransformAttrs> {
 /*! \brief Attributes for AutoSchedulerLayoutTransform operator */
 struct AutoSchedulerLayoutTransformAttrs
     : public tvm::AttrsNode<AutoSchedulerLayoutTransformAttrs> {
-  std::string src_layout;
-  std::string dst_layout;
+  String src_layout;
+  String dst_layout;
 
   TVM_DECLARE_ATTRS(AutoSchedulerLayoutTransformAttrs,
                     "relay.attrs.AutoSchedulerLayoutTransformAttrs") {

@@ -152,6 +152,8 @@ TVM_DLL int TVMBackendParallelBarrier(int task_id, TVMParallelGroupEnv* penv);
  */
 TVM_DLL int TVMBackendRunOnce(void** handle, int (*f)(void*), void* cdata, int nbytes);
 
+TVM_DLL int TVMBackendResetPool();
+
 #ifdef __cplusplus
 }  // TVM_EXTERN_C
 #endif

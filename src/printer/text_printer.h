@@ -34,6 +34,8 @@
 #include <tvm/tir/function.h>
 #include <tvm/tir/op.h>
 #include <tvm/tir/stmt_functor.h>
+#include <tvm/node/reflection.h>
+#include <tvm/runtime/container.h>
 
 #include <string>
 #include <unordered_map>
@@ -408,6 +410,68 @@ class TextPrinter {
 
   Doc PrintMod(const IRModule& mod);
 };
+
+String PrintObject(const ObjectRef& node);
+
+class NamedAttrVisitor : public AttrVisitor {
+ public:
+   std::stringstream s;
+  virtual ~NamedAttrVisitor() = default;
+  void Visit(const char* key, double* value) final {
+    s << key << ": " << *value << ", ";
+  }
+  void Visit(const char* key, int64_t* value) final {
+    s << key << ": " << *value << ", ";
+  }
+  void Visit(const char* key, uint64_t* value) final {
+    s << key << ": " << *value << ", ";
+  }
+  void Visit(const char* key, int* value) final {
+    s << key << ": " << *value << ", ";
+  }
+  void Visit(const char* key, bool* value) final {
+    s << key << ": " << *value << ", ";
+  }
+  void Visit(const char* key, std::string* value) final {
+    s << key << ": " << *value << ", ";
+  }
+  void Visit(const char* key, void** value) final {
+    s << key << ": " << value << ", ";
+  }
+  void Visit(const char* key, DataType* value) final {
+    s << key << ": " << *value << ", ";
+  }
+  void Visit(const char* key, runtime::NDArray* value) final {
+    s << key << ": " << *value << ", ";
+  }
+  void Visit(const char* key, runtime::ObjectRef* value) final {
+    s << key << ": ";
+    if(!value->defined()) {
+      s << "nullptr";
+    } else if(value->as<ArrayNode>()) {
+      s << "[";
+      for(auto x : *value->as<runtime::ArrayNode>()) {
+        s << PrintObject(x);
+      }
+      s << "]";
+    } else if(value->as<MapNode>()) {
+      s << "{";
+      for(auto p : *value->as<MapNode>()) {
+        s << PrintObject(p.first) << ": " << PrintObject(p.second);
+      }
+      s << "}";
+    } else if(value->as<StringObj>()) {
+      s << Downcast<String>(*value);
+    } else {
+      s << value->get()->GetTypeKey() << " {";
+      s << PrintObject(*value);
+      s << "}";
+    }
+  s << ", ";
+  }
+};
+
+
 }  // namespace tvm
 
 #endif  // TVM_PRINTER_TEXT_PRINTER_H_

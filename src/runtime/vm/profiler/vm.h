@@ -32,6 +32,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <optional>
 
 namespace tvm {
 namespace runtime {
@@ -52,7 +53,7 @@ class VirtualMachineDebug : public VirtualMachine {
                     const std::vector<ObjectRef>& args) final;
 
   std::unordered_map<Index, std::string> packed_index_map_;
-  profiling::Profiler prof_;
+  std::optional<profiling::Profiler> prof_;
 };
 
 }  // namespace vm

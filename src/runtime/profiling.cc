@@ -23,6 +23,7 @@
  */
 
 #include <tvm/ir/expr.h>
+#include <tvm/runtime/c_backend_api.h>
 #include <tvm/runtime/packed_func.h>
 #include <tvm/runtime/profiling.h>
 
@@ -31,6 +32,8 @@
 #include <iostream>
 #include <map>
 #include <numeric>
+
+#include "./contrib/papi/papi.h"
 
 namespace tvm {
 namespace runtime {
@@ -100,7 +103,13 @@ TVM_REGISTER_GLOBAL("profiling.start_timer").set_body_typed(Timer::Start);
 
 namespace profiling {
 
+static std::vector<long_long> papi;
+static int papi_global;
+
 void Profiler::Start(const std::vector<Device>& devs) {
+  papi_global = papi_start(ctxs[0]);  // FIXME
+  TVMBackendResetPool();
+  papi_start_call(papi_global);
   CHECK(global_timers_.empty()) << "You can only call Start once per Profiler.";
   for (auto dev : devs) {
     global_timers_.emplace_back(dev, Timer::Start(dev));
@@ -109,6 +118,7 @@ void Profiler::Start(const std::vector<Device>& devs) {
 
 void Profiler::StartCall(String name, Device dev,
                          std::unordered_map<std::string, ObjectRef> extra_metrics) {
+  papi = papi_start_call(papi_global);
   in_flight_.push(CallFrame{dev, name, Timer::Start(dev), extra_metrics});
 }
 
@@ -116,6 +126,10 @@ void Profiler::StopCall(std::unordered_map<std::string, ObjectRef> extra_metrics
   CallFrame cf = in_flight_.top();
   cf.timer->Stop();
   for (auto& p : extra_metrics) {
+    cf.extra_metrics[p.first] = p.second;
+  }
+  auto extra = papi_stop_call(papi, papi_global);
+  for (auto& p : extra) {
     cf.extra_metrics[p.first] = p.second;
   }
   in_flight_.pop();
@@ -127,6 +141,7 @@ void Profiler::Stop() {
   for (auto p : global_timers_) {
     p.second->Stop();
   }
+  extra_totals_ = papi_stop(papi_global);
 }
 
 String ShapeString(const std::vector<NDArray>& shapes) {
@@ -148,9 +163,45 @@ String ShapeString(const std::vector<NDArray>& shapes) {
   return String(sizes.str());
 }
 
+std::string FormatCSV(const std::vector<std::unordered_map<std::string, ObjectRef>>& rows) {
+  std::unordered_set<std::string> headers;
+
+  for (auto row : rows) {
+    for (auto p : row) {
+      headers.insert(p.first);
+    }
+  }
+
+  std::stringstream s;
+
+  for (auto header : headers) {
+    s << header << ", ";
+  }
+  s << std::endl;
+  for (auto row : rows) {
+    for (auto header : headers) {
+      auto it = row.find(header);
+      if (it != row.end()) {
+        std::string val;
+        if (it->second.as<CountNode>()) {
+          s << it->second.as<CountNode>()->value;
+        } else if (it->second.as<DurationNode>()) {
+          s << it->second.as<DurationNode>()->value;
+        } else if (it->second.as<PercentNode>()) {
+          s << it->second.as<PercentNode>()->value;
+        } else if (it->second.as<StringObj>()) {
+          s << "\"" << Downcast<String>(it->second) << "\"";
+        }
+      }
+      s << ", ";
+    }
+    s << std::endl;
+  }
+  return s.str();
+}
+
 std::string FormatTable(const std::vector<std::unordered_map<std::string, ObjectRef>>& rows,
-                        std::unordered_set<std::string> hidden_cols = {"Argument Shapes",
-                                                                       "Device"}) {
+                        std::unordered_set<std::string> hidden_cols = {"layout", "src_layout", "dst_layout", "kernel_layout", "data_layout", "out_layout", "Argument Shapes", "Device"}) {
   std::unordered_set<std::string> unique_headers;
 
   for (auto row : rows) {
@@ -244,6 +295,8 @@ String Profiler::Report(bool aggregate, bool sort) {
     overall_time = std::max(overall_time, p.second);
   }
 
+  aggregate = false;
+
   // aggregate times by op name
   std::vector<std::pair<std::string, std::vector<size_t>>> aggregate_rows;
   if (aggregate) {
@@ -334,17 +387,43 @@ String Profiler::Report(bool aggregate, bool sort) {
   double op_sum = 0;
   int64_t total_count = 0;
   double per = 0;
+  std::unordered_map<std::string, ObjectRef> col_sums;
   for (auto row : rows) {
     op_sum += row["Duration (us)"].as<DurationNode>()->microseconds;
     total_count += row["Count"].as<CountNode>()->value;
     per += row["Percent"].as<PercentNode>()->percent;
+
+    for (auto p : row) {
+      if (p.second.as<CountNode>()) {
+        int64_t val = p.second.as<CountNode>()->value;
+        auto it = col_sums.find(p.first);
+        if (it != col_sums.end()) {
+          val += it->second.as<CountNode>()->value;
+        }
+        col_sums[p.first] = ObjectRef(make_object<CountNode>(val));
+      }
+    }
+  }
+  std::unordered_map<std::string, ObjectRef> sums = {
+      {"Name", String("Total in op")},
+      {"Duration (us)", ObjectRef(make_object<DurationNode>(op_sum))},
+      {"Count", ObjectRef(make_object<CountNode>(total_count))},
+      {"Percent", ObjectRef(make_object<PercentNode>(per))}};
+  for (auto& p : col_sums) {
+    sums[p.first] = p.second;
+  }
+  std::unordered_map<std::string, ObjectRef> totals = {
+      {"Name", String("Total overall")},
+      {"Duration (us)", ObjectRef(make_object<DurationNode>(overall_time))}};
+  for (auto& p : extra_totals_) {
+    totals[p.first] = p.second;
   }
 
+  // return FormatCSV(rows);
+
   rows.push_back({{"Name", String("------------------")}});
-  rows.push_back({{"Name", String("Total")},
-                  {"Duration (us)", ObjectRef(make_object<DurationNode>(op_sum))},
-                  {"Count", ObjectRef(make_object<CountNode>(total_count))},
-                  {"Percent", ObjectRef(make_object<PercentNode>(per))}});
+  rows.push_back(sums);
+  rows.push_back(totals);
 
   std::stringstream s;
   s.imbue(std::locale(""));

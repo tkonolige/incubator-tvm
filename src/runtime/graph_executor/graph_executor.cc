@@ -83,6 +83,7 @@ void GraphExecutor::Init(const std::string& graph_json, tvm::runtime::Module mod
     lookup_linked_param_ = PackedFunc(
         [this](TVMArgs args, TVMRetValue* rv) { this->DefaultLookupLinkedParam(args, rv); });
   }
+  LOG(INFO) << "Module " << module->type_key();
   this->SetupStorage();
   this->SetupOpExecs();
   for (size_t i = 0; i < input_nodes_.size(); i++) {
@@ -322,6 +323,7 @@ void GraphExecutor::SetupStorage() {
     pool_entry[sid].device_type = device_type;
   }
 
+  int64_t sum = 0;
   // Allocate the space.
   for (const auto& pit : pool_entry) {
     // This for loop is very fast since there are usually only a couple of
@@ -335,9 +337,16 @@ void GraphExecutor::SetupStorage() {
     } else {
       std::vector<int64_t> shape;
       shape.push_back(static_cast<int64_t>(pit.size + 3) / 4);
+      int64_t shape_sum = 1;
+      for(size_t i = 0; i < shape.size(); i++) {
+        shape_sum *= shape[i];
+      }
+      sum += shape_sum * 4;
+      // LOG(INFO) << "allocate " << shape_sum * 4;
       storage_pool_.push_back(NDArray::Empty(shape, DLDataType{kDLFloat, 32, 1}, dev));
     }
   }
+  LOG(INFO) << "TOTAL ALLOCATED GR: " << sum;
 
   // Assign the pooled entries. A unified memory pool is used to simplifiy
   // memory assignment for each node entry. The allocated memory on each device

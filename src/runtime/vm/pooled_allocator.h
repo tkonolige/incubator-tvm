@@ -45,6 +45,7 @@ class PooledAllocator final : public Allocator {
   ~PooledAllocator() { ReleaseAll(); }
 
   Buffer Alloc(size_t nbytes, size_t alignment, DLDataType type_hint) override {
+    alignment=128;
     std::lock_guard<std::mutex> lock(mu_);
     size_t size = ((nbytes + page_size_ - 1) / page_size_) * page_size_;
     auto&& it = memory_pool_.find(size);
@@ -52,6 +53,7 @@ class PooledAllocator final : public Allocator {
       auto&& pool = it->second;
       auto ret = pool.back();
       pool.pop_back();
+      // LOG(INFO) << "REUSING " << size;
       return ret;
     }
     Buffer buf;
@@ -59,7 +61,7 @@ class PooledAllocator final : public Allocator {
     buf.size = size;
     buf.data = DeviceAPI::Get(device_)->AllocDataSpace(device_, size, alignment, type_hint);
     used_memory_.fetch_add(size, std::memory_order_relaxed);
-    DLOG(INFO) << "allocate " << size << " B, used memory " << used_memory_ << " B";
+    // LOG(INFO) << "allocate " << size << " B, used memory " << used_memory_ << " B";
     return buf;
   }
 

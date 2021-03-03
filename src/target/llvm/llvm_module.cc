@@ -239,9 +239,15 @@ class LLVMModuleNode final : public runtime::ModuleNode {
     // makes sense when we start to use multiple modules.
     cg->Init("TVMMod", tm_.get(), ctx_.get(), system_lib, system_lib, target_c_runtime);
 
+    std::sort(funcs.begin(), funcs.end(), [](const PrimFunc& a, const PrimFunc& b) {
+        return std::string(a->GetAttr<String>(tvm::attr::kGlobalSymbol).value()) < std::string(b->GetAttr<String>(tvm::attr::kGlobalSymbol).value());
+        });
+
     for (const auto& f : funcs) {
+      // LOG(INFO) << f->GetAttr<String>("global_symbol");
       cg->AddFunction(f);
     }
+    // LOG(INFO) << "--------";
 
     if (entry_func.length() != 0) {
       cg->AddMainFunction(entry_func);

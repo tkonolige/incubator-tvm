@@ -231,6 +231,7 @@ class Profiler {
   std::vector<std::pair<Device, Timer>> global_timers_;
   std::vector<CallFrame> calls_;
   std::stack<CallFrame> in_flight_;
+  std::unordered_map<std::string, ObjectRef> extra_totals_;
 };
 
 /* \brief A duration in time. */
