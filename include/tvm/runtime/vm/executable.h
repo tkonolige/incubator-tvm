@@ -26,6 +26,7 @@
 
 #include <tvm/runtime/module.h>
 #include <tvm/runtime/object.h>
+#include <tvm/runtime/container.h>
 #include <tvm/runtime/packed_func.h>
 #include <tvm/runtime/vm/bytecode.h>
 
@@ -159,6 +160,8 @@ class Executable : public ModuleNode {
    * corresponds to the position of the `packed_funcs` list in a `VirtualMachine` object.
    */
   std::unordered_map<std::string, Index> primitive_map;
+  /*! \brief The structural hashes of the operators in this function. */
+  std::map<Index, Map<String, ObjectRef>> op_attrs;
   /*! \brief The virtual machine's function table. */
   std::vector<VMFunction> functions;
   /*! \brief The device type for each constant. */

@@ -124,9 +124,12 @@ void Profiler::StopCall(std::unordered_map<std::string, ObjectRef> extra_metrics
   for (auto& p : extra_metrics) {
     cf.extra_metrics[p.first] = p.second;
   }
+  auto extra = papi_stop_call(papi);
+  for(auto& p : extra) {
+    cf.extra_metrics[p.first] = p.second;
+  }
   in_flight_.pop();
   calls_.push_back(cf);
-  papi_stop_call(papi);
 }
 
 void Profiler::Stop() {
@@ -153,6 +156,43 @@ String ShapeString(const std::vector<NDArray>& shapes) {
     sizes << "]";
   }
   return String(sizes.str());
+}
+
+std::string FormatCSV(const std::vector<std::unordered_map<std::string, ObjectRef>>& rows) {
+  std::unordered_set<std::string> headers;
+
+  for (auto row : rows) {
+    for (auto p : row) {
+      headers.insert(p.first);
+    }
+  }
+
+  std::stringstream s;
+
+  for (auto header : headers) {
+    s << header << ", ";
+  }
+  s << std::endl;
+  for (auto row : rows) {
+    for (auto header : headers) {
+      auto it = row.find(header);
+      if (it != row.end()) {
+        std::string val;
+        if (it->second.as<CountNode>()) {
+          s << it->second.as<CountNode>()->value;
+        } else  if (it->second.as<DurationNode>()) {
+          s << it->second.as<DurationNode>()->value;
+        } else  if (it->second.as<PercentNode>()) {
+          s << it->second.as<PercentNode>()->value;
+        } else  if (it->second.as<StringObj>()) {
+          s << "\"" << Downcast<String>(it->second) << "\"";
+        }
+      }
+      s << ", ";
+    }
+    s << std::endl;
+  }
+  return s.str();
 }
 
 std::string FormatTable(const std::vector<std::unordered_map<std::string, ObjectRef>>& rows,
@@ -329,27 +369,45 @@ String Profiler::Report(bool aggregate) {
   }
 
   // sort rows by duration
-  std::sort(rows.begin(), rows.end(),
-            [&](const std::unordered_map<std::string, ObjectRef>& a,
-                const std::unordered_map<std::string, ObjectRef>& b) {
-              return a.at("Duration (us)").as<DurationNode>()->value >
-                     b.at("Duration (us)").as<DurationNode>()->value;
-            });
+  // std::sort(rows.begin(), rows.end(),
+  //           [&](const std::unordered_map<std::string, ObjectRef>& a,
+  //               const std::unordered_map<std::string, ObjectRef>& b) {
+  //             return a.at("Duration (us)").as<DurationNode>()->value >
+  //                    b.at("Duration (us)").as<DurationNode>()->value;
+  //           });
 
   double op_sum = 0;
   int64_t total_count = 0;
   double per = 0;
+  std::unordered_map<std::string, ObjectRef> col_sums;
   for (auto row : rows) {
     op_sum += row["Duration (us)"].as<DurationNode>()->value;
     total_count += row["Count"].as<CountNode>()->value;
     per += row["Percent"].as<PercentNode>()->value;
-  }
 
-  rows.push_back({{"Name", String("------------------")}});
-  rows.push_back({{"Name", String("Total")},
+    for(auto p : row) {
+      if(p.second.as<CountNode>()) {
+        int64_t val = p.second.as<CountNode>()->value;
+        auto it = col_sums.find(p.first);
+        if(it != col_sums.end()) {
+          val += it->second.as<CountNode>()->value;
+        }
+        col_sums[p.first] = ObjectRef(make_object<CountNode>(val));
+      }
+    }
+  }
+  std::unordered_map<std::string, ObjectRef> sums = {{"Name", String("Total")},
                   {"Duration (us)", ObjectRef(make_object<DurationNode>(op_sum))},
                   {"Count", ObjectRef(make_object<CountNode>(total_count))},
-                  {"Percent", ObjectRef(make_object<PercentNode>(per))}});
+                  {"Percent", ObjectRef(make_object<PercentNode>(per))}};
+  for(auto& p : col_sums) {
+    sums[p.first] = p.second;
+  }
+
+  return FormatCSV(rows);
+
+  rows.push_back({{"Name", String("------------------")}});
+  rows.push_back(sums);
 
   std::stringstream s;
   s.imbue(std::locale(""));

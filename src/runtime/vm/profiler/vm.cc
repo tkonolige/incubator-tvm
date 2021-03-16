@@ -123,8 +123,16 @@ void VirtualMachineDebug::InvokePacked(Index packed_index, const PackedFunc& fun
     }
   }
 
-  prof_.StartCall(packed_index_map_[packed_index], ctx,
-                  {{"Argument Shapes", profiling::ShapeString(shapes)}});
+  std::unordered_map<std::string, ObjectRef> metrics;
+  for (auto p : exec_->op_attrs.at(packed_index)) {
+    if (std::string(p.first).find("layout") != std::string::npos) {
+      metrics[p.first] = p.second;
+    }
+  }
+  metrics["Hash"] = Downcast<String>(exec_->op_attrs.at(packed_index)["hash"]); // FIXME: if hash is not defined
+  metrics["Argument Shapes"] = profiling::ShapeString(shapes);
+
+  prof_.StartCall(packed_index_map_[packed_index], ctx, metrics);
   VirtualMachine::InvokePacked(packed_index, func, arg_count, output_size, args);
   prof_.StopCall();
 }

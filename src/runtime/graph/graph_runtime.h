@@ -50,6 +50,7 @@ namespace runtime {
 /*! \brief operator attributes about tvm op */
 struct TVMOpParam {
   std::string func_name;
+  std::unordered_map<std::string, ObjectRef> attrs;
   uint32_t num_inputs;
   uint32_t num_outputs;
   uint32_t flatten_data;
@@ -239,9 +240,12 @@ class TVM_DLL GraphRuntime : public ModuleNode {
         } else if (key == "flatten_data") {
           param->flatten_data = strtoul(value.c_str(), nullptr, 10);
           bitmask |= 8;
+        // } else if (key == "hash") {
+        //   param->hash = value;
+        //   bitmask |= 16;
         }
       }
-      ICHECK_EQ(bitmask, 1 | 2 | 4 | 8) << "invalid format";
+      ICHECK_EQ(bitmask, 1 | 2 | 4 | 8 ) << "invalid format";
     }
     // JSON Loader
     void Load(dmlc::JSONReader* reader) {

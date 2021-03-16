@@ -57,6 +57,7 @@ namespace transform {
 
 Pass LambdaLift();
 Pass InlinePrimitives();
+Pass LabelOps();
 
 Pass MemoryPlan() {
   auto f = tvm::runtime::Registry::Get("relay.transform.MemoryPlan");
@@ -299,6 +300,11 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
 
     return VMFunction(var->name_hint, params_, instructions_, registers_num_, params_device_type);
   }
+  /*! \brief Attrs objects for each op. */
+  std::map<Index, Map<String, ObjectRef>> op_attrs;
+
+  /*! \brief Attrs objects for each callsite. */
+  std::map<Index, Map<String, ObjectRef>> callsite_attrs;
 
  protected:
   size_t NewRegister() { return registers_num_++; }
@@ -554,6 +560,9 @@ class VMFunctionCompiler : ExprFunctor<void(const Expr& expr)> {
         op_index = context_->seen_funcs[pfunc];
       }
     }
+
+    // Extract functions attrs
+    op_attrs[op_index] = func->attrs->dict;
 
     Emit(Instruction::InvokePacked(op_index, argument_registers.size(), output_tuple->fields.size(),
                                    argument_registers));
@@ -928,6 +937,11 @@ void VMCompiler::Lower(IRModule mod, const TargetsMap& targets, const tvm::Targe
       size_t func_index = context_.global_map.at(gvar);
       ICHECK(func_index < exec_->functions.size());
       exec_->functions[func_index] = vm_func;
+
+      // update structural hashes for tvm ops
+      for(auto p : func_compiler.op_attrs) {
+        exec_->op_attrs.insert(p);
+      }
     }
   }
 
@@ -1102,6 +1116,7 @@ IRModule VMCompiler::OptimizeModule(IRModule mod, const TargetsMap& targets,
 
   pass_seqs.push_back(MemoryOpt(target_host, targets));
   pass_seqs.push_back(transform::InferType());
+  pass_seqs.push_back(transform::LabelOps());
 
   transform::Sequential seq(pass_seqs);
   tvm::With<relay::transform::PassContext> ctx(pass_ctx);

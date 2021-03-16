@@ -263,7 +263,19 @@ class GraphRuntimeDebug : public GraphRuntime {
 
         uint32_t eid = entry_id(i, 0);
         const TVMContext& ctx = data_entry_[eid]->ctx;
-        prof.StartCall(nodes_[i].param.func_name, ctx, {{"Argument Shapes", profiling::ShapeString(shapes)}});
+
+        std::unordered_map<std::string, ObjectRef> metrics;
+        for (auto p : nodes_[i].param.attrs) {
+          LOG(INFO) << p.first;
+          if (std::string(p.first).find("layout") != std::string::npos) {
+            metrics[p.first] = p.second;
+          }
+        }
+        if(nodes_[i].param.attrs.find("hash") != nodes_[i].param.attrs.end()) {
+          metrics["Hash"] = Downcast<String>(nodes_[i].param.attrs.at("hash"));
+        }
+        metrics["Argument Shapes"] = profiling::ShapeString(shapes);
+        prof.StartCall(nodes_[i].param.func_name, ctx, metrics);
         op_execs_[i]();
         prof.StopCall();
       }
