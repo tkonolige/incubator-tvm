@@ -266,7 +266,6 @@ class GraphRuntimeDebug : public GraphRuntime {
 
         std::unordered_map<std::string, ObjectRef> metrics;
         for (auto p : nodes_[i].param.attrs) {
-          LOG(INFO) << p.first;
           if (std::string(p.first).find("layout") != std::string::npos) {
             metrics[p.first] = p.second;
           }
