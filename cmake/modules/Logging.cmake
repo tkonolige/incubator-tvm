@@ -18,7 +18,7 @@
 # This script configures the logging module and dependency on libbacktrace
 
 if("${USE_LIBBACKTRACE}" STREQUAL "AUTO")
-  if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  if(CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "Darwin")
     set(USE_LIBBACKTRACE ON)
   else()
     set(USE_LIBBACKTRACE OFF)
