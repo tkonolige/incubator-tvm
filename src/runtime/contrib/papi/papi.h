@@ -16,41 +16,63 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-#pragma once
+/*!
+ * \brief Performance counters for profiling via the PAPI library.
+ * \file papi.h
+ */
+#ifndef TVM_RUNTIME_CONTRIB_PAPI_PAPI_H_
+#define TVM_RUNTIME_CONTRIB_PAPI_PAPI_H_
+
 
 #include <papi.h>
+
 #include <vector>
+#include <string>
+#include <unordered_map>
 
 namespace tvm {
 namespace runtime {
 namespace profiling {
 
-#define PAPI_CALL(func)                                \
-  {                                                    \
-    int e = (func);                                    \
-    if (e < 0) {                                \
+#define PAPI_CALL(func)                                                         \
+  {                                                                             \
+    int e = (func);                                                             \
+    if (e < 0) {                                                                \
       LOG(FATAL) << "PAPIError: " << e << " " << std::string(PAPI_strerror(e)); \
-    }                                                  \
+    }                                                                           \
   }
 
 // const static std::vector<std::string> metrics = {"cuda:::metric:dram_write_throughput:device=0"};
-const static std::vector<std::string> metrics = {"perf::INSTRUCTIONS", "perf::CYCLES", "perf::CACHE-MISSES", "perf::BRANCH-MISSES", "perf::STALLED-CYCLES-FRONTEND", "perf::STALLED-CYCLES-BACKEND", "perf::L1-ICACHE-LOAD-MISSES", "perf::ITLB-LOAD-MISSES", "RETIRED_BRANCH_INSTRUCTIONS_MISPREDICTED", "32_BYTE_INSTRUCTION_CACHE_MISSES", "perf::L1-DCACHE-LOAD-MISSES", "perf::DTLB-LOAD-MISSES", "CYCLES_WITH_FILL_PENDING_FROM_L2"};
+const static std::vector<std::string> metrics = {"perf::INSTRUCTIONS",
+                                                 "perf::CYCLES",
+                                                 "perf::CACHE-MISSES",
+                                                 // "perf::BRANCH-MISSES",
+                                                 "perf::STALLED-CYCLES-FRONTEND",
+                                                 "perf::STALLED-CYCLES-BACKEND",
+                                                 // "perf::L1-ICACHE-LOAD-MISSES",
+                                                 // "perf::ITLB-LOAD-MISSES",
+                                                 // "RETIRED_BRANCH_INSTRUCTIONS_MISPREDICTED",
+                                                 // "32_BYTE_INSTRUCTION_CACHE_MISSES",
+                                                 // "perf::L1-DCACHE-LOAD-MISSES",
+                                                 // "perf::DTLB-LOAD-MISSES",
+                                                 // "CYCLES_WITH_FILL_PENDING_FROM_L2"
+};
 
 inline void* papi_start_call(TVMContext ctx) {
-  if(!PAPI_is_initialized()) {
+  if (!PAPI_is_initialized()) {
     PAPI_CALL(PAPI_set_debug(PAPI_VERB_ECONT));
-  PAPI_CALL(PAPI_library_init(PAPI_VER_CURRENT));
-  PAPI_CALL(PAPI_multiplex_init());
+    PAPI_CALL(PAPI_library_init(PAPI_VER_CURRENT));
+    PAPI_CALL(PAPI_multiplex_init());
   }
   int* event_set = new int(PAPI_NULL);
   PAPI_CALL(PAPI_create_eventset(event_set));
   // TODO: set this correctly
   PAPI_CALL(PAPI_assign_eventset_component(*event_set, 0));
   // TODO: check if multiplexing is needed
-  PAPI_CALL(PAPI_set_multiplex(*event_set));
-  for(auto metric : metrics) {
+  // PAPI_CALL(PAPI_set_multiplex(*event_set));
+  for (auto metric : metrics) {
     int e = PAPI_add_named_event(*event_set, metric.c_str());
-    if(e < 0) {
+    if (e < 0) {
       LOG(FATAL) << "PAPIError: " << e << " " << std::string(PAPI_strerror(e)) << ": " << metric;
     }
   }
@@ -67,12 +89,13 @@ inline std::unordered_map<std::string, ObjectRef> papi_stop_call(void* data) {
   PAPI_CALL(PAPI_destroy_eventset(event_set));
   delete event_set;
   std::unordered_map<std::string, ObjectRef> out;
-  for(size_t i = 0; i < metrics.size(); i++) {
+  for (size_t i = 0; i < metrics.size(); i++) {
     out[metrics[i]] = ObjectRef(make_object<CountNode>(values[i]));
   }
   return out;
 }
 
-}
+}  // namespace profiling
 }  // namespace runtime
 }  // namespace tvm
+#endif  // TVM_RUNTIME_CONTRIB_PAPI_PAPI_H_

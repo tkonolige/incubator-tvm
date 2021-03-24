@@ -34,7 +34,6 @@
 
 #include "./contrib/papi/papi.h"
 
-
 namespace tvm {
 namespace runtime {
 
@@ -125,7 +124,7 @@ void Profiler::StopCall(std::unordered_map<std::string, ObjectRef> extra_metrics
     cf.extra_metrics[p.first] = p.second;
   }
   auto extra = papi_stop_call(papi);
-  for(auto& p : extra) {
+  for (auto& p : extra) {
     cf.extra_metrics[p.first] = p.second;
   }
   in_flight_.pop();
@@ -180,11 +179,11 @@ std::string FormatCSV(const std::vector<std::unordered_map<std::string, ObjectRe
         std::string val;
         if (it->second.as<CountNode>()) {
           s << it->second.as<CountNode>()->value;
-        } else  if (it->second.as<DurationNode>()) {
+        } else if (it->second.as<DurationNode>()) {
           s << it->second.as<DurationNode>()->value;
-        } else  if (it->second.as<PercentNode>()) {
+        } else if (it->second.as<PercentNode>()) {
           s << it->second.as<PercentNode>()->value;
-        } else  if (it->second.as<StringObj>()) {
+        } else if (it->second.as<StringObj>()) {
           s << "\"" << Downcast<String>(it->second) << "\"";
         }
       }
@@ -385,26 +384,27 @@ String Profiler::Report(bool aggregate) {
     total_count += row["Count"].as<CountNode>()->value;
     per += row["Percent"].as<PercentNode>()->value;
 
-    for(auto p : row) {
-      if(p.second.as<CountNode>()) {
+    for (auto p : row) {
+      if (p.second.as<CountNode>()) {
         int64_t val = p.second.as<CountNode>()->value;
         auto it = col_sums.find(p.first);
-        if(it != col_sums.end()) {
+        if (it != col_sums.end()) {
           val += it->second.as<CountNode>()->value;
         }
         col_sums[p.first] = ObjectRef(make_object<CountNode>(val));
       }
     }
   }
-  std::unordered_map<std::string, ObjectRef> sums = {{"Name", String("Total")},
-                  {"Duration (us)", ObjectRef(make_object<DurationNode>(op_sum))},
-                  {"Count", ObjectRef(make_object<CountNode>(total_count))},
-                  {"Percent", ObjectRef(make_object<PercentNode>(per))}};
-  for(auto& p : col_sums) {
+  std::unordered_map<std::string, ObjectRef> sums = {
+      {"Name", String("Total")},
+      {"Duration (us)", ObjectRef(make_object<DurationNode>(op_sum))},
+      {"Count", ObjectRef(make_object<CountNode>(total_count))},
+      {"Percent", ObjectRef(make_object<PercentNode>(per))}};
+  for (auto& p : col_sums) {
     sums[p.first] = p.second;
   }
 
-  return FormatCSV(rows);
+  // return FormatCSV(rows);
 
   rows.push_back({{"Name", String("------------------")}});
   rows.push_back(sums);

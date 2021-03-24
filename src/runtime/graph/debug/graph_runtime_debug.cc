@@ -270,7 +270,7 @@ class GraphRuntimeDebug : public GraphRuntime {
             metrics[p.first] = p.second;
           }
         }
-        if(nodes_[i].param.attrs.find("hash") != nodes_[i].param.attrs.end()) {
+        if (nodes_[i].param.attrs.find("hash") != nodes_[i].param.attrs.end()) {
           metrics["Hash"] = Downcast<String>(nodes_[i].param.attrs.at("hash"));
         }
         metrics["Argument Shapes"] = profiling::ShapeString(shapes);

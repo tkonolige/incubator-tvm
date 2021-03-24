@@ -939,7 +939,7 @@ void VMCompiler::Lower(IRModule mod, const TargetsMap& targets, const tvm::Targe
       exec_->functions[func_index] = vm_func;
 
       // update structural hashes for tvm ops
-      for(auto p : func_compiler.op_attrs) {
+      for (auto p : func_compiler.op_attrs) {
         exec_->op_attrs.insert(p);
       }
     }

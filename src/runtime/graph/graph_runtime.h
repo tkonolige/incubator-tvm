@@ -244,7 +244,7 @@ class TVM_DLL GraphRuntime : public ModuleNode {
           param->attrs[key] = String(value);
         }
       }
-      ICHECK_EQ(bitmask, 1 | 2 | 4 | 8 ) << "invalid format";
+      ICHECK_EQ(bitmask, 1 | 2 | 4 | 8) << "invalid format";
     }
     // JSON Loader
     void Load(dmlc::JSONReader* reader) {

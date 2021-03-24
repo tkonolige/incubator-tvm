@@ -396,6 +396,8 @@ if(USE_CPP_RPC)
   add_subdirectory("apps/cpp_rpc")
 endif()
 
+add_subdirectory("apps/cpp_benchmark")
+
 if(USE_PAPI)
   include(cmake/modules/PAPI.cmake)
 endif()

@@ -38,9 +38,9 @@
 
 namespace tvm {
 namespace relay {
-  namespace transform{
+namespace transform {
 Pass LabelOps();
-  }
+}
 namespace backend {
 
 using TargetsMap = Map<tvm::Integer, tvm::Target>;

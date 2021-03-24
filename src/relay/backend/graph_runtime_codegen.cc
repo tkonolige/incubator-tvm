@@ -371,8 +371,8 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
     // Copy attrs from function into the graph node
     // For now we only handle strings
     GraphAttrs attrs;
-    for(auto p : func->attrs->dict) {
-      if(p.second.as<StringObj>()) {
+    for (auto p : func->attrs->dict) {
+      if (p.second.as<StringObj>()) {
         attrs[p.first] = std::string(Downcast<String>(p.second));
       }
     }
@@ -417,7 +417,8 @@ class GraphRuntimeCodegen : public backend::MemoizedExprTranslator<std::vector<G
       lowered_funcs_[target->str()] = IRModule(Map<GlobalVar, BaseFunc>({}));
     }
     lowered_funcs_[target->str()]->Update(lowered_func->funcs);
-    return GraphAddCallNode(op, _GetUniqueName(lowered_func->func_name), lowered_func->func_name, attrs);
+    return GraphAddCallNode(op, _GetUniqueName(lowered_func->func_name), lowered_func->func_name,
+                            attrs);
   }
 
   std::vector<GraphNodeRef> VisitExpr_(const LetNode* op) override {

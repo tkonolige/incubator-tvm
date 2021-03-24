@@ -129,7 +129,8 @@ void VirtualMachineDebug::InvokePacked(Index packed_index, const PackedFunc& fun
       metrics[p.first] = p.second;
     }
   }
-  metrics["Hash"] = Downcast<String>(exec_->op_attrs.at(packed_index)["hash"]); // FIXME: if hash is not defined
+  metrics["Hash"] =
+      Downcast<String>(exec_->op_attrs.at(packed_index)["hash"]);  // FIXME: if hash is not defined
   metrics["Argument Shapes"] = profiling::ShapeString(shapes);
 
   prof_.StartCall(packed_index_map_[packed_index], ctx, metrics);

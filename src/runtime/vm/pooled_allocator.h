@@ -52,6 +52,7 @@ class PooledAllocator final : public Allocator {
       auto&& pool = it->second;
       auto ret = pool.back();
       pool.pop_back();
+      // LOG(INFO) << "REUSING " << size;
       return ret;
     }
     Buffer buf;
@@ -59,7 +60,7 @@ class PooledAllocator final : public Allocator {
     buf.size = size;
     buf.data = DeviceAPI::Get(ctx_)->AllocDataSpace(ctx_, size, alignment, type_hint);
     used_memory_.fetch_add(size, std::memory_order_relaxed);
-    DLOG(INFO) << "allocate " << size << " B, used memory " << used_memory_ << " B";
+    // LOG(INFO) << "allocate " << size << " B, used memory " << used_memory_ << " B";
     return buf;
   }
 
