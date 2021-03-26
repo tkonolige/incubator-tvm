@@ -46,9 +46,10 @@ namespace profiling {
 const static std::vector<std::string> metrics = {"perf::INSTRUCTIONS",
                                                  "perf::CYCLES",
                                                  "perf::CACHE-MISSES",
+                                                 "perf::CACHE-REFERENCES",
                                                  // "perf::BRANCH-MISSES",
-                                                 "perf::STALLED-CYCLES-FRONTEND",
-                                                 "perf::STALLED-CYCLES-BACKEND",
+                                                 // "perf::STALLED-CYCLES-FRONTEND",
+                                                 // "perf::STALLED-CYCLES-BACKEND",
                                                  // "perf::L1-ICACHE-LOAD-MISSES",
                                                  // "perf::ITLB-LOAD-MISSES",
                                                  // "RETIRED_BRANCH_INSTRUCTIONS_MISPREDICTED",
@@ -62,7 +63,8 @@ inline void* papi_start_call(TVMContext ctx) {
   if (!PAPI_is_initialized()) {
     PAPI_CALL(PAPI_set_debug(PAPI_VERB_ECONT));
     PAPI_CALL(PAPI_library_init(PAPI_VER_CURRENT));
-    PAPI_CALL(PAPI_multiplex_init());
+    // PAPI_CALL(PAPI_multiplex_init());
+    // PAPI_CALL(PAPI_set_granularity(PAPI_GRN_PROC));
   }
   int* event_set = new int(PAPI_NULL);
   PAPI_CALL(PAPI_create_eventset(event_set));

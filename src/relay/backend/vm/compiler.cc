@@ -1182,6 +1182,7 @@ void VMCompiler::Codegen() {
     exec_->lib = codegen::CSourceModuleCreate(";", "", Array<String>{});
   }
   exec_->lib = codegen::CreateMetadataModule(params_, exec_->lib, ext_mods, target_host_);
+  CompileEngine::Global()->Clear();
 }
 
 ExprDeviceMap VMCompiler::AnalyzeContext() const {

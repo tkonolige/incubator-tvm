@@ -195,7 +195,7 @@ std::string FormatCSV(const std::vector<std::unordered_map<std::string, ObjectRe
 }
 
 std::string FormatTable(const std::vector<std::unordered_map<std::string, ObjectRef>>& rows,
-                        std::unordered_set<std::string> hidden_cols = {"Argument Shapes",
+                        std::unordered_set<std::string> hidden_cols = {
                                                                        "Context"}) {
   std::unordered_set<std::string> unique_headers;
 
@@ -289,6 +289,8 @@ String Profiler::Report(bool aggregate) {
   for (auto p : global_times) {
     overall_time = std::max(overall_time, p.second);
   }
+
+  aggregate=false;
 
   // aggregate times by op name
   std::vector<std::pair<std::string, std::vector<size_t>>> aggregate_rows;

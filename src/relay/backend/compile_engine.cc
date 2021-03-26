@@ -37,6 +37,7 @@
 #include <tvm/te/schedule.h>
 #include <tvm/te/schedule_pass.h>
 #include <tvm/topi/tags.h>
+#include "../..//printer/text_printer.h"
 
 #include <functional>
 #include <limits>
@@ -107,7 +108,9 @@ class ScheduleGetter : public backend::MemoizedExprTranslator<Array<te::Tensor>>
   CachedFunc Create(const Function& prim_func) {
     auto cache_node = make_object<CachedFuncNode>();
     cache_node->target = target_;
+    // LOG(INFO) << "==================";
     for (Var param : prim_func->params) {
+      // LOG(INFO) << param;
       Array<tvm::te::Tensor> inputs;
       if (const auto* ttype = param->checked_type().as<TensorTypeNode>()) {
         tvm::te::Tensor tensor = tvm::te::placeholder(GetShape(ttype->shape), ttype->dtype);
@@ -127,6 +130,7 @@ class ScheduleGetter : public backend::MemoizedExprTranslator<Array<te::Tensor>>
       }
       memo_[param] = inputs;
     }
+    // LOG(INFO) << "------------------";
     readable_name_stream_ << "fused";
     cache_node->outputs = this->VisitExpr(prim_func->body);
     auto candidate_name = readable_name_stream_.str();
@@ -337,11 +341,13 @@ class MakeShapeFunc : public backend::MemoizedExprTranslator<Array<te::Tensor>> 
 
   std::pair<te::Schedule, CachedFunc> Create(const Function& prim_func) {
     for (auto param : prim_func->params) {
+      LOG(INFO) << "PARAM " << param;
       param_states_[param] = kNoNeed;
       Array<tvm::te::Tensor> data_inputs;
       Array<tvm::te::Tensor> shape_inputs;
 
       auto add_placeholder = [&data_inputs, &shape_inputs](const TensorTypeNode* ttype) {
+        LOG(INFO) << "data_input " << ttype;
         // Add data placeholder
         Shape shape = GetShape(ttype->shape);
         tvm::te::Tensor data_tensor = tvm::te::placeholder(shape, ttype->dtype);
@@ -387,6 +393,7 @@ class MakeShapeFunc : public backend::MemoizedExprTranslator<Array<te::Tensor>> 
 
     // set inputs
     for (auto param : prim_func->params) {
+      LOG(INFO) << "=====================> " << param;
       int state = param_states_[param];
       cache_node->shape_func_param_states.push_back(IntImm(DataType::Int(32), state));
       if (state & kNeedInputData) {
@@ -679,7 +686,7 @@ class CompileEngineImpl : public CompileEngineNode {
     return ret;
   }
 
-  void Clear() final { cache_.clear(); }
+  void Clear() final { LOG(INFO) << "CLEARING";cache_.clear(); }
 
   // List all items in the cache.
   Array<ObjectRef> ListItems() {

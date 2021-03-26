@@ -75,6 +75,8 @@ PackedFunc VirtualMachineDebug::GetFunction(const std::string& name,
         invoke(arg_name);
       }
 
+      LOG(INFO) << "starting profile";
+
       prof_ = profiling::Profiler();  // reset profiler
       prof_.Start(ctxs);
       invoke(arg_name);

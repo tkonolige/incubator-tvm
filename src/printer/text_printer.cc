@@ -84,6 +84,12 @@ String AsText(const ObjectRef& node, bool show_meta_data,
   return doc.str();
 }
 
+String PrintObject(const ObjectRef& node) {
+  NamedAttrVisitor visitor;
+  ReflectionVTable::Global()->VisitAttrs(const_cast<Object*>(node.get()), &visitor);
+  return visitor.s.str();
+}
+
 TVM_REGISTER_GLOBAL("ir.PrettyPrint").set_body_typed(PrettyPrint);
 
 TVM_REGISTER_GLOBAL("ir.AsText").set_body_typed(AsText);
