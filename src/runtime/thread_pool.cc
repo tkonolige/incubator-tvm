@@ -41,6 +41,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <papi.h>
 
 const constexpr int kL1CacheBytes = 64;
 
@@ -325,6 +326,8 @@ class ThreadPool {
  private:
   // Internal worker function.
   void RunWorker(int worker_id) {
+    // PAPI_thread_init(pthread_self);
+    // PAPI_register_thread();
     SpscTaskQueue* queue = queues_[worker_id].get();
     SpscTaskQueue::Task task;
     ParallelLauncher::ThreadLocal()->is_worker = true;
@@ -342,6 +345,7 @@ class ThreadPool {
         task.launcher->SignalJobError(task.task_id);
       }
     }
+    // PAPI_unregister_thread();
   }
   int num_workers_;
   // number of workers used (can be restricted with affinity pref)

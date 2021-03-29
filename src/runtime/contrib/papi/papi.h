@@ -23,12 +23,11 @@
 #ifndef TVM_RUNTIME_CONTRIB_PAPI_PAPI_H_
 #define TVM_RUNTIME_CONTRIB_PAPI_PAPI_H_
 
-
 #include <papi.h>
 
-#include <vector>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace tvm {
 namespace runtime {
@@ -43,26 +42,27 @@ namespace profiling {
   }
 
 // const static std::vector<std::string> metrics = {"cuda:::metric:dram_write_throughput:device=0"};
-const static std::vector<std::string> metrics = {"perf::INSTRUCTIONS",
-                                                 "perf::CYCLES",
-                                                 "perf::CACHE-MISSES",
-                                                 "perf::CACHE-REFERENCES",
-                                                 // "perf::BRANCH-MISSES",
-                                                 // "perf::STALLED-CYCLES-FRONTEND",
-                                                 // "perf::STALLED-CYCLES-BACKEND",
-                                                 // "perf::L1-ICACHE-LOAD-MISSES",
-                                                 // "perf::ITLB-LOAD-MISSES",
-                                                 // "RETIRED_BRANCH_INSTRUCTIONS_MISPREDICTED",
-                                                 // "32_BYTE_INSTRUCTION_CACHE_MISSES",
-                                                 // "perf::L1-DCACHE-LOAD-MISSES",
-                                                 // "perf::DTLB-LOAD-MISSES",
-                                                 // "CYCLES_WITH_FILL_PENDING_FROM_L2"
+const static std::vector<std::string> metrics = {
+    "perf::INSTRUCTIONS", "perf::CYCLES", "perf::CACHE-MISSES", "perf::CACHE-REFERENCES",
+    // "perf::BRANCH-MISSES",
+    // "perf::STALLED-CYCLES-FRONTEND",
+    // "perf::STALLED-CYCLES-BACKEND",
+    // "perf::L1-ICACHE-LOAD-MISSES",
+    // "perf::ITLB-LOAD-MISSES",
+    // "RETIRED_BRANCH_INSTRUCTIONS_MISPREDICTED",
+    // "32_BYTE_INSTRUCTION_CACHE_MISSES",
+    // "perf::L1-DCACHE-LOAD-MISSES",
+    // "perf::DTLB-LOAD-MISSES",
+    // "CYCLES_WITH_FILL_PENDING_FROM_L2"
 };
 
+// TODO this needs to be move before threads are created
 inline void* papi_start_call(TVMContext ctx) {
   if (!PAPI_is_initialized()) {
     PAPI_CALL(PAPI_set_debug(PAPI_VERB_ECONT));
     PAPI_CALL(PAPI_library_init(PAPI_VER_CURRENT));
+    // PAPI_CALL(PAPI_thread_init(pthread_self));
+    // PAPI_CALL(PAPI_register_thread());
     // PAPI_CALL(PAPI_multiplex_init());
     // PAPI_CALL(PAPI_set_granularity(PAPI_GRN_PROC));
   }
@@ -70,6 +70,11 @@ inline void* papi_start_call(TVMContext ctx) {
   PAPI_CALL(PAPI_create_eventset(event_set));
   // TODO: set this correctly
   PAPI_CALL(PAPI_assign_eventset_component(*event_set, 0));
+  PAPI_option_t opt;
+  memset(&opt, 0x0, sizeof(PAPI_option_t));
+  opt.inherit.inherit = PAPI_INHERIT_ALL;
+  opt.inherit.eventset = *event_set;
+  PAPI_CALL(PAPI_set_opt(PAPI_INHERIT, &opt));
   // TODO: check if multiplexing is needed
   // PAPI_CALL(PAPI_set_multiplex(*event_set));
   for (auto metric : metrics) {
