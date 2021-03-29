@@ -25,6 +25,7 @@
 #include <tvm/ir/expr.h>
 #include <tvm/runtime/packed_func.h>
 #include <tvm/runtime/profiling.h>
+#include <tvm/runtime/c_backend_api.h>
 
 #include <chrono>
 #include <iomanip>
@@ -102,18 +103,20 @@ TVM_REGISTER_GLOBAL("profiling.start_timer").set_body_typed(Timer::Start);
 
 namespace profiling {
 
+static void* papi;
+
 void Profiler::Start(const std::vector<TVMContext>& ctxs) {
+  papi = papi_start(ctxs[0]); // FIXME
+  TVMBackendResetPool();
   CHECK(global_timers_.empty()) << "You can only call Start once per Profiler.";
   for (auto ctx : ctxs) {
     global_timers_.emplace_back(ctx, Timer::Start(ctx));
   }
 }
 
-static void* papi;
-
 void Profiler::StartCall(String name, TVMContext ctx,
                          std::unordered_map<std::string, ObjectRef> extra_metrics) {
-  papi = papi_start_call(ctx);
+  papi_start_call(papi);
   in_flight_.push(CallFrame{ctx, name, Timer::Start(ctx), extra_metrics});
 }
 

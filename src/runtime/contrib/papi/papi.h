@@ -56,8 +56,7 @@ const static std::vector<std::string> metrics = {
     // "CYCLES_WITH_FILL_PENDING_FROM_L2"
 };
 
-// TODO this needs to be move before threads are created
-inline void* papi_start_call(TVMContext ctx) {
+inline void* papi_start(TVMContext ctx) {
   if (!PAPI_is_initialized()) {
     PAPI_CALL(PAPI_set_debug(PAPI_VERB_ECONT));
     PAPI_CALL(PAPI_library_init(PAPI_VER_CURRENT));
@@ -83,8 +82,12 @@ inline void* papi_start_call(TVMContext ctx) {
       LOG(FATAL) << "PAPIError: " << e << " " << std::string(PAPI_strerror(e)) << ": " << metric;
     }
   }
-  PAPI_CALL(PAPI_start(*event_set));
   return event_set;
+}
+
+inline void papi_start_call(void* data) {
+  int* event_set = static_cast<int*>(data);
+  PAPI_CALL(PAPI_start(*event_set));
 }
 
 inline std::unordered_map<std::string, ObjectRef> papi_stop_call(void* data) {
@@ -92,9 +95,9 @@ inline std::unordered_map<std::string, ObjectRef> papi_stop_call(void* data) {
   int* event_set = static_cast<int*>(data);
   PAPI_CALL(PAPI_stop(*event_set, values.data()));
   // PAPI_CALL(PAPI_read(*event_set, values));
-  PAPI_CALL(PAPI_cleanup_eventset(*event_set));
-  PAPI_CALL(PAPI_destroy_eventset(event_set));
-  delete event_set;
+  // PAPI_CALL(PAPI_cleanup_eventset(*event_set));
+  // PAPI_CALL(PAPI_destroy_eventset(event_set));
+  // delete event_set;
   std::unordered_map<std::string, ObjectRef> out;
   for (size_t i = 0; i < metrics.size(); i++) {
     out[metrics[i]] = ObjectRef(make_object<CountNode>(values[i]));

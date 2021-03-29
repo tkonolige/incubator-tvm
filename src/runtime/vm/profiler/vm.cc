@@ -43,7 +43,7 @@ PackedFunc VirtualMachineDebug::GetFunction(const std::string& name,
                                             const ObjectPtr<Object>& sptr_to_self) {
   if (name == "get_stat") {
     return PackedFunc(
-        [sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = prof_.Report(); });
+        [sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = (*prof_).Report(); });
   } else if (name == "reset") {
     return PackedFunc(
         [sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { prof_ = profiling::Profiler(); });
@@ -56,9 +56,13 @@ PackedFunc VirtualMachineDebug::GetFunction(const std::string& name,
         }
       }
       auto invoke = VirtualMachine::GetFunction("invoke", sptr_to_self);
-      prof_.Start(ctxs);
+      if(prof_) {
+        (*prof_).Start(ctxs);
+      }
       invoke.CallPacked(args, rv);
-      prof_.Stop();
+      if(prof_) {
+        (*prof_).Stop();
+      }
     });
   } else if (name == "profile") {
     return TypedPackedFunc<String(String)>([sptr_to_self, this](String arg_name) {
@@ -71,6 +75,7 @@ PackedFunc VirtualMachineDebug::GetFunction(const std::string& name,
 
       auto invoke = VirtualMachine::GetFunction("invoke", sptr_to_self);
       // warmup
+      prof_ = dmlc::optional<profiling::Profiler>();
       for (int i = 0; i < 3; i++) {
         invoke(arg_name);
       }
@@ -78,10 +83,10 @@ PackedFunc VirtualMachineDebug::GetFunction(const std::string& name,
       LOG(INFO) << "starting profile";
 
       prof_ = profiling::Profiler();  // reset profiler
-      prof_.Start(ctxs);
+      (*prof_).Start(ctxs);
       invoke(arg_name);
-      prof_.Stop();
-      return prof_.Report();
+      (*prof_).Stop();
+      return (*prof_).Report();
     });
   } else {
     return VirtualMachine::GetFunction(name, sptr_to_self);
@@ -100,6 +105,7 @@ void VirtualMachineDebug::InvokePacked(Index packed_index, const PackedFunc& fun
                                        Index output_size, const std::vector<ObjectRef>& args) {
   ICHECK(exec_);
   ICHECK(!ctxs_.empty()) << "Context has not been initialized yet.";
+  if(prof_) {
   // The device context of any input of the operator is used for
   // synchronization.
   ICHECK_GT(arg_count, 0U);
@@ -135,9 +141,12 @@ void VirtualMachineDebug::InvokePacked(Index packed_index, const PackedFunc& fun
       Downcast<String>(exec_->op_attrs.at(packed_index)["hash"]);  // FIXME: if hash is not defined
   metrics["Argument Shapes"] = profiling::ShapeString(shapes);
 
-  prof_.StartCall(packed_index_map_[packed_index], ctx, metrics);
+  (*prof_).StartCall(packed_index_map_[packed_index], ctx, metrics);
+  }
   VirtualMachine::InvokePacked(packed_index, func, arg_count, output_size, args);
-  prof_.StopCall();
+  if(prof_) {
+    (*prof_).StopCall();
+  }
 }
 
 runtime::Module CreateVirtualMachineDebug(const Executable* exec) {

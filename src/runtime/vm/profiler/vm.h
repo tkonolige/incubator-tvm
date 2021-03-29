@@ -27,6 +27,7 @@
 
 #include <tvm/runtime/profiling.h>
 #include <tvm/runtime/vm/vm.h>
+#include <dmlc/optional.h>
 
 #include <memory>
 #include <string>
@@ -52,7 +53,7 @@ class VirtualMachineDebug : public VirtualMachine {
                     const std::vector<ObjectRef>& args) final;
 
   std::unordered_map<Index, std::string> packed_index_map_;
-  profiling::Profiler prof_;
+  dmlc::optional<profiling::Profiler> prof_;
 };
 
 }  // namespace vm
