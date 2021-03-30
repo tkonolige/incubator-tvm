@@ -43,61 +43,82 @@ namespace profiling {
 
 // const static std::vector<std::string> metrics = {"cuda:::metric:dram_write_throughput:device=0"};
 const static std::vector<std::string> metrics = {
-    "perf::INSTRUCTIONS", "perf::CYCLES", "perf::CACHE-MISSES", "perf::CACHE-REFERENCES",
+    //"perf::INSTRUCTIONS",
+    "perf::CYCLES",
+    // "perf::CACHE-MISSES",
+    // "perf::CACHE-REFERENCES",
     // "perf::BRANCH-MISSES",
-    // "perf::STALLED-CYCLES-FRONTEND",
-    // "perf::STALLED-CYCLES-BACKEND",
+    // "MISALIGNED_LOADS",
+    "perf::STALLED-CYCLES-FRONTEND",
+    "perf::STALLED-CYCLES-BACKEND",
     // "perf::L1-ICACHE-LOAD-MISSES",
     // "perf::ITLB-LOAD-MISSES",
     // "RETIRED_BRANCH_INSTRUCTIONS_MISPREDICTED",
     // "32_BYTE_INSTRUCTION_CACHE_MISSES",
-    // "perf::L1-DCACHE-LOAD-MISSES",
+    "perf::L1-DCACHE-LOAD-MISSES",
+    "perf::L1-DCACHE-LOADS",
+    // "perf::L1-DCACHE-STORES:cpu=0",
+    // "perf::L1-DCACHE-STORE-MISSES",
+    // "perf::LLC-LOAD-MISSES",
+    // "perf::PERF_COUNT_HW_CACHE_LL",
+    // "perf::LLC-STORE-MISSES",
     // "perf::DTLB-LOAD-MISSES",
     // "CYCLES_WITH_FILL_PENDING_FROM_L2"
 };
 
-inline void* papi_start(TVMContext ctx) {
+inline int papi_start(TVMContext ctx) {
   if (!PAPI_is_initialized()) {
-    PAPI_CALL(PAPI_set_debug(PAPI_VERB_ECONT));
+    // PAPI_CALL(PAPI_set_debug(PAPI_VERB_ECONT));
     PAPI_CALL(PAPI_library_init(PAPI_VER_CURRENT));
     // PAPI_CALL(PAPI_thread_init(pthread_self));
     // PAPI_CALL(PAPI_register_thread());
     // PAPI_CALL(PAPI_multiplex_init());
     // PAPI_CALL(PAPI_set_granularity(PAPI_GRN_PROC));
   }
-  int* event_set = new int(PAPI_NULL);
-  PAPI_CALL(PAPI_create_eventset(event_set));
+  int event_set = PAPI_NULL;
+  PAPI_CALL(PAPI_create_eventset(&event_set));
   // TODO: set this correctly
-  PAPI_CALL(PAPI_assign_eventset_component(*event_set, 0));
+  PAPI_CALL(PAPI_assign_eventset_component(event_set, 0));
   PAPI_option_t opt;
   memset(&opt, 0x0, sizeof(PAPI_option_t));
   opt.inherit.inherit = PAPI_INHERIT_ALL;
-  opt.inherit.eventset = *event_set;
+  opt.inherit.eventset = event_set;
   PAPI_CALL(PAPI_set_opt(PAPI_INHERIT, &opt));
   // TODO: check if multiplexing is needed
   // PAPI_CALL(PAPI_set_multiplex(*event_set));
   for (auto metric : metrics) {
-    int e = PAPI_add_named_event(*event_set, metric.c_str());
+    int e = PAPI_add_named_event(event_set, metric.c_str());
     if (e < 0) {
       LOG(FATAL) << "PAPIError: " << e << " " << std::string(PAPI_strerror(e)) << ": " << metric;
     }
   }
+  PAPI_CALL(PAPI_start(event_set));
   return event_set;
 }
 
-inline void papi_start_call(void* data) {
-  int* event_set = static_cast<int*>(data);
-  PAPI_CALL(PAPI_start(*event_set));
+inline std::vector<long_long> papi_start_call(int event_set) {
+  std::vector<long_long> values(metrics.size());
+  PAPI_CALL(PAPI_read(event_set, values.data()));
+  return values;
 }
 
-inline std::unordered_map<std::string, ObjectRef> papi_stop_call(void* data) {
+inline std::unordered_map<std::string, ObjectRef> papi_stop_call(
+    const std::vector<long_long>& starting_values, int event_set) {
   std::vector<long_long> values(metrics.size());
-  int* event_set = static_cast<int*>(data);
-  PAPI_CALL(PAPI_stop(*event_set, values.data()));
+  PAPI_CALL(PAPI_read(event_set, values.data()));
+  std::unordered_map<std::string, ObjectRef> out;
+  for (size_t i = 0; i < metrics.size(); i++) {
+    out[metrics[i]] = ObjectRef(make_object<CountNode>(values[i] - starting_values[i]));
+  }
+  return out;
+}
+
+inline std::unordered_map<std::string, ObjectRef> papi_stop(int event_set) {
+  std::vector<long_long> values(metrics.size());
+  PAPI_CALL(PAPI_stop(event_set, values.data()));
   // PAPI_CALL(PAPI_read(*event_set, values));
-  // PAPI_CALL(PAPI_cleanup_eventset(*event_set));
-  // PAPI_CALL(PAPI_destroy_eventset(event_set));
-  // delete event_set;
+  PAPI_CALL(PAPI_cleanup_eventset(event_set));
+  PAPI_CALL(PAPI_destroy_eventset(&event_set));
   std::unordered_map<std::string, ObjectRef> out;
   for (size_t i = 0; i < metrics.size(); i++) {
     out[metrics[i]] = ObjectRef(make_object<CountNode>(values[i]));

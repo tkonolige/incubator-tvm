@@ -253,10 +253,12 @@ void VirtualMachine::InvokePacked(Index packed_index, const PackedFunc& func, In
       for (size_t fi = 0; fi < dt_cell->size; ++fi) {
         auto obj = (*dt_cell)[fi];
         auto nd_array = Downcast<NDArray>(obj);
+        // CHECK_EQ(reinterpret_cast<size_t>(nd_array->data) % 128, 0);
         setter(idx++, nd_array);
       }
     } else {
       auto nd_array = Downcast<NDArray>(args[i]);
+      // CHECK_EQ(reinterpret_cast<size_t>(nd_array->data) % 128, 0);
       // We can safely skip CallPacked if there is only one
       // output and it is empty.
       if (i == arg_count - 1 && output_size == 1) {

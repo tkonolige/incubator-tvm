@@ -118,7 +118,7 @@ struct VMFrame {
   const Instruction* code;
 
   /*! \brief Statically allocated space for objects */
-  std::vector<ObjectRef> register_file;
+  ObjectRef register_file[232];
 
   /*! \brief Register in caller's frame to put return value */
   RegName caller_return_register;
@@ -128,7 +128,7 @@ struct VMFrame {
         func_index(func_index),
         args(args),
         code(code),
-        register_file(register_file_size),
+        register_file(),
         caller_return_register(0) {}
 };
 

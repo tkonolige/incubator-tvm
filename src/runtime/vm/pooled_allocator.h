@@ -45,7 +45,7 @@ class PooledAllocator final : public Allocator {
   ~PooledAllocator() { ReleaseAll(); }
 
   Buffer Alloc(size_t nbytes, size_t alignment, DLDataType type_hint) override {
-    // alignment=128;
+    alignment=128;
     std::lock_guard<std::mutex> lock(mu_);
     size_t size = ((nbytes + page_size_ - 1) / page_size_) * page_size_;
     auto&& it = memory_pool_.find(size);

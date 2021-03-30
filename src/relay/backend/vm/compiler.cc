@@ -58,6 +58,11 @@ namespace transform {
 Pass LambdaLift();
 Pass InlinePrimitives();
 Pass LabelOps();
+Pass FloatStorage() {
+  auto f = tvm::runtime::Registry::Get("relay.transform.FloatStorage");
+  ICHECK(f != nullptr) << "unable to load the float storage pass";
+  return (*f)();
+}
 
 Pass MemoryPlan() {
   auto f = tvm::runtime::Registry::Get("relay.transform.MemoryPlan");
@@ -1117,6 +1122,7 @@ IRModule VMCompiler::OptimizeModule(IRModule mod, const TargetsMap& targets,
   pass_seqs.push_back(MemoryOpt(target_host, targets));
   pass_seqs.push_back(transform::InferType());
   pass_seqs.push_back(transform::LabelOps());
+  pass_seqs.push_back(transform::FloatStorage());
 
   transform::Sequential seq(pass_seqs);
   tvm::With<relay::transform::PassContext> ctx(pass_ctx);

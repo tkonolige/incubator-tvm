@@ -34,6 +34,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <optional>
 
 namespace tvm {
 namespace runtime {
@@ -56,11 +57,11 @@ PackedFunc VirtualMachineDebug::GetFunction(const std::string& name,
         }
       }
       auto invoke = VirtualMachine::GetFunction("invoke", sptr_to_self);
-      if(prof_) {
+      if (prof_) {
         (*prof_).Start(ctxs);
       }
       invoke.CallPacked(args, rv);
-      if(prof_) {
+      if (prof_) {
         (*prof_).Stop();
       }
     });
@@ -75,7 +76,7 @@ PackedFunc VirtualMachineDebug::GetFunction(const std::string& name,
 
       auto invoke = VirtualMachine::GetFunction("invoke", sptr_to_self);
       // warmup
-      prof_ = dmlc::optional<profiling::Profiler>();
+      prof_ = std::optional<profiling::Profiler>();
       for (int i = 0; i < 3; i++) {
         invoke(arg_name);
       }
@@ -105,46 +106,46 @@ void VirtualMachineDebug::InvokePacked(Index packed_index, const PackedFunc& fun
                                        Index output_size, const std::vector<ObjectRef>& args) {
   ICHECK(exec_);
   ICHECK(!ctxs_.empty()) << "Context has not been initialized yet.";
-  if(prof_) {
-  // The device context of any input of the operator is used for
-  // synchronization.
-  ICHECK_GT(arg_count, 0U);
-  ObjectRef arg = args[0];
-  while (arg->IsInstance<ADTObj>()) {
-    ADT adt = Downcast<ADT>(arg);
-    arg = adt[0];
-  }
-  ICHECK(arg->IsInstance<NDArray::ContainerType>());
-  auto nd_array = Downcast<NDArray>(arg);
-  auto ctx = nd_array->ctx;
+  if (prof_) {
+    // The device context of any input of the operator is used for
+    // synchronization.
+    ICHECK_GT(arg_count, 0U);
+    ObjectRef arg = args[0];
+    while (arg->IsInstance<ADTObj>()) {
+      ADT adt = Downcast<ADT>(arg);
+      arg = adt[0];
+    }
+    ICHECK(arg->IsInstance<NDArray::ContainerType>());
+    auto nd_array = Downcast<NDArray>(arg);
+    auto ctx = nd_array->ctx;
 
-  // get argument sizes
-  std::vector<NDArray> shapes;
-  for (Index i = 0; i < arg_count; i++) {
-    if (const auto* obj = args[i].as<ADTObj>()) {
-      for (size_t fi = 0; fi < obj->size; ++fi) {
-        auto o = (*obj)[fi];
-        shapes.push_back(Downcast<NDArray>(o));
+    // get argument sizes
+    std::vector<NDArray> shapes;
+    for (Index i = 0; i < arg_count; i++) {
+      if (const auto* obj = args[i].as<ADTObj>()) {
+        for (size_t fi = 0; fi < obj->size; ++fi) {
+          auto o = (*obj)[fi];
+          shapes.push_back(Downcast<NDArray>(o));
+        }
+      } else {
+        shapes.push_back(Downcast<NDArray>(args[i]));
       }
-    } else {
-      shapes.push_back(Downcast<NDArray>(args[i]));
     }
-  }
 
-  std::unordered_map<std::string, ObjectRef> metrics;
-  for (auto p : exec_->op_attrs.at(packed_index)) {
-    if (std::string(p.first).find("layout") != std::string::npos) {
-      metrics[p.first] = p.second;
+    std::unordered_map<std::string, ObjectRef> metrics;
+    for (auto p : exec_->op_attrs.at(packed_index)) {
+      if (std::string(p.first).find("layout") != std::string::npos) {
+        metrics[p.first] = p.second;
+      }
     }
-  }
-  metrics["Hash"] =
-      Downcast<String>(exec_->op_attrs.at(packed_index)["hash"]);  // FIXME: if hash is not defined
-  metrics["Argument Shapes"] = profiling::ShapeString(shapes);
+    metrics["Hash"] = Downcast<String>(
+        exec_->op_attrs.at(packed_index)["hash"]);  // FIXME: if hash is not defined
+    metrics["Argument Shapes"] = profiling::ShapeString(shapes);
 
-  (*prof_).StartCall(packed_index_map_[packed_index], ctx, metrics);
+    (*prof_).StartCall(packed_index_map_[packed_index], ctx, metrics);
   }
   VirtualMachine::InvokePacked(packed_index, func, arg_count, output_size, args);
-  if(prof_) {
+  if (prof_) {
     (*prof_).StopCall();
   }
 }

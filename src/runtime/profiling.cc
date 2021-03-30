@@ -23,9 +23,9 @@
  */
 
 #include <tvm/ir/expr.h>
+#include <tvm/runtime/c_backend_api.h>
 #include <tvm/runtime/packed_func.h>
 #include <tvm/runtime/profiling.h>
-#include <tvm/runtime/c_backend_api.h>
 
 #include <chrono>
 #include <iomanip>
@@ -103,11 +103,13 @@ TVM_REGISTER_GLOBAL("profiling.start_timer").set_body_typed(Timer::Start);
 
 namespace profiling {
 
-static void* papi;
+static std::vector<long_long> papi;
+static int papi_global;
 
 void Profiler::Start(const std::vector<TVMContext>& ctxs) {
-  papi = papi_start(ctxs[0]); // FIXME
+  papi_global = papi_start(ctxs[0]);  // FIXME
   TVMBackendResetPool();
+  papi_start_call(papi_global);
   CHECK(global_timers_.empty()) << "You can only call Start once per Profiler.";
   for (auto ctx : ctxs) {
     global_timers_.emplace_back(ctx, Timer::Start(ctx));
@@ -116,7 +118,7 @@ void Profiler::Start(const std::vector<TVMContext>& ctxs) {
 
 void Profiler::StartCall(String name, TVMContext ctx,
                          std::unordered_map<std::string, ObjectRef> extra_metrics) {
-  papi_start_call(papi);
+  papi = papi_start_call(papi_global);
   in_flight_.push(CallFrame{ctx, name, Timer::Start(ctx), extra_metrics});
 }
 
@@ -126,7 +128,7 @@ void Profiler::StopCall(std::unordered_map<std::string, ObjectRef> extra_metrics
   for (auto& p : extra_metrics) {
     cf.extra_metrics[p.first] = p.second;
   }
-  auto extra = papi_stop_call(papi);
+  auto extra = papi_stop_call(papi, papi_global);
   for (auto& p : extra) {
     cf.extra_metrics[p.first] = p.second;
   }
@@ -139,6 +141,7 @@ void Profiler::Stop() {
   for (auto p : global_timers_) {
     p.second->Stop();
   }
+  extra_totals_ = papi_stop(papi_global);
 }
 
 String ShapeString(const std::vector<NDArray>& shapes) {
@@ -198,8 +201,7 @@ std::string FormatCSV(const std::vector<std::unordered_map<std::string, ObjectRe
 }
 
 std::string FormatTable(const std::vector<std::unordered_map<std::string, ObjectRef>>& rows,
-                        std::unordered_set<std::string> hidden_cols = {
-                                                                       "Context"}) {
+                        std::unordered_set<std::string> hidden_cols = {"layout", "src_layout", "dst_layout", "kernel_layout", "data_layout", "out_layout", "Argument Shapes", "Context"}) {
   std::unordered_set<std::string> unique_headers;
 
   for (auto row : rows) {
@@ -293,7 +295,7 @@ String Profiler::Report(bool aggregate) {
     overall_time = std::max(overall_time, p.second);
   }
 
-  aggregate=false;
+  aggregate = false;
 
   // aggregate times by op name
   std::vector<std::pair<std::string, std::vector<size_t>>> aggregate_rows;
@@ -401,18 +403,25 @@ String Profiler::Report(bool aggregate) {
     }
   }
   std::unordered_map<std::string, ObjectRef> sums = {
-      {"Name", String("Total")},
+      {"Name", String("Total in op")},
       {"Duration (us)", ObjectRef(make_object<DurationNode>(op_sum))},
       {"Count", ObjectRef(make_object<CountNode>(total_count))},
       {"Percent", ObjectRef(make_object<PercentNode>(per))}};
   for (auto& p : col_sums) {
     sums[p.first] = p.second;
   }
+  std::unordered_map<std::string, ObjectRef> totals = {
+      {"Name", String("Total overall")},
+      {"Duration (us)", ObjectRef(make_object<DurationNode>(overall_time))}};
+  for (auto& p : extra_totals_) {
+    totals[p.first] = p.second;
+  }
 
   // return FormatCSV(rows);
 
   rows.push_back({{"Name", String("------------------")}});
   rows.push_back(sums);
+  rows.push_back(totals);
 
   std::stringstream s;
   s.imbue(std::locale(""));
