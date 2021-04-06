@@ -1606,6 +1606,13 @@ inline TObjectRef TVMPODValue_::AsObjectRef() const {
              type_code_ == kTVMModuleHandle) {
     // Casting to a base class that Module can sub-class
     return TObjectRef(GetObjectPtr<Object>(static_cast<Object*>(value_.v_handle)));
+  // } else if (type_code_ == kTVMDLTensorHandle) {
+  // //   NDArray r;
+  // //   r.CopyFrom(static_cast<DLTensor*>(value_.v_handle));
+  //   auto r = TObjectRef(NDArray::FFIDataFromHandle(TVMArrayHandleToObjectHandle(static_cast<TVMArrayHandle>(value_.v_handle))));
+  //   return r;
+  // //   // LOG(INFO) << "HERERE " <<ObjectTypeChecker<TObjectRef>::TypeName() << " " << r.GetTypeKey();
+  // //   return TObjectRef(GetObjectPtr<Object>(const_cast<Object*>(ObjectRef(r).as<Object>())));
   } else {
     TVM_CHECK_TYPE_CODE(type_code_, kTVMObjectHandle);
     return TObjectRef(ObjectPtr<Object>(nullptr));

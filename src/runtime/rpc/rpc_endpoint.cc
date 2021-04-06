@@ -173,6 +173,7 @@ class RPCEndpoint::EventHandler : public dmlc::Stream {
     TVMArgs args(arg_values, type_codes, num_args);
     for (int i = 0; i < num_args; ++i) {
       int tcode = type_codes[i];
+      LOG(INFO) << "calling with " << tcode;
       if (tcode == kTVMObjectHandle || tcode == kTVMObjectRValueRefArg) {
         LOG(FATAL) << "ValueError: Cannot pass argument " << i << ", type "
                    << args[i].AsObjectRef<ObjectRef>()->GetTypeKey() << " is not supported by RPC";

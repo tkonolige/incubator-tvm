@@ -37,6 +37,8 @@
 
 #include "../file_utils.h"
 
+constexpr int kTVMRpcSessMask = 128;
+
 using namespace tvm::runtime;
 
 namespace tvm {
@@ -73,7 +75,7 @@ inline ObjectRef CopyTo(ObjectRef src, const DLDevice& dev) {
     return src;
   } else {
     ICHECK(src->IsInstance<ADTObj>())
-        << "VM data must be NDArray or a list of NDArray, but received: " << src->_type_key;
+        << "VM data must be NDArray or a list of NDArray, but received: " << src->GetTypeKey();
     std::vector<ObjectRef> ret;
     ADT adt = Downcast<ADT>(src);
     for (size_t i = 0; i < adt.size(); i++) {
@@ -131,6 +133,7 @@ PackedFunc VirtualMachine::GetFunction(const std::string& name,
         const std::vector<ObjectRef>& func_args = it->second;
         *rv = Invoke(func, func_args);
       }
+      LOG(INFO) << "**********************************************************";
     });
   } else if (name == "init") {
     return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
@@ -150,6 +153,7 @@ PackedFunc VirtualMachine::GetFunction(const std::string& name,
     });
   } else if (name == "set_input") {
     return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
+        LOG(INFO) << "ARGS SIZE " << args.size();
       ICHECK(exec_) << "The executable is not created yet.";
       std::string func_name = args[0];
       auto gvit = exec_->global_map.find(func_name);
@@ -165,8 +169,21 @@ PackedFunc VirtualMachine::GetFunction(const std::string& name,
       for (int i = 1; i < args.size(); ++i) {
         Index device_type = vm_func.params_device_type[i - 1];
         Device dev = GetDevice(device_type);
-        ObjectRef obj = CopyTo(args[i], dev);
-        func_args[i - 1] = obj;
+
+        if(args[i].IsObjectRef<NDArray>()) {
+          ObjectRef obj = CopyTo(args[i], dev);
+          func_args[i - 1] = obj;
+        } else {
+          DLTensor* tensor = args[i];
+          std::vector<int64_t> shape;
+          for(size_t i = 0; i < tensor->ndim; i++) {
+            shape.push_back(tensor->shape[i]);
+          }
+          NDArray ary = NDArray::Empty(shape, tensor->dtype, dev);
+          ary.CopyFrom(tensor);
+          func_args[i - 1] = ary;
+        }
+
       }
       inputs_.erase(func_name);
       inputs_.emplace(func_name, func_args);
@@ -179,9 +196,10 @@ PackedFunc VirtualMachine::GetFunction(const std::string& name,
 
 inline Device VirtualMachine::GetDevice(Index device_type) const {
   ICHECK_GE(devices_.size(), device_type) << "devices_ doesn't contain device:" << device_type;
+  CHECK_LE(device_type, kTVMRpcSessMask) << "Device type needs to be normalized to a local device type.";
 
   auto dev = devices_[device_type];
-  ICHECK_EQ(static_cast<Index>(dev.device_type), device_type)
+  ICHECK_EQ(static_cast<Index>(dev.device_type) % kTVMRpcSessMask, device_type)
       << "device type " << device_type << " has not been initialized in the device list.";
   return dev;
 }

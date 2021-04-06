@@ -98,6 +98,7 @@ class RPCWrappedFunc : public Object {
         continue;
       }
       int tcode = type_codes[i];
+      LOG(INFO) << tcode;
       switch (tcode) {
         case kTVMDLTensorHandle:
         case kTVMNDArrayHandle: {
@@ -124,6 +125,7 @@ class RPCWrappedFunc : public Object {
       }
     }
     auto set_return = [this, rv](TVMArgs args) { this->WrapRemoteReturnToValue(args, rv); };
+    LOG(INFO) << "------";
     sess_->CallFunc(handle_, values.data(), type_codes.data(), args.size(), set_return);
   }
 

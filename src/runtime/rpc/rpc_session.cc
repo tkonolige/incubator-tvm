@@ -35,6 +35,7 @@ namespace runtime {
 bool RPCSession::IsAsync() const { return false; }
 
 void RPCSession::SendException(FAsyncCallback callback, const char* msg) {
+  LOG(INFO) << std::string(msg);
   TVMValue value;
   value.v_str = msg;
   int32_t tcode = kTVMStr;

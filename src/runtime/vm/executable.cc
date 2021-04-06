@@ -685,6 +685,7 @@ Instruction DeserializeInstruction(const VMInstructionSerializer& instr) {
       dtype.lanes = instr.fields[4];
 
       Index device_type = instr.fields[5];
+      LOG(INFO) << "STOARGE DECVICE TYPE " << device_type;
       RegName dst = instr.fields[6];
 
       return Instruction::AllocStorage(allocation_size, alignment, dtype, device_type, dst);

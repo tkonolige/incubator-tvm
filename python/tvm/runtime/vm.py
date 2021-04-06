@@ -28,6 +28,7 @@ from tvm._ffi.runtime_ctypes import TVMByteArray
 from tvm._ffi import base as _base
 from .object import Object
 from . import _ffi_api, container
+from ..rpc.base import RPC_SESS_MASK
 
 
 def _convert(arg, cargs):
@@ -356,7 +357,7 @@ class VirtualMachine(object):
             devs = [dev]
 
         # CPU is required for executing shape functions
-        if not any(c.device_type == tvm.cpu().device_type for c in devs):
+        if not any(c.device_type % RPC_SESS_MASK == tvm.cpu().device_type for c in devs):
             devs.append(tvm.cpu())
 
         default_alloc_type = VirtualMachine.POOLED_ALLOCATOR
@@ -374,7 +375,7 @@ class VirtualMachine(object):
             )
         init_args = []
         for device in devs:
-            init_args.append(device.device_type)
+            init_args.append(device.device_type % RPC_SESS_MASK) # TODO: does this cause an issue or get us closer to a solution?
             init_args.append(device.device_id)
             alloc_type = memory_cfg[device] if device in memory_cfg else default_alloc_type
             init_args.append(alloc_type)

@@ -245,10 +245,12 @@ def c2pyerror(err_msg):
         Detected error type.
     """
     arr = err_msg.split("\n")
+    print(err_msg)
     if arr[-1] == "":
         arr.pop()
     err_type = _find_error_type(arr[0])
     trace_mode = False
+    found_trace = False
     stack_trace = []
     message = []
     for line in arr:
@@ -259,9 +261,10 @@ def c2pyerror(err_msg):
                 stack_trace.append(line)
             else:
                 trace_mode = False
-        if not trace_mode:
+        if not trace_mode and not found_trace:
             if line.startswith("Stack trace"):
                 trace_mode = True
+                found_trace = True
             else:
                 message.append(line)
     out_msg = ""

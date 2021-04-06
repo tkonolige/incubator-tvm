@@ -284,6 +284,8 @@ class VirtualMachine : public runtime::ModuleNode {
    * object to avoid rellocation of constants during inference.
    */
   std::vector<ObjectRef> const_pool_;
+  /*! \brief Is the VM running remotely */
+  bool is_rpc_;
 };
 
 }  // namespace vm
