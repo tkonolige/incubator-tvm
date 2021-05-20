@@ -112,7 +112,7 @@ def verify_matmul_add_igemm(in_dtype, out_dtype, rtol=1e-5):
     verify()
 
 
-def verify_batch_matmul(in_dtype, out_dtype, rtol=1e-5):
+def verify_batch_matmul(in_dtype, out_dtype, rtol=1e-2):
     j = 16
     n = 1024
     l = 128
@@ -136,7 +136,7 @@ def verify_batch_matmul(in_dtype, out_dtype, rtol=1e-5):
             c.asnumpy(),
             np.matmul(a.asnumpy().astype(C.dtype), b.asnumpy().astype(C.dtype)).astype(C.dtype),
             rtol=rtol,
-            atol=1e-5,
+            atol=1e-2,
         )
 
     verify()
