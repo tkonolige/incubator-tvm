@@ -35,13 +35,6 @@ inline cublasOperation_t CUBLASBooleanToTranspose(bool item) {
   return item ? CUBLAS_OP_T : CUBLAS_OP_N;
 }
 
-inline void CUBLASTryEnableTensorCore(cublasHandle_t hdl) {
-  // TensorCores are only supported in cublas 9.0 or higher
-  int version;
-  CHECK_CUBLAS_ERROR(cublasGetVersion(hdl, &version));
-  if (version >= 9000) CHECK_CUBLAS_ERROR(cublasSetMathMode(hdl, CUBLAS_TENSOR_OP_MATH));
-}
-
 struct CublasHgemmOp {
   typedef half TDatatype;
   cublasHandle_t handle;
@@ -336,8 +329,6 @@ TVM_REGISTER_GLOBAL("tvm.contrib.cublas.matmul").set_body([](TVMArgs args, TVMRe
 
   CuBlasThreadEntry* entry_ptr = CuBlasThreadEntry::ThreadLocal();
 
-  CUBLASTryEnableTensorCore(entry_ptr->handle);
-
   if (TypeEqual(A->dtype, C->dtype)) {
     ICHECK(TypeMatch(A->dtype, kDLFloat, 16) || TypeMatch(A->dtype, kDLFloat, 32) ||
            TypeMatch(A->dtype, kDLFloat, 64));
@@ -359,8 +350,6 @@ TVM_REGISTER_GLOBAL("tvm.contrib.cublaslt.matmul").set_body([](TVMArgs args, TVM
 
   CuBlasThreadEntry* entry_ptr = CuBlasThreadEntry::ThreadLocal();
 
-  CUBLASTryEnableTensorCore(entry_ptr->handle);
-
   ICHECK(TypeMatch(A->dtype, kDLInt, 8)) << "Expects dtype to be int8\n";
   cublasLtHandle_t ltHandle;
   CHECK_CUBLAS_ERROR(cublasLtCreate(&ltHandle));
@@ -375,7 +364,6 @@ TVM_REGISTER_GLOBAL("tvm.contrib.cublas.batch_matmul").set_body([](TVMArgs args,
 
   CuBlasThreadEntry* entry_ptr = CuBlasThreadEntry::ThreadLocal();
 
-  CUBLASTryEnableTensorCore(entry_ptr->handle);
   if (TypeEqual(A->dtype, C->dtype)) {
     ICHECK(TypeMatch(A->dtype, kDLFloat, 16) || TypeMatch(A->dtype, kDLFloat, 32) ||
            TypeMatch(A->dtype, kDLFloat, 64));
