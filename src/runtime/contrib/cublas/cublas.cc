@@ -348,8 +348,6 @@ TVM_REGISTER_GLOBAL("tvm.contrib.cublas.matmul").set_body([](TVMArgs args, TVMRe
 TVM_REGISTER_GLOBAL("tvm.contrib.cublaslt.matmul").set_body([](TVMArgs args, TVMRetValue* ret) {
   DLTensor* A = args[0];
 
-  CuBlasThreadEntry* entry_ptr = CuBlasThreadEntry::ThreadLocal();
-
   ICHECK(TypeMatch(A->dtype, kDLInt, 8)) << "Expects dtype to be int8\n";
   cublasLtHandle_t ltHandle;
   CHECK_CUBLAS_ERROR(cublasLtCreate(&ltHandle));
